@@ -13,8 +13,10 @@ import { PageCreatorModal } from './components/PageCreatorModal';
 import { AccountModal } from './components/AccountModal';
 import { AdminPanel } from './components/AdminPanel';
 import { GitHubPagesExportModal } from './components/GitHubPagesExportModal';
+import { LoadingScreen } from './components/LoadingScreen';
 
 export default function App() {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [pages, setPages] = useState<WikiPage[]>(() => {
     try {
       const saved = localStorage.getItem('aetheria_wiki_pages');
@@ -200,6 +202,10 @@ export default function App() {
   };
 
   const activePage = pages.find((p) => p.id === selectedPageId);
+
+  if (isInitialLoading) {
+    return <LoadingScreen onComplete={() => setIsInitialLoading(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-[#e2e8f0] font-sans selection:bg-sky-500 selection:text-black flex flex-col">
