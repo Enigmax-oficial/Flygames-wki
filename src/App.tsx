@@ -81,6 +81,10 @@ export default function App() {
       return { pageId: 'home', category: 'all' as CategoryType | 'all' };
     }
 
+    if (rawHash === 'admin-panel') {
+      return { pageId: 'admin-panel', category: 'all' as CategoryType | 'all' };
+    }
+
     const parts = rawHash.split('/').filter(Boolean);
 
     // e.g. #/category/mobs
@@ -128,6 +132,11 @@ export default function App() {
     if (pageId === 'home') {
       window.location.hash = '#/portal';
       setSelectedPageId('home');
+      return;
+    }
+    if (pageId === 'admin-panel') {
+      window.location.hash = '#/admin-panel';
+      setSelectedPageId('admin-panel');
       return;
     }
 

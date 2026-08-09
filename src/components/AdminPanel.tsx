@@ -114,15 +114,94 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [sectionContent, setSectionContent] = useState('');
   
   // Image Selector State
-  const [imageSource, setImageSource] = useState<'preset' | 'custom'>('preset');
+  const [imageSource, setImageSource] = useState<'preset' | 'custom' | 'upload'>('preset');
   const [selectedPresetImage, setSelectedPresetImage] = useState(PRESET_IMAGES[0].url);
   const [customImageUrl, setCustomImageUrl] = useState('');
+  const [uploadedFileName, setUploadedFileName] = useState('');
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadedFileName(file.name);
+      const reader = new FileReader();
+      reader.onload = (uploadEvent) => {
+        if (uploadEvent.target?.result) {
+          setCustomImageUrl(uploadEvent.target.result as string);
+          setImageSource('custom');
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const formatCategoryName = (catId: string) => {
+    const found = categories.find(c => c.id === catId);
+    if (found) return found.label;
+    if (catId === 'mobs') return 'Mobs & Bosses';
+    if (catId === 'items') return 'Items & Weapons';
+    if (catId === 'blocks') return 'Blocks & Ores';
+    if (catId === 'biomes') return 'Biomes & Realms';
+    if (catId === 'recipes') return 'Forge Recipes';
+    if (catId === 'guides') return 'Guides & Manuals';
+    return catId.charAt(0).toUpperCase() + catId.slice(1);
+  };
   
   // Template Auto-populate selection
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
 
   const [isSuccess, setIsSuccess] = useState(false);
   const [createdPageId, setCreatedPageId] = useState('');
+  const [editorMode, setEditorMode] = useState<'form' | 'text'>('form');
+  const [rawJsonCode, setRawJsonCode] = useState('');
+
+  const switchToTextEditor = () => {
+    const slug = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new-wiki-page';
+    const bullets = [bullet1, bullet2].filter(b => b.trim() !== '');
+    const activeImage = imageSource === 'preset' ? selectedPresetImage : customImageUrl;
+
+    const pageObj: WikiPage = {
+      id: slug,
+      title: title || 'Untitled Page',
+      namespace: namespace || `aetheria:${slug}`,
+      category: selectedCatId,
+      description: description || 'Addon wiki entry.',
+      addonVersion: 'v1.4.0',
+      icon: icon || '📄',
+      renderImageUrl: activeImage || undefined,
+      tags: [selectedCatId, 'Custom', 'Admin Created'],
+      lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      badge: badge || selectedCatId.toUpperCase(),
+      badgeColor,
+      behaviorBullets: bullets.length > 0 ? bullets : undefined,
+      sections: [
+        {
+          title: sectionTitle || 'Description',
+          content: sectionContent || description || 'No content provided.'
+        }
+      ]
+    };
+    setRawJsonCode(JSON.stringify(pageObj, null, 2));
+    setEditorMode('text');
+  };
+
+  const publishFromTextEditor = () => {
+    try {
+      const parsed = JSON.parse(rawJsonCode);
+      if (!parsed.id || !parsed.title) {
+        alert('Invalid JSON: must contain at least id and title.');
+        return;
+      }
+      WikiApi.createPage(parsed);
+      setCreatedPageId(parsed.id);
+      setIsSuccess(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (onPageCreated) {
+        onPageCreated(parsed);
+      }
+    } catch (err: any) {
+      alert('JSON Parse Error: ' + err.message);
+    }
+  };
 
   // Handle template selection auto-population
   const handleTemplateChange = (templateId: string) => {
@@ -457,17 +536,74 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           
           {/* Left 2 Columns: Create Page Form */}
           <div className="lg:col-span-2 bg-[#111827] border border-[#1e293b] rounded-2xl p-6 space-y-6 shadow-xl">
-            <div className="border-b border-[#1e293b] pb-3">
-              <h2 className="text-base font-extrabold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-sky-400" />
-                <span>Instantiate Page from Presets</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Utilize page templates and dynamic categories to deploy beautiful addon articles in seconds without manual HTML or element layouts.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#1e293b] pb-3 gap-3">
+              <div>
+                <h2 className="text-base font-extrabold text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-sky-400" />
+                  <span>Instantiate Page or Text Editor</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Deploy addon articles using visual form blueprints or switch to the raw text/JSON editor mode.
+                </p>
+              </div>
+
+              <div className="flex items-center bg-[#0b0f19] border border-[#1e293b] rounded-xl p-1 shrink-0 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setEditorMode('form')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+                    editorMode === 'form' ? 'bg-sky-500 text-black' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Form Builder
+                </button>
+                <button
+                  type="button"
+                  onClick={switchToTextEditor}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    editorMode === 'text' ? 'bg-sky-500 text-black' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <FileJson className="w-3.5 h-3.5" />
+                  <span>Text / JSON Editor</span>
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleSubmitPage} className="space-y-5">
+            {editorMode === 'text' ? (
+              <div className="space-y-4">
+                <div className="p-3.5 bg-sky-950/20 border border-sky-500/20 rounded-xl text-xs text-slate-300 space-y-1">
+                  <p className="font-bold text-sky-400">Raw JSON & Text Editor Mode</p>
+                  <p className="text-slate-400 text-[11px]">
+                    You are editing the complete wiki article JSON payload. Make changes to metadata, sections, or attributes directly, then click publish.
+                  </p>
+                </div>
+                <textarea
+                  rows={20}
+                  value={rawJsonCode}
+                  onChange={(e) => setRawJsonCode(e.target.value)}
+                  className="w-full bg-[#0b0f19] border border-[#1e293b] focus:border-sky-500 rounded-xl p-4 font-mono text-xs text-emerald-300 focus:outline-none leading-relaxed shadow-inner"
+                />
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditorMode('form')}
+                    className="px-4 py-2.5 bg-[#1e293b] hover:bg-[#334155] text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+                  >
+                    Back to Form Builder
+                  </button>
+                  <button
+                    type="button"
+                    onClick={publishFromTextEditor}
+                    className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.3)] cursor-pointer flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>Publish from Text Editor</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitPage} className="space-y-5">
               
               {/* Preset / Template Selector */}
               <div className="space-y-1.5 p-3.5 bg-sky-950/20 border border-sky-500/20 rounded-xl">
@@ -575,20 +711,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <button
                       type="button"
                       onClick={() => setImageSource('preset')}
-                      className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition ${
+                      className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition cursor-pointer ${
                         imageSource === 'preset' ? 'bg-sky-500 text-black' : 'bg-slate-800 text-slate-400'
                       }`}
                     >
-                      Presets Grid
+                      Presets
                     </button>
                     <button
                       type="button"
                       onClick={() => setImageSource('custom')}
-                      className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase transition ${
+                      className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition cursor-pointer ${
                         imageSource === 'custom' ? 'bg-sky-500 text-black' : 'bg-slate-800 text-slate-400'
                       }`}
                     >
-                      Custom URL
+                      URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImageSource('upload')}
+                      className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition cursor-pointer ${
+                        imageSource === 'upload' ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-400'
+                      }`}
+                    >
+                      Upload File
                     </button>
                   </div>
                 </div>
@@ -613,6 +758,28 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         </div>
                       ))}
                     </div>
+                  </div>
+                ) : imageSource === 'upload' ? (
+                  <div className="space-y-2 p-4 bg-[#0b0f19] border border-dashed border-emerald-500/40 rounded-xl text-center">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="page-image-upload-input"
+                    />
+                    <label
+                      htmlFor="page-image-upload-input"
+                      className="cursor-pointer flex flex-col items-center justify-center gap-2 py-2"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center justify-center">
+                        📁
+                      </div>
+                      <span className="text-xs font-bold text-white">
+                        {uploadedFileName ? `Selected: ${uploadedFileName}` : 'Click to Upload Image from Device'}
+                      </span>
+                      <span className="text-[10px] text-slate-400">Supports PNG, JPG, WebP, SVG</span>
+                    </label>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
@@ -736,6 +903,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
 
             </form>
+            )}
           </div>
 
           {/* Right Column: Registry Statistics & Quick Deletion */}
@@ -796,8 +964,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       </div>
                       
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[9px] px-1.5 py-0.5 bg-sky-500/10 text-sky-400 rounded border border-sky-500/20 capitalize font-medium max-w-[60px] truncate">
-                          {cp.category}
+                        <span className="text-[9px] px-2 py-0.5 bg-sky-500/10 text-sky-400 rounded border border-sky-500/20 font-medium max-w-[110px] truncate" title={formatCategoryName(cp.category)}>
+                          {formatCategoryName(cp.category)}
                         </span>
                         
                         <button

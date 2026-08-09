@@ -11,10 +11,15 @@ import {
   Check, 
   Sparkles,
   FileCode,
-  Key,
-  Database
+  Bookmark,
+  Activity,
+  Lock,
+  Star,
+  Award,
+  Settings
 } from 'lucide-react';
 import { downloadTemplateScript, downloadGlobalPageCreator } from '../templates/PageCreator';
+import { WikiPage } from '../types/wiki';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -23,27 +28,34 @@ interface AccountModalProps {
   userEmail?: string | null;
   onLogout: () => void;
   onUpdateUserName?: (newName: string) => void;
+  onUpdateUserEmail?: (newEmail: string) => void;
   onOpenAdminPanel?: () => void;
+  pages?: WikiPage[];
 }
 
 export const AccountModal: React.FC<AccountModalProps> = ({
   isOpen,
   onClose,
   user,
-  userEmail = 'ruanpablolopesbritor@gmail.com',
+  userEmail = 'ruanpablolopesbritoruan@gmail.com',
   onLogout,
   onUpdateUserName,
+  onUpdateUserEmail,
   onOpenAdminPanel,
+  pages = []
 }) => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'contributions' | 'bookmarks' | 'security'>('overview');
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(user || '');
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState(userEmail || 'ruanpablolopesbritoruan@gmail.com');
   const [copiedScript, setCopiedScript] = useState(false);
 
   if (!isOpen) return null;
 
-  const displayEmail = userEmail || 'ruanpablolopesbritor@gmail.com';
+  const displayEmail = userEmail || 'ruanpablolopesbritoruan@gmail.com';
   
-  // Administrator condition: ruanpablolopesbritor@gmail.com or ruanpablolopesbritoruan@gmail.com or admin email
+  // Administrator condition
   const isAdmin = 
     displayEmail.toLowerCase().includes('ruanpablolopesbrito') ||
     displayEmail.toLowerCase().includes('admin') ||
@@ -56,157 +68,314 @@ export const AccountModal: React.FC<AccountModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#0b0f19] border border-[#1e293b] rounded-2xl max-w-lg w-full p-6 text-white shadow-2xl relative space-y-6">
-        
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-[#94a3b8] hover:text-white p-2 rounded-xl hover:bg-[#1e293b] transition-all cursor-pointer"
-        >
-          <X className="w-5 h-5" />
-        </button>
+  const handleSaveEmail = () => {
+    if (newEmail.trim() && onUpdateUserEmail) {
+      onUpdateUserEmail(newEmail.trim());
+      setIsEditingEmail(false);
+    }
+  };
 
-        {/* Modal Title */}
-        <div className="flex items-center gap-3 border-b border-[#1e293b] pb-4">
-          <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400">
-            <User className="w-5 h-5" />
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+      <div className="bg-[#0b0f19] border border-[#1e293b] rounded-3xl max-w-2xl w-full text-white shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
+        
+        {/* Cover Banner Header */}
+        <div className="h-32 bg-gradient-to-r from-sky-600 via-indigo-600 to-purple-600 relative p-6 flex justify-between items-start">
+          <div className="absolute inset-0 bg-black/20" />
+          
+          <div className="relative z-10 flex items-center gap-2">
+            <span className="px-3 py-1 bg-black/40 backdrop-blur-md border border-white/20 rounded-full text-[11px] font-mono tracking-wider text-sky-300">
+              {isAdmin ? '👑 Administrator Profile' : '🛡️ Verified Explorer'}
+            </span>
           </div>
-          <div>
-            <h2 className="text-xl font-bold tracking-tight">Account Management</h2>
-            <p className="text-xs text-[#64748b]">Manage your Etherium Wiki profile & admin options</p>
-          </div>
+
+          <button
+            onClick={onClose}
+            className="relative z-10 text-white/80 hover:text-white p-2 rounded-xl bg-black/30 hover:bg-black/50 backdrop-blur-md transition-all cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Profile Card Header */}
-        <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center font-black text-2xl text-black shadow-lg">
-                  {(user || 'U').charAt(0).toUpperCase()}
-                </div>
-                {isAdmin && (
-                  <div className="absolute -top-1.5 -right-1.5 bg-amber-500 text-black p-1 rounded-full shadow-md" title="Administrator">
-                    <Crown className="w-3.5 h-3.5" />
+        {/* Profile Identity & Avatar Area */}
+        <div className="px-6 pb-4 relative -mt-12 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-b border-[#1e293b]">
+          <div className="flex items-end gap-4">
+            <div className="relative">
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-black text-4xl text-black shadow-2xl border-4 border-[#0b0f19]">
+                {(user || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-black p-1.5 rounded-full border-2 border-[#0b0f19] shadow" title="Online Status">
+                <div className="w-2.5 h-2.5 bg-black rounded-full animate-pulse" />
+              </div>
+            </div>
+
+            <div className="pb-1">
+              <div className="flex items-center gap-2">
+                {isEditingName ? (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      className="bg-[#1e293b] border border-sky-500 rounded-lg px-2.5 py-1 text-sm text-white focus:outline-none"
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg hover:bg-emerald-500/30 cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" />
+                    </button>
                   </div>
+                ) : (
+                  <>
+                    <h2 className="text-xl font-black text-white tracking-tight">{user || 'Ruan Pablo'}</h2>
+                    <button
+                      onClick={() => setIsEditingName(true)}
+                      className="text-[#64748b] hover:text-sky-400 transition-colors p-1"
+                      title="Edit Display Name"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </>
                 )}
               </div>
 
-              <div>
-                <div className="flex items-center gap-2">
-                  {isEditingName ? (
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        className="bg-[#1e293b] border border-sky-500 rounded px-2 py-1 text-xs text-white focus:outline-none"
-                      />
-                      <button
-                        onClick={handleSaveName}
-                        className="p-1 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/30 cursor-pointer"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <h3 className="text-base font-bold text-white">{user || 'Minecraft Explorer'}</h3>
-                      <button
-                        onClick={() => setIsEditingName(true)}
-                        className="text-[#64748b] hover:text-sky-400 transition-colors p-1"
-                        title="Edit Username"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                    </>
-                  )}
-                </div>
+              <p className="text-xs text-[#94a3b8] flex items-center gap-1.5 mt-1 font-mono">
+                <Mail className="w-3.5 h-3.5 text-sky-400" />
+                <span>{displayEmail}</span>
+              </p>
+            </div>
+          </div>
 
-                <p className="text-xs text-[#94a3b8] flex items-center gap-1.5 mt-0.5 font-mono">
-                  <Mail className="w-3 h-3 text-sky-400" />
-                  <span>{displayEmail}</span>
+          <div className="flex items-center gap-2 pb-1">
+            {isAdmin && onOpenAdminPanel && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenAdminPanel();
+                }}
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs rounded-xl shadow-[0_0_20px_rgba(245,158,11,0.3)] transition flex items-center gap-2 cursor-pointer"
+              >
+                <Crown className="w-4 h-4" />
+                <span>Admin Panel</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-[#1e293b] px-6 gap-6 bg-[#0b0f19]">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition cursor-pointer ${
+              activeTab === 'overview' ? 'border-sky-400 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <User className="w-4 h-4" />
+            <span>Overview</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('contributions')}
+            className={`py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition cursor-pointer ${
+              activeTab === 'contributions' ? 'border-sky-400 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            <span>Contributions</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('bookmarks')}
+            className={`py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition cursor-pointer ${
+              activeTab === 'bookmarks' ? 'border-sky-400 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Bookmark className="w-4 h-4" />
+            <span>Saved & History</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition cursor-pointer ${
+              activeTab === 'security' ? 'border-sky-400 text-sky-400' : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Lock className="w-4 h-4" />
+            <span>Email & Security</span>
+          </button>
+        </div>
+
+        {/* Tab Content Body */}
+        <div className="p-6 overflow-y-auto space-y-6 flex-1">
+          
+          {activeTab === 'overview' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-4 text-center space-y-1">
+                  <div className="text-2xl font-black text-sky-400">{pages.length}</div>
+                  <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Wiki Pages</div>
+                </div>
+                <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-4 text-center space-y-1">
+                  <div className="text-2xl font-black text-emerald-400">100%</div>
+                  <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Sync Integrity</div>
+                </div>
+                <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-4 text-center space-y-1">
+                  <div className="text-2xl font-black text-amber-400">{isAdmin ? 'Level 5' : 'Level 2'}</div>
+                  <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Auth Rank</div>
+                </div>
+                <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-4 text-center space-y-1">
+                  <div className="text-2xl font-black text-purple-400">Active</div>
+                  <div className="text-[11px] font-bold uppercase text-slate-400 tracking-wider">Session State</div>
+                </div>
+              </div>
+
+              {/* Account details card */}
+              <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-sky-400" />
+                  <span>Account Credentials & Role</span>
+                </h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
+                  <div className="p-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl space-y-1">
+                    <span className="text-slate-500 block">DISPLAY NAME</span>
+                    <span className="text-white font-bold">{user || 'Ruan Pablo'}</span>
+                  </div>
+                  <div className="p-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl space-y-1">
+                    <span className="text-slate-500 block">AUTHENTICATED EMAIL</span>
+                    <span className="text-sky-300 font-bold">{displayEmail}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Admin Tools preview if admin */}
+              {isAdmin && (
+                <div className="bg-[#111827] border border-amber-500/30 rounded-2xl p-5 space-y-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-amber-400" />
+                    <span>Administrator Shortcut Downloads</span>
+                  </h3>
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    <button
+                      onClick={() => downloadTemplateScript('Etherium Shadow Blade', 'items', 'aetheria:shadow_blade')}
+                      className="px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download Template JS</span>
+                    </button>
+                    <button
+                      onClick={() => downloadGlobalPageCreator()}
+                      className="px-3.5 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <FileCode className="w-3.5 h-3.5" />
+                      <span>Download PageCreator.ts</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {activeTab === 'contributions' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-emerald-400" />
+                  <span>Recent Wiki Page Contributions</span>
+                </h3>
+                <span className="text-xs font-mono text-slate-400">{pages.length} Total Articles</span>
+              </div>
+
+              <div className="space-y-2.5">
+                {pages.slice(0, 5).map((p) => (
+                  <div key={p.id} className="bg-[#111827] border border-[#1e293b] rounded-2xl p-4 flex items-center justify-between hover:border-sky-500/30 transition">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl p-2 bg-[#0b0f19] rounded-xl border border-[#1e293b]">{p.icon}</span>
+                      <div>
+                        <h4 className="text-xs font-bold text-white">{p.title}</h4>
+                        <p className="text-[11px] text-slate-400 font-mono mt-0.5">Category: {p.category} • Updated {p.lastUpdated}</p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-mono font-bold">
+                      Published
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'bookmarks' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-sky-400" />
+                <span>Saved Bookmarks & Reading History</span>
+              </h3>
+              <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 text-center space-y-3">
+                <div className="w-12 h-12 bg-sky-500/10 border border-sky-500/30 text-sky-400 rounded-2xl flex items-center justify-center mx-auto">
+                  <Star className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-white">Your Reading Queue is Ready</h4>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                  Click the bookmark icon on any wiki article to save pages for quick offline reference across sessions.
                 </p>
               </div>
             </div>
+          )}
 
-            {/* Badge */}
-            <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border flex items-center gap-1 ${
-              isAdmin
-                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-                : 'bg-sky-500/10 text-sky-400 border-sky-500/30'
-            }`}>
-              {isAdmin ? <Crown className="w-3 h-3 text-amber-400" /> : <ShieldCheck className="w-3 h-3 text-sky-400" />}
-              <span>{isAdmin ? 'ADMINISTRATOR' : 'MEMBER'}</span>
-            </span>
-          </div>
-        </div>
+          {activeTab === 'security' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-sky-400" />
+                  <span>Update & Persist Email Address</span>
+                </h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Permanently update your registered account email. This prevents email loss upon page reload and ensures seamless authentication sync.
+                </p>
 
-        {/* Administrator Options & Downloads Section */}
-        {isAdmin && (
-          <div className="space-y-3 pt-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-              <Crown className="w-3.5 h-3.5 text-amber-400" />
-              <span>Administrator Tools & Template JS Downloads</span>
-            </h3>
-
-            <div className="bg-[#111827] border border-amber-500/30 rounded-2xl p-4 space-y-3">
-              <p className="text-xs text-[#cbd5e1] leading-relaxed">
-                As the administrator account (<code className="text-amber-300 font-mono">ruanpablolopesbritor@gmail.com</code>), you can create new wiki pages and download standalone JavaScript/TypeScript template scripts to incorporate into the project source code.
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                {onOpenAdminPanel && (
+                <div className="flex items-center gap-3">
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="Enter email address"
+                    className="flex-1 bg-[#0b0f19] border border-[#1e293b] focus:border-sky-500 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none"
+                  />
                   <button
-                    onClick={() => {
-                      onClose();
-                      onOpenAdminPanel();
-                    }}
-                    className="p-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer"
+                    onClick={handleSaveEmail}
+                    className="px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-black font-extrabold text-xs rounded-xl transition cursor-pointer"
                   >
-                    <Crown className="w-4 h-4 text-amber-400 shrink-0" />
-                    <span>Open Admin Control Panel</span>
+                    Save Email
                   </button>
-                )}
+                </div>
+              </div>
 
-                <button
-                  onClick={() => {
-                    downloadTemplateScript('Etherium Shadow Blade', 'items', 'aetheria:shadow_blade');
-                    setCopiedScript(true);
-                    setTimeout(() => setCopiedScript(false), 2000);
-                  }}
-                  className="p-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer"
-                  title="Download JS script file template"
-                >
-                  <Download className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>{copiedScript ? 'Downloaded JS Script!' : 'Download Template JS'}</span>
-                </button>
-
-                <button
-                  onClick={() => downloadGlobalPageCreator()}
-                  className="p-3 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-xl text-xs font-bold flex items-center gap-2.5 transition-all cursor-pointer col-span-1 sm:col-span-2"
-                  title="Download PageCreator.ts source file"
-                >
-                  <FileCode className="w-4 h-4 text-sky-400 shrink-0" />
-                  <span>Download PageCreator.ts Source Class</span>
-                </button>
+              <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-3">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Security & Local Storage Status</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Authentication state is securely stored in client local storage with automatic fallback defaults (<code className="text-sky-300 font-mono">ruanpablolopesbritoruan@gmail.com</code>).
+                </p>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-[#1e293b]">
-          <span className="text-[11px] text-[#64748b]">Logged in as {displayEmail}</span>
+        </div>
+
+        {/* Modal Footer */}
+        <div className="px-6 py-4 bg-[#0b0f19] border-t border-[#1e293b] flex items-center justify-between">
+          <span className="text-[11px] text-slate-400 font-mono">Active Session: {displayEmail}</span>
 
           <button
             onClick={() => {
               onLogout();
               onClose();
             }}
-            className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
+            className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>Sign Out</span>
