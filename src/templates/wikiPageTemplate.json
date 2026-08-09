@@ -1,0 +1,79 @@
+{
+  "$schema": "https://etherium.net/schemas/wiki-page-template.v1.json",
+  "templateVersion": "1.4.0",
+  "templateName": "Etherium Addon Standard Entity & Item Template",
+  "defaultCategory": "mobs",
+  "sample": {
+    "id": "crystal-drake",
+    "title": "Crystal Drake",
+    "namespace": "etherium:crystal_drake",
+    "category": "mobs",
+    "description": "A subterranean celestial dragon found deep within crystalline caverns. Emits high-energy resonant pulses that alter nearby gravity.",
+    "addonVersion": "v1.4.0",
+    "icon": "🐉",
+    "imageUrl": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80",
+    "badge": "MINI-BOSS",
+    "badgeColor": "purple",
+    "tags": ["Boss", "Crystal", "Flying", "Nether", "Celestial"],
+    "lastUpdated": "2026-08-09",
+    "author": "Etherium Developer Team",
+    "behaviorBullets": [
+      "Aggressive when approached within 12 blocks or attacked.",
+      "Launches homing crystalline shards that pierce dragon armor.",
+      "Can summon crystal spires from the cavern ceiling during combat.",
+      "Immune to fire, lava, and blast damage."
+    ],
+    "behaviorMeta": {
+      "biomes": "Crystal Caverns, Celestial Void",
+      "groupSize": "1 (Solitary)",
+      "spawnRate": "Rare (0.5%)",
+      "attackType": "Melee & Ranged Shards"
+    },
+    "difficultyStats": [
+      { "difficulty": "Easy", "health": "120 HP (60 ❤)", "attack": "6 HP (3 ❤)" },
+      { "difficulty": "Normal", "health": "180 HP (90 ❤)", "attack": "12 HP (6 ❤)" },
+      { "difficulty": "Hard", "health": "250 HP (125 ❤)", "attack": "18 HP (9 ❤)" }
+    ],
+    "dropsTable": [
+      { "item": "Crystal Drake Heart", "amount": "1", "chance": "100%", "icon": "💎" },
+      { "item": "Resonant Shard", "amount": "2-5", "chance": "80%", "icon": "🔮" },
+      { "item": "Drake Scale", "amount": "4-8", "chance": "100%", "icon": "🛡️" }
+    ],
+    "gallery": [
+      {
+        "url": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800&auto=format&fit=crop&q=80",
+        "title": "In-Game Render",
+        "caption": "Crystal Drake in its subterranean nest"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
+        "title": "3D Bedrock Model View",
+        "caption": "Interactive 3D Minecraft Bedrock geometry",
+        "is3D": true
+      }
+    ],
+    "mobStats": {
+      "health": 180,
+      "attackDamage": "12 HP (6 ❤)",
+      "behavior": "Hostile",
+      "spawnBiomes": ["Crystal Caverns", "Celestial Void"],
+      "drops": [
+        { "item": "Crystal Drake Heart", "itemId": "crystal_heart", "chance": "100%", "icon": "💎" },
+        { "item": "Resonant Shard", "itemId": "resonant_shard", "chance": "80%", "icon": "🔮" }
+      ],
+      "xpDrop": 150
+    },
+    "sections": [
+      {
+        "id": "overview",
+        "title": "Overview & Lore",
+        "content": "The **Crystal Drake** was introduced in Etherium v1.4.0 as a subterranean mini-boss residing deep within the Crystal Caverns biome."
+      },
+      {
+        "id": "combat",
+        "title": "Combat Mechanics",
+        "content": "When fighting a Crystal Drake, keep distance during its **Resonant Burst** attack. Using netherite shields can absorb up to 80% of shard projectile impact."
+      }
+    ]
+  }
+}

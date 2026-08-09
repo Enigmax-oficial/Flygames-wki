@@ -1,0 +1,69 @@
+{
+	"format_version": "1.12.0",
+	"minecraft:geometry": [
+		{
+			"description": {
+				"identifier": "geometry.crystalline_berserker",
+				"texture_width": 64,
+				"texture_height": 64
+			},
+			"bones": [
+				{
+					"name": "body",
+					"pivot": [0, 24, 0],
+					"cubes": [
+						{"origin": [-5, 12, -3], "size": [10, 14, 6], "uv": [0, 0]}
+					]
+				},
+				{
+					"name": "head",
+					"parent": "body",
+					"pivot": [0, 26, 0],
+					"cubes": [
+						{"origin": [-4, 26, -4], "size": [8, 8, 8], "uv": [32, 0]}
+					]
+				},
+				{
+					"name": "crystalCore",
+					"parent": "body",
+					"pivot": [0, 18, 0],
+					"cubes": [
+						{"origin": [-3, 15, -4], "size": [6, 6, 2], "inflate": 0.2, "uv": [0, 32]}
+					]
+				},
+				{
+					"name": "rightArm",
+					"parent": "body",
+					"pivot": [-6, 24, 0],
+					"cubes": [
+						{"origin": [-11, 10, -3], "size": [5, 16, 5], "uv": [16, 32]}
+					]
+				},
+				{
+					"name": "leftArm",
+					"parent": "body",
+					"pivot": [6, 24, 0],
+					"cubes": [
+						{"origin": [6, 10, -3], "size": [5, 16, 5], "uv": [36, 32]}
+					]
+				},
+				{
+					"name": "rightLeg",
+					"parent": "body",
+					"pivot": [-2.5, 12, 0],
+					"cubes": [
+						{"origin": [-5, 0, -2.5], "size": [5, 12, 5], "uv": [0, 20]}
+					]
+				},
+				{
+					"name": "leftLeg",
+					"parent": "body",
+					"pivot": [2.5, 12, 0],
+					"cubes": [
+						{"origin": [0, 0, -2.5], "size": [5, 12, 5], "uv": [20, 20]}
+					]
+				}
+			]
+		}
+	]
+}

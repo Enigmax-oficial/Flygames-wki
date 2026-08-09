@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "templateId": "block-template",
+  "name": "Block / Ore Template",
+  "category": "blocks",
+  "description": "Template for decorative blocks, ores, workstations, or special stone blocks.",
+  "defaultData": {
+    "id": "block-name",
+    "title": "Block Name",
+    "namespace": "my_addon:block_name",
+    "category": "blocks",
+    "description": "A special block found in the underground world of the Addon.",
+    "addonVersion": "v1.0.0",
+    "icon": "🧱",
+    "tags": ["block", "ore", "decorative"],
+    "lastUpdated": "2026-08-08",
+    "blockStats": {
+      "hardness": 3.0,
+      "blastResistance": 6.0,
+      "toolRequired": "Pickaxe",
+      "lightLevel": 12,
+      "transparent": false,
+      "flammable": false,
+      "dropItem": "my_addon:raw_crystal"
+    },
+    "sections": [
+      {
+        "title": "World Generation",
+        "content": "This ore generates naturally between **Y: -64 to Y: 16**, in veins of 2 to 6 blocks per chunk."
+      },
+      {
+        "title": "Usage & Utilities",
+        "content": "Can be refined in a furnace to obtain refined metal ingots or used to construct special enchantment workstations."
+      }
+    ]
+  }
+}

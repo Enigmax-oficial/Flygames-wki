@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "templateId": "biome-template",
+  "name": "Biome / Dimension Template",
+  "category": "biomes",
+  "description": "Template for custom biomes, dimensions, or ecosystems.",
+  "defaultData": {
+    "id": "biome-celestial-forest",
+    "title": "Celestial Forest",
+    "namespace": "my_addon:celestial_forest",
+    "category": "biomes",
+    "description": "A mystical biome featuring floating islands and luminous trees.",
+    "addonVersion": "v1.0.0",
+    "icon": "🌲",
+    "tags": ["biome", "dimension", "celestial"],
+    "lastUpdated": "2026-08-08",
+    "biomeStats": {
+      "climate": "Celestial",
+      "grassColor": "#8A2BE2",
+      "structures": ["Mystic Altar", "Celestial Ruins", "Sorcerer Tower"],
+      "mobsSpawning": ["Celestial Guardian", "Mist Spirit"]
+    },
+    "sections": [
+      {
+        "title": "Ecosystem & Flora",
+        "content": "The **Celestial Forest** is characterized by luminescent purple grass and glowing leaves emitting light (Level 10)."
+      },
+      {
+        "title": "Resources Found",
+        "content": "- **Celestial Wood:** Excellent for crafting explosion-resistant structures.\n- **Light Lotus:** Rare flower used in levitation potions."
+      }
+    ]
+  }
+}

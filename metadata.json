@@ -1,0 +1,6 @@
+{
+  "name": "Minecraft Addon Wiki Engine",
+  "description": "A static, responsive Minecraft Addon Wiki template system with modular page templates, interactive crafting recipes, mob stats, biomes, and GitHub Pages ready static deployment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

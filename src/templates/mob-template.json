@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "templateId": "mob-template",
+  "name": "Mob / Entity / Boss Template",
+  "category": "mobs",
+  "description": "Template for entities, hostile or passive mobs, and bosses.",
+  "defaultData": {
+    "id": "mob-name",
+    "title": "Entity Name",
+    "namespace": "my_addon:mob_name",
+    "category": "mobs",
+    "description": "A legendary creature inhabiting the Addon lands.",
+    "addonVersion": "v1.0.0",
+    "icon": "👾",
+    "tags": ["mob", "boss", "hostile"],
+    "lastUpdated": "2026-08-08",
+    "author": "Addon Creator",
+    "mobStats": {
+      "health": 300,
+      "attackDamage": "12 (6 Hearts)",
+      "behavior": "Boss",
+      "spawnBiomes": ["my_addon:mystic_forest", "my_addon:crystal_peaks"],
+      "xpDrop": 500,
+      "drops": [
+        {
+          "item": "Celestial Heart",
+          "itemId": "my_addon:celestial_heart",
+          "chance": "100%",
+          "lootingBonus": "+1 per Looting level"
+        },
+        {
+          "item": "Void Fragment",
+          "itemId": "my_addon:void_fragment",
+          "chance": "2-5 (100%)"
+        }
+      ]
+    },
+    "sections": [
+      {
+        "title": "Behavior & Attacks",
+        "content": "This entity is extremely dangerous. It has 3 combat phases:\n\n1. **Phase 1 (100% - 70% HP):** Fast melee attacks and charges.\n2. **Phase 2 (70% - 30% HP):** Summons 3 Celestial Minions and casts magic lightning.\n3. **Phase 3 (Frenzy < 30% HP):** Gains damage resistance and increased movement speed."
+      },
+      {
+        "title": "Strategy to Defeat",
+        "content": "- Bring armor with **Protection IV** and **Regeneration** potions.\n- Use bows with **Power V** during Phase 2 to maintain safe distance."
+      }
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "templateId": "recipe-template",
+  "name": "Recipe / Crafting Template",
+  "category": "recipes",
+  "description": "Template for documenting crafting recipes, forge formulas, or rituals.",
+  "defaultData": {
+    "id": "recipe-stellar-sword",
+    "title": "Stellar Sword Recipe",
+    "namespace": "my_addon:recipe_stellar_sword",
+    "category": "recipes",
+    "description": "How to craft the powerful Stellar Sword on the crafting table.",
+    "addonVersion": "v1.0.0",
+    "icon": "📜",
+    "tags": ["crafting", "recipe", "3x3"],
+    "lastUpdated": "2026-08-08",
+    "recipes": [
+      {
+        "type": "crafting_3x3",
+        "grid": [
+          null, "my_addon:stellar_crystal", null,
+          null, "my_addon:stellar_crystal", null,
+          null, "minecraft:stick", null
+        ],
+        "output": {
+          "id": "my_addon:stellar_sword",
+          "name": "Stellar Sword",
+          "count": 1
+        }
+      }
+    ],
+    "sections": [
+      {
+        "title": "Required Ingredients",
+        "content": "- 2x **Stellar Crystal** (Obtained from mining Stellar Ore with Diamond Pickaxe+)\n- 1x **Wooden Stick** (Vanilla Minecraft)"
+      }
+    ]
+  }
+}

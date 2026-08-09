@@ -1,0 +1,320 @@
+import React, { useState } from 'react';
+import { WikiPage, CategoryType } from '../types/wiki';
+import { getItemImage, getPageCoverImage } from '../data/itemAssets';
+import { AdBanner } from './AdBanner';
+import { 
+  Sword, 
+  Ghost, 
+  Box, 
+  ScrollText, 
+  Trees, 
+  BookOpen, 
+  Sparkles, 
+  Search, 
+  ArrowRight,
+  Heart,
+  Shield,
+  Layers,
+  Tag
+} from 'lucide-react';
+
+interface CategoryOverviewPageProps {
+  category: CategoryType | 'all';
+  pages: WikiPage[];
+  onSelectPage: (pageId: string) => void;
+  onSelectCategory: (cat: CategoryType | 'all') => void;
+}
+
+const CATEGORY_META: Record<string, { title: string; subtitle: string; icon: React.ReactNode; color: string }> = {
+  all: {
+    title: 'Complete Addon Database',
+    subtitle: 'Explore all registered items, mobs, blocks, recipes, biomes, and guides in Aetheria.',
+    icon: <Sparkles className="w-6 h-6 text-emerald-400" />,
+    color: 'from-emerald-900/40 via-[#141414] to-[#0c0c0c]',
+  },
+  items: {
+    title: 'Items & Weapons',
+    subtitle: 'Powerful weapons, enchanted tools, and rare celestial artifacts.',
+    icon: <Sword className="w-6 h-6 text-amber-400" />,
+    color: 'from-amber-900/40 via-[#141414] to-[#0c0c0c]',
+  },
+  mobs: {
+    title: 'Mobs & Bosses',
+    subtitle: 'Dangerous entities, ancient guardians, and celestial realm creatures.',
+    icon: <Ghost className="w-6 h-6 text-rose-400" />,
+    color: 'from-rose-900/40 via-[#141414] to-[#0c0c0c]',
+  },
+  blocks: {
+    title: 'Blocks & Ores',
+    subtitle: 'Rare minerals, celestial stone, and interactive forge blocks.',
+    icon: <Box className="w-6 h-6 text-emerald-400" />,
+    color: 'from-emerald-900/40 via-[#141414] to-[#0c0c0c]',
+  },
+  recipes: {
+    title: 'Forge Recipes',
+    subtitle: 'Custom 3x3 crafting grid formulas and altar fusion recipes.',
+    icon: <ScrollText className="w-6 h-6 text-sky-400" />,
+    color: 'from-sky-900/40 via-[#141414] to-[#0c0c0c]',
+  },
+  biomes: {
+    title: 'Biomes & Realms',
+    subtitle: 'Floating islands, void chasms, and enchanted celestial forests.',
+    icon: <Trees className="w-6 h-6 text-purple-400" />,
+    color: 'from-purple-900/40 via-[#141414] to-[#0c0c0c]',
+  },
+  guides: {
+    title: 'Guides & Instructions',
+    subtitle: 'Official manuals on how to install, craft, and survive in Aetheria.',
+    icon: <BookOpen className="w-6 h-6 text-indigo-400" />,
+    color: 'from-indigo-900/40 via-[#141414] to-[#0c0c0c]',
+  },
+};
+
+export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
+  category,
+  pages,
+  onSelectPage,
+  onSelectCategory,
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  const currentMeta = CATEGORY_META[category] || CATEGORY_META.all;
+  const filteredPages = pages.filter((page) => {
+    const matchesCategory = category === 'all' || page.category === category;
+    const matchesQuery =
+      !searchQuery.trim() ||
+      page.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      page.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesTag = !selectedTag || page.tags?.includes(selectedTag);
+    return matchesCategory && matchesQuery && matchesTag;
+  });
+
+  // Extract unique tags for filtering chips
+  const categoryPages = pages.filter((p) => category === 'all' || p.category === category);
+  const allTags = Array.from(new Set(categoryPages.flatMap((p) => p.tags || [])));
+
+  const getRarityBadgeClass = (rarity?: string) => {
+    switch (rarity) {
+      case 'Legendary':
+        return 'bg-amber-500/20 text-amber-300 border-amber-500/50';
+      case 'Epic':
+        return 'bg-purple-500/20 text-purple-300 border-purple-500/50';
+      case 'Rare':
+        return 'bg-blue-500/20 text-blue-300 border-blue-500/50';
+      case 'Uncommon':
+        return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50';
+      default:
+        return 'bg-[#222] text-[#aaa] border-[#333]';
+    }
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6 pb-12 font-sans">
+      {/* Category Hero Banner */}
+      <div
+        className={`bg-gradient-to-r ${currentMeta.color} border border-[#2a2a2a] rounded-xl p-6 sm:p-8 shadow-2xl relative overflow-hidden`}
+      >
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-[#141414] border border-[#333] rounded-lg shadow">
+                {currentMeta.icon}
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tight">
+                {currentMeta.title}
+              </h1>
+            </div>
+            <p className="text-sm text-[#bbb] max-w-xl leading-relaxed">
+              {currentMeta.subtitle}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            <div className="px-4 py-2 bg-[#141414]/90 border border-[#333] rounded-lg text-center shadow">
+              <span className="block text-xl font-bold text-emerald-400 font-mono">
+                {filteredPages.length}
+              </span>
+              <span className="text-[10px] text-[#888] font-mono uppercase">
+                Articles Available
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Ad Placement */}
+      <AdBanner type="footer" slotId="category-hero-bottom" className="my-6" />
+
+      {/* Filter and Search Bar */}
+      <div className="bg-[#141414] border border-[#2a2a2a] rounded-lg p-4 space-y-3 shadow-md">
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 text-emerald-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`Filter in ${currentMeta.title}...`}
+              className="w-full bg-[#0c0c0c] border border-[#333] rounded-md py-2 pl-9 pr-3 text-xs sm:text-sm text-white placeholder-[#666] focus:outline-none focus:border-emerald-500"
+            />
+          </div>
+
+          {/* Category Switchers */}
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs shrink-0">
+            {(['all', 'items', 'mobs', 'blocks', 'recipes', 'biomes', 'guides'] as const).map((cat) => (
+              <button
+                key={cat}
+                onClick={() => onSelectCategory(cat)}
+                className={`px-3 py-1.5 rounded font-semibold capitalize transition-all whitespace-nowrap ${
+                  category === cat
+                    ? 'bg-emerald-500 text-black font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                    : 'bg-[#1a1a1a] text-[#aaa] hover:text-white border border-[#2a2a2a]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Tag chips */}
+        {allTags.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto pt-1 text-xs">
+            <span className="text-[10px] text-[#666] uppercase font-bold shrink-0 flex items-center gap-1">
+              <Tag className="w-3 h-3 text-emerald-500" /> Tags:
+            </span>
+            <button
+              onClick={() => setSelectedTag(null)}
+              className={`px-2 py-0.5 rounded text-[11px] font-mono ${
+                selectedTag === null
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold'
+                  : 'bg-[#1a1a1a] text-[#888] border border-[#222]'
+              }`}
+            >
+              All
+            </button>
+            {allTags.map((tag) => (
+              <button
+                key={tag}
+                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                className={`px-2 py-0.5 rounded text-[11px] font-mono capitalize transition-all ${
+                  selectedTag === tag
+                    ? 'bg-emerald-500 text-black font-bold'
+                    : 'bg-[#1a1a1a] text-[#aaa] hover:text-white border border-[#2a2a2a]'
+                }`}
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Pages Cards Grid */}
+      {filteredPages.length === 0 ? (
+        <div className="bg-[#141414] border border-[#2a2a2a] rounded-lg p-12 text-center text-[#777] space-y-2">
+          <p className="text-base font-semibold text-[#aaa]">No items found for this filter.</p>
+          <p className="text-xs">Try clearing your search query or tag selection.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredPages.map((page) => (
+            <div
+              key={page.id}
+              onClick={() => onSelectPage(page.id)}
+              className="bg-[#141414] hover:bg-[#1a1a1a] border border-[#2a2a2a] hover:border-emerald-500/50 rounded-xl p-5 shadow-lg transition-all duration-200 cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+            >
+              <div className="space-y-3">
+                {/* Top Badge & Rarity */}
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase font-bold px-2 py-0.5 bg-[#0c0c0c] text-emerald-400 border border-emerald-500/20 rounded">
+                    {page.category}
+                  </span>
+
+                  {page.itemStats?.rarity && (
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded border ${getRarityBadgeClass(
+                        page.itemStats.rarity
+                      )}`}
+                    >
+                      {page.itemStats.rarity}
+                    </span>
+                  )}
+                </div>
+
+                {/* Main Visual Header */}
+                <div className="flex items-start gap-3 pt-1">
+                  <div className="w-14 h-14 bg-[#0c0c0c] border border-[#333] rounded-lg flex items-center justify-center text-3xl shrink-0 group-hover:scale-105 transition-transform shadow-inner overflow-hidden p-1.5">
+                    {getPageCoverImage(page) ? (
+                      <img 
+                        src={getPageCoverImage(page)!} 
+                        alt={page.title} 
+                        className="w-full h-full object-contain" 
+                      />
+                    ) : (
+                      <span>{page.icon}</span>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-black text-white text-base group-hover:text-emerald-400 transition-colors uppercase tracking-tight truncate">
+                      {page.title}
+                    </h3>
+                    <p className="text-xs text-[#999] line-clamp-2 mt-1 leading-relaxed">
+                      {page.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Key Attributes Visual Bar */}
+                {page.mobStats && (
+                  <div className="p-2 bg-[#0c0c0c] rounded border border-[#222] flex items-center justify-between text-xs">
+                    <span className="text-[#888] flex items-center gap-1 font-mono">
+                      <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> Health
+                    </span>
+                    <span className="text-rose-400 font-bold font-mono">
+                      {page.mobStats.health} HP
+                    </span>
+                  </div>
+                )}
+
+                {page.itemStats && (page.itemStats.attackDamage !== undefined || page.itemStats.durability !== undefined) && (
+                  <div className="p-2 bg-[#0c0c0c] rounded border border-[#222] flex items-center justify-between text-xs font-mono">
+                    {page.itemStats.attackDamage !== undefined && (
+                      <span className="text-amber-300 font-bold">
+                        ⚔️ {page.itemStats.attackDamage} Attack DMG
+                      </span>
+                    )}
+                    {page.itemStats.durability !== undefined && (
+                      <span className="text-[#aaa]">
+                        🛡️ {page.itemStats.durability} Uses
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {page.blockStats && (
+                  <div className="p-2 bg-[#0c0c0c] rounded border border-[#222] flex items-center justify-between text-xs font-mono">
+                    <span className="text-[#888] flex items-center gap-1">
+                      <Shield className="w-3.5 h-3.5 text-emerald-400" /> Hardness
+                    </span>
+                    <span className="text-emerald-400 font-bold">
+                      {page.blockStats.hardness}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Card Footer Button */}
+              <div className="pt-4 mt-3 border-t border-[#222] flex items-center justify-between text-xs font-semibold text-emerald-400 group-hover:text-emerald-300">
+                <span>View Full Page</span>
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};

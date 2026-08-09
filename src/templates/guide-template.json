@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "templateId": "guide-template",
+  "name": "Guide / Progression Tutorial Template",
+  "category": "guides",
+  "description": "Template for tutorials, survival guides, boss order guides, and FAQs.",
+  "defaultData": {
+    "id": "quick-start-guide",
+    "title": "Quick Start Guide - Day One",
+    "namespace": "my_addon:start_guide",
+    "category": "guides",
+    "description": "Learn the essential steps to survive and progress in the Addon.",
+    "addonVersion": "v1.0.0",
+    "icon": "📖",
+    "tags": ["guide", "tutorial", "beginner"],
+    "lastUpdated": "2026-08-08",
+    "author": "Addon Team",
+    "sections": [
+      {
+        "title": "Step 1: Gathering Basic Materials",
+        "content": "To begin harnessing Addon magic, locate **Stellar Crystal Ore** in the underground (Y < 16)."
+      },
+      {
+        "title": "Step 2: Constructing the Mystic Workstation",
+        "content": "Combine 4 Stellar Crystals with a standard Crafting Table to create the **Mystic Forge Workstation**."
+      },
+      {
+        "title": "Step 3: Facing the First Boss",
+        "content": "With the **Stellar Sword** and full armor set, prepare to summon the Guardian at the Celestial Altar."
+      }
+    ]
+  }
+}
