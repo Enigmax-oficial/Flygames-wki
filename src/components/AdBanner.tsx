@@ -126,14 +126,14 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   let isLeaderboard = false;
 
   if (type === 'sidebar') {
-    sizeClasses = 'w-full max-w-[300px] min-h-[250px] lg:min-h-[600px]';
+    sizeClasses = 'w-full max-w-[300px] h-[250px] lg:h-[300px]';
     isVertical = true;
   } else if (type === 'footer') {
-    sizeClasses = 'w-full max-w-[970px] min-h-[90px]';
+    sizeClasses = 'w-full max-w-[970px] min-h-[90px] sm:h-[110px]';
     isLeaderboard = true;
   } else {
     // inline
-    sizeClasses = 'w-full max-w-[728px] min-h-[90px] sm:min-h-[250px]';
+    sizeClasses = 'w-full max-w-[728px] h-[220px] sm:h-[110px]';
   }
 
   // If the active ad is from Google, we do not show simulated card graphics;
@@ -156,7 +156,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   return (
     <div className={`mx-auto ${sizeClasses} ${className}`}>
       {/* Reserved Space Wrapper */}
-      <div className={`w-full h-full relative overflow-hidden rounded-2xl bg-[#090d16] border ${adItem.borderColor} bg-gradient-to-br ${adItem.bgGradient} p-4 sm:p-5 flex flex-col justify-between gap-3 shadow-lg transition-all duration-300`}>
+      <div className={`w-full h-full relative overflow-hidden rounded-2xl bg-[#090d16] border ${adItem.borderColor} bg-gradient-to-br ${adItem.bgGradient} p-4 sm:py-3 sm:px-5 flex flex-col justify-between gap-3 shadow-lg transition-all duration-300`}>
         
         {/* Ad Branding Header Bar */}
         <div className="flex items-center justify-between border-b border-slate-800/40 pb-2 shrink-0">
