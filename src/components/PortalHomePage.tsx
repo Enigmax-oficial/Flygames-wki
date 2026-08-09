@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage } from '../data/itemAssets';
 import { AdBanner } from './AdBanner';
+import { WikiApi } from '../lib/wikiApi';
 import { 
   Sparkles, 
   Ghost, 
@@ -41,56 +42,19 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
   const boulderingZombie = pages.find((p) => p.id === 'bouldering-zombie');
   const crystallineBerserker = pages.find((p) => p.id === 'crystalline-berserker');
 
-  const categoriesList: Array<{ id: CategoryType; label: string; desc: string; icon: React.ReactNode; color: string; bg: string }> = [
-    {
-      id: 'mobs',
-      label: 'Mobs & Bosses',
-      desc: 'Climbing undead, cavern titans, and subterranean bosses.',
-      icon: <Ghost className="w-6 h-6 text-rose-400" />,
-      color: 'border-rose-500/30',
-      bg: 'from-rose-950/30 to-[#111827]',
-    },
-    {
-      id: 'items',
-      label: 'Items & Weapons',
-      desc: 'Elemental blades, crystal cores, and enchanted relics.',
-      icon: <Sword className="w-6 h-6 text-amber-400" />,
-      color: 'border-amber-500/30',
-      bg: 'from-amber-950/30 to-[#111827]',
-    },
-    {
-      id: 'blocks',
-      label: 'Blocks & Ores',
-      desc: 'Crystallized stone, resonant ores, and dungeon bricks.',
-      icon: <Box className="w-6 h-6 text-sky-400" />,
-      color: 'border-sky-500/30',
-      bg: 'from-sky-950/30 to-[#111827]',
-    },
-    {
-      id: 'recipes',
-      label: 'Forge Recipes',
-      desc: 'Crafting blueprints and anvil combination guides.',
-      icon: <ScrollText className="w-6 h-6 text-cyan-400" />,
-      color: 'border-cyan-500/30',
-      bg: 'from-cyan-950/30 to-[#111827]',
-    },
-    {
-      id: 'biomes',
-      label: 'Biomes & Realms',
-      desc: 'Crystal Canyons, Underground Dungeons & Void Caves.',
-      icon: <Trees className="w-6 h-6 text-purple-400" />,
-      color: 'border-purple-500/30',
-      bg: 'from-purple-950/30 to-[#111827]',
-    },
-    {
-      id: 'guides',
-      label: 'Guides & Manuals',
-      desc: 'Addon installation steps, combat tactics & mechanics.',
-      icon: <BookOpen className="w-6 h-6 text-indigo-400" />,
-      color: 'border-indigo-500/30',
-      bg: 'from-indigo-950/30 to-[#111827]',
-    },
-  ];
+  const categoriesList = WikiApi.getCategories();
+
+  // Helper to render emoji or default Lucide icon gracefully
+  const renderCategoryIcon = (icon: string) => {
+    if (!icon) return '📁';
+    if (icon === '🧟') return <Ghost className="w-6 h-6 text-rose-400" />;
+    if (icon === '🗡️') return <Sword className="w-6 h-6 text-amber-400" />;
+    if (icon === '🧱') return <Box className="w-6 h-6 text-sky-400" />;
+    if (icon === '📜') return <ScrollText className="w-6 h-6 text-cyan-400" />;
+    if (icon === '🌲') return <Trees className="w-6 h-6 text-purple-400" />;
+    if (icon === '📖') return <BookOpen className="w-6 h-6 text-indigo-400" />;
+    return <span className="text-xl select-none">{icon}</span>;
+  };
 
   // Random article generator function for the "Surprise Me" button
   const handleRandomArticle = () => {
@@ -262,7 +226,9 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
       {/* Ad Placement */}
       <AdBanner type="footer" slotId="portal-mid-leaderboard" className="my-8" />
 
-      {/* 3. Category Explorer Grid */}
+
+
+      {/* 4. Category Explorer Grid */}
       <section className="space-y-4">
         <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
           BROWSE BY CATEGORY
@@ -282,7 +248,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="p-2.5 rounded-xl bg-[#0b0f19] border border-[#1e293b]">
-                    {cat.icon}
+                    {renderCategoryIcon(cat.icon)}
                   </div>
                   <span className="px-2.5 py-1 bg-[#0b0f19] border border-[#1e293b] text-sky-400 text-xs font-mono font-bold rounded-lg">
                     {count} {count === 1 ? 'Page' : 'Pages'}

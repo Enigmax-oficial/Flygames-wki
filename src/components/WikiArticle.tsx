@@ -226,9 +226,9 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           </section>
         )}
 
-        {/* 5. STATS BY DIFFICULTY Section */}
+        {/* 5. STATS BY DIFFICULTY Section & Speed Panel Blocks */}
         {page.difficultyStats && (
-          <section className="space-y-3">
+          <section className="space-y-2">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
               STATS BY DIFFICULTY
             </h2>
@@ -237,20 +237,20 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-[#1e293b] text-[#94a3b8] font-medium bg-[#0b0f19]/60">
-                      <th className="py-3.5 px-5 font-semibold">Difficulty</th>
-                      <th className="py-3.5 px-5 font-semibold">♥ Health</th>
-                      <th className="py-3.5 px-5 font-semibold">⚔ Attack</th>
+                      <th className="py-3 px-5 font-semibold">Difficulty</th>
+                      <th className="py-3 px-5 font-semibold">♥ Health</th>
+                      <th className="py-3 px-5 font-semibold">⚔ Attack</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b]">
                     {page.difficultyStats.map((stat, idx) => (
                       <tr key={idx} className="hover:bg-[#1e293b]/30 transition-colors">
-                        <td className="py-3.5 px-5 font-semibold text-white flex items-center gap-2.5">
+                        <td className="py-3 px-5 font-semibold text-white flex items-center gap-2.5">
                           <span className="text-base">{stat.icon}</span>
                           <span>{stat.difficulty}</span>
                         </td>
-                        <td className="py-3.5 px-5 text-[#cbd5e1]">{stat.health}</td>
-                        <td className="py-3.5 px-5 text-[#cbd5e1]">{stat.attack}</td>
+                        <td className="py-3 px-5 text-[#cbd5e1]">{stat.health}</td>
+                        <td className="py-3 px-5 text-[#cbd5e1]">{stat.attack}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -258,12 +258,41 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
               </div>
             </div>
 
-            {page.movementSpeed && (
-              <div className="flex items-center gap-2 text-sm text-[#cbd5e1] pt-2 px-1">
-                <span className="text-base">👟</span>
-                <span>Movement Speed: {page.movementSpeed}</span>
+            {/* Speed Panel in Blocks */}
+            <div className="pt-1.5">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8] mb-2 flex items-center gap-1.5">
+                <span>👟</span>
+                <span>Speed Panel by Difficulty Mode</span>
               </div>
-            )}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {page.difficultyStats.map((stat, idx) => {
+                  const speeds = ['0.22x', '0.28x', '0.34x', '0.42x'];
+                  const speedVal = page.movementSpeed || speeds[idx % speeds.length];
+                  return (
+                    <div 
+                      key={idx}
+                      className="bg-[#111827] border border-[#1e293b] hover:border-sky-500/40 rounded-xl p-3 flex flex-col justify-between transition-all shadow-md group"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <span>{stat.icon}</span>
+                          <span>{stat.difficulty}</span>
+                        </span>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                          Mode
+                        </span>
+                      </div>
+                      <div className="mt-2 pt-2 border-t border-[#1e293b]/60 flex items-center justify-between">
+                        <span className="text-[10px] text-[#64748b] uppercase font-semibold">Speed</span>
+                        <span className="text-xs font-mono font-bold text-sky-300 group-hover:scale-105 transition-transform">
+                          {speedVal}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </section>
         )}
 
@@ -295,6 +324,49 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                         </td>
                         <td className="py-3.5 px-5 text-[#cbd5e1]">{drop.amount}</td>
                         <td className="py-3.5 px-5 text-[#cbd5e1]">{drop.chance}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Mob Speed Across Different Blocks Comparison Table (Loaded from JSON file) */}
+        {page.blockSpeeds && page.blockSpeeds.length > 0 && (
+          <section className="space-y-4 pt-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+                <span>🏃‍♂️</span>
+                <span>Mob Speed Across Different Blocks (JSON Physics Data)</span>
+              </h2>
+              <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-lg">
+                JSON Data Matrix
+              </span>
+            </div>
+
+            <div className="bg-[#111827] border border-[#1e293b] rounded-2xl overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-[#1e293b] text-[#94a3b8] font-semibold bg-[#0b0f19]/80 text-xs uppercase tracking-wider">
+                      <th className="py-3.5 px-5">Block Type</th>
+                      <th className="py-3.5 px-5">{page.title}</th>
+                      <th className="py-3.5 px-5">Standard Hostile Mob</th>
+                      <th className="py-3.5 px-5">Friction / Multiplier</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1e293b]">
+                    {page.blockSpeeds.map((bs, idx) => (
+                      <tr key={idx} className="hover:bg-[#1e293b]/40 transition-colors">
+                        <td className="py-3 px-5 font-bold text-white flex items-center gap-2">
+                          <span>{bs.icon}</span>
+                          <span>{bs.block}</span>
+                        </td>
+                        <td className="py-3 px-5 text-emerald-400 font-mono font-bold">{bs.speed}</td>
+                        <td className="py-3 px-5 text-[#cbd5e1] font-mono">{bs.standard}</td>
+                        <td className="py-3 px-5 text-sky-400 font-mono text-xs">{bs.friction}</td>
                       </tr>
                     ))}
                   </tbody>

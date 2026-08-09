@@ -1,0 +1,27 @@
+{
+  "id": "addon-installation-guide",
+  "title": "Addon Installation & Recipe Guide",
+  "namespace": "aetheria:guide/installation_guide",
+  "type": "guide",
+  "category": "guides",
+  "description": "Learn how to install the Aetheria Addon behavior and resource packs into Minecraft, enable experimental features, and craft custom recipes.",
+  "addonVersion": "v1.4.0",
+  "icon": "📖",
+  "tags": ["guide", "installation", "crafting", "bedrock", "behavior-pack"],
+  "lastUpdated": "2026-08-08",
+  "author": "Aetheria Team",
+  "sections": [
+    {
+      "title": "1. Installing Behavior & Resource Packs",
+      "content": "To use the Aetheria Addon in your Minecraft world:\n\n1. Download the `.mcaddon` or `.mcpack` files.\n2. Open the file to automatically import it into Minecraft.\n3. Navigate to **World Settings > Resource Packs** and activate **Aetheria Textures**.\n4. Navigate to **World Settings > Behavior Packs** and activate **Aetheria Behaviors**."
+    },
+    {
+      "title": "2. Required Experimental Toggles",
+      "content": "Ensure the following experimental settings are turned **ON** in your world settings before loading:\n\n- **Holiday Creator Features**\n- **Upcoming Creator Features**\n- **Custom Biomes**"
+    },
+    {
+      "title": "3. Unlocking Recipes in the Enchanted Forge",
+      "content": "Custom weapons and blocks require the **Enchanted Forge** or standard 3x3 crafting tables. Inspect individual item pages in this wiki for detailed grid layouts and ingredient requirements."
+    }
+  ]
+}

@@ -126,14 +126,14 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   let isLeaderboard = false;
 
   if (type === 'sidebar') {
-    sizeClasses = 'w-full max-w-[300px] h-[250px] lg:h-[300px]';
+    sizeClasses = 'w-full max-w-[300px] lg:max-w-[340px] h-[250px] lg:h-[320px]';
     isVertical = true;
   } else if (type === 'footer') {
-    sizeClasses = 'w-full max-w-[970px] min-h-[90px] sm:h-[110px]';
+    sizeClasses = 'w-full max-w-[970px] lg:max-w-[1200px] min-h-[140px] sm:min-h-[110px]';
     isLeaderboard = true;
   } else {
     // inline
-    sizeClasses = 'w-full max-w-[728px] h-[220px] sm:h-[110px]';
+    sizeClasses = 'w-full max-w-[728px] lg:max-w-[1000px] min-h-[160px] sm:min-h-[110px]';
   }
 
   // If the active ad is from Google, we do not show simulated card graphics;
@@ -156,7 +156,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   return (
     <div className={`mx-auto ${sizeClasses} ${className}`}>
       {/* Reserved Space Wrapper */}
-      <div className={`w-full h-full relative overflow-hidden rounded-2xl bg-[#090d16] border ${adItem.borderColor} bg-gradient-to-br ${adItem.bgGradient} p-4 sm:py-3 sm:px-5 flex flex-col justify-between gap-3 shadow-lg transition-all duration-300`}>
+      <div className={`w-full h-full relative overflow-hidden rounded-2xl bg-[#090d16] border ${adItem.borderColor} bg-gradient-to-br ${adItem.bgGradient} p-4 sm:py-3.5 sm:px-5 flex flex-col justify-between gap-3 shadow-lg transition-all duration-300`}>
         
         {/* Ad Branding Header Bar */}
         <div className="flex items-center justify-between border-b border-slate-800/40 pb-2 shrink-0">
@@ -199,22 +199,22 @@ export const AdBanner: React.FC<AdBannerProps> = ({
           </div>
         ) : isLeaderboard ? (
           /* Footer/Leaderboard Layout */
-          <div className="flex-1 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5 flex-1 min-w-0">
-              <div className="p-2 bg-slate-900 border border-slate-800 rounded-xl hidden sm:block shrink-0">
+          <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-8 max-w-3xl mx-auto w-full">
+            <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-3.5">
+              <div className="p-2 bg-slate-900 border border-slate-800 rounded-xl shrink-0">
                 {adItem.icon}
               </div>
-              <div className="min-w-0">
-                <h4 className="text-xs font-black text-white uppercase tracking-tight truncate">
+              <div className="space-y-1">
+                <h4 className="text-xs font-black text-white uppercase tracking-tight">
                   {adItem.title}
                 </h4>
-                <p className="text-[11px] text-[#94a3b8] leading-normal truncate max-w-xl hidden sm:block">
+                <p className="text-[11px] text-[#94a3b8] leading-normal max-w-md hidden sm:block">
                   {adItem.description}
                 </p>
               </div>
             </div>
 
-            <div className="shrink-0">
+            <div className="shrink-0 flex justify-center">
               <a
                 href={adItem.url}
                 target="_blank"
@@ -229,22 +229,22 @@ export const AdBanner: React.FC<AdBannerProps> = ({
           </div>
         ) : (
           /* Inline standard layout */
-          <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5 flex-1 min-w-0">
+          <div className="flex-1 flex flex-col sm:flex-row sm:items-center justify-center gap-4 sm:gap-8 max-w-3xl mx-auto w-full">
+            <div className="flex flex-col sm:flex-row items-center text-center sm:text-left gap-3.5">
               <div className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl shrink-0">
                 {adItem.icon}
               </div>
-              <div className="min-w-0 space-y-1">
+              <div className="space-y-1">
                 <h4 className="text-xs font-black text-white uppercase tracking-tight">
                   {adItem.title}
                 </h4>
-                <p className="text-[11px] text-[#94a3b8] leading-normal">
+                <p className="text-[11px] text-[#94a3b8] leading-normal max-w-md">
                   {adItem.description}
                 </p>
               </div>
             </div>
 
-            <div className="shrink-0">
+            <div className="shrink-0 flex justify-center">
               <a
                 href={adItem.url}
                 target="_blank"
@@ -252,7 +252,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
                 rel="noopener noreferrer"
                 className={`w-full sm:w-auto py-2 px-4 bg-slate-900 hover:bg-slate-800 border ${adItem.borderColor} ${adItem.textColor} text-[10px] font-black rounded-xl flex items-center justify-center gap-1.5 transition-all text-center select-none active:scale-95`}
               >
-                <span>{adItem.ctaText}</span>
+                <span className="whitespace-nowrap">{adItem.ctaText}</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>

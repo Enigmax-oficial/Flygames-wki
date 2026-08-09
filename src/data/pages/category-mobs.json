@@ -1,0 +1,26 @@
+{
+  "id": "category-mobs",
+  "title": "Mobs & Entities Category",
+  "namespace": "aetheria:category/mobs",
+  "type": "category",
+  "category": "mobs",
+  "description": "Index of all custom hostile, neutral, and boss entities introduced in the Aetheria Addon.",
+  "addonVersion": "v1.4.0",
+  "icon": "🧟",
+  "tags": ["category", "mobs", "entities", "bosses"],
+  "lastUpdated": "2026-08-09",
+  "author": "Aetheria Team",
+  "badge": "CATEGORY",
+  "badgeColor": "emerald",
+  "behaviorBullets": [
+    "Contains all hostile and boss mobs",
+    "Defines spawn weights, behavior attributes, and difficulty curves",
+    "Linked with custom behavior pack JSON files"
+  ],
+  "sections": [
+    {
+      "title": "Mobs Overview",
+      "content": "This category governs all custom entity definitions, mob behaviors, AI controllers, and difficulty scaling. Use this JSON file to add or configure new custom entities."
+    }
+  ]
+}

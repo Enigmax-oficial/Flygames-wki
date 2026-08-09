@@ -1,4 +1,4 @@
-export type CategoryType = 'items' | 'mobs' | 'blocks' | 'recipes' | 'biomes' | 'guides' | 'templates';
+export type CategoryType = 'items' | 'mobs' | 'blocks' | 'recipes' | 'biomes' | 'guides' | 'templates' | string;
 
 export interface CraftingRecipe {
   type: 'crafting_3x3' | 'crafting_2x2' | 'forge' | 'brewing' | 'altar';
@@ -61,6 +61,7 @@ export interface WikiPage {
   id: string; // Unique URL slug e.g. "aetherial-sword"
   title: string;
   namespace: string; // e.g. "aetheria:aether_sword"
+  type?: 'entity' | 'item' | 'biome' | 'category' | 'block' | 'recipe' | 'guide' | string; // Namespace function type
   category: CategoryType;
   description: string;
   addonVersion: string;
@@ -105,6 +106,15 @@ export interface WikiPage {
     content: string; // Supports markdown / bullet points
   }>;
   
+  // Mob speed on blocks
+  blockSpeeds?: Array<{
+    block: string;
+    icon: string;
+    speed: string;
+    standard: string;
+    friction: string;
+  }>;
+
   // Custom metadata / KV
   customProperties?: Record<string, string>;
 }

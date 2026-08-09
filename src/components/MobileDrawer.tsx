@@ -1,6 +1,7 @@
 import React from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage } from '../data/itemAssets';
+import { WikiApi } from '../lib/wikiApi';
 import { 
   X, 
   Home,
@@ -26,18 +27,8 @@ interface MobileDrawerProps {
   onSelectPage: (pageId: string) => void;
   onGoHome: () => void;
   onOpenSearch: () => void;
-  onOpenGitHubExport?: () => void;
   userEmail?: string | null;
 }
-
-const CATEGORIES: Array<{ id: CategoryType; label: string; icon: React.ReactNode }> = [
-  { id: 'mobs', label: 'Mobs', icon: <Ghost className="w-4 h-4 text-rose-400" /> },
-  { id: 'items', label: 'Items', icon: <Sword className="w-4 h-4 text-amber-400" /> },
-  { id: 'blocks', label: 'Blocks', icon: <Box className="w-4 h-4 text-sky-400" /> },
-  { id: 'recipes', label: 'Recipes', icon: <ScrollText className="w-4 h-4 text-cyan-400" /> },
-  { id: 'biomes', label: 'Biomes', icon: <Trees className="w-4 h-4 text-purple-400" /> },
-  { id: 'guides', label: 'Guides', icon: <BookOpen className="w-4 h-4 text-indigo-400" /> },
-];
 
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   isOpen,
@@ -49,13 +40,24 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onSelectPage,
   onGoHome,
   onOpenSearch,
-  onOpenGitHubExport,
   userEmail,
 }) => {
   if (!isOpen) return null;
 
   const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
   const isAdmin = userEmail && authorizedEmails.includes(userEmail.toLowerCase().trim());
+
+  const dynamicCategories = WikiApi.getCategories();
+
+  const renderMobileIcon = (catId: string, iconStr: string) => {
+    if (catId === 'mobs') return <Ghost className="w-4 h-4 text-rose-400" />;
+    if (catId === 'items') return <Sword className="w-4 h-4 text-amber-400" />;
+    if (catId === 'blocks') return <Box className="w-4 h-4 text-sky-400" />;
+    if (catId === 'recipes') return <ScrollText className="w-4 h-4 text-cyan-400" />;
+    if (catId === 'biomes') return <Trees className="w-4 h-4 text-purple-400" />;
+    if (catId === 'guides') return <BookOpen className="w-4 h-4 text-indigo-400" />;
+    return <span className="text-xs select-none shrink-0">{iconStr || '📁'}</span>;
+  };
 
   return (
     <div className="fixed inset-0 z-50 md:hidden flex">
@@ -122,19 +124,6 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             <Search className="w-4 h-4 text-sky-400" />
             <span>Search articles & items...</span>
           </button>
-
-          {onOpenGitHubExport && (
-            <button
-              onClick={() => {
-                onClose();
-                onOpenGitHubExport();
-              }}
-              className="w-full py-2.5 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold rounded-xl text-xs flex items-center gap-2"
-            >
-              <Globe className="w-4 h-4 text-emerald-400" />
-              <span>Publish to GitHub Pages</span>
-            </button>
-          )}
         </div>
 
         {/* Category Pills Slider */}
@@ -154,7 +143,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
               <Sparkles className="w-3.5 h-3.5" />
               <span>All</span>
             </button>
-            {CATEGORIES.map((cat) => (
+            {dynamicCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => onSelectCategory(cat.id)}
@@ -164,7 +153,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                     : 'bg-[#0b0f19] text-[#94a3b8] border border-[#1e293b]'
                 }`}
               >
-                {cat.icon}
+                {renderMobileIcon(cat.id, cat.icon)}
                 <span>{cat.label}</span>
               </button>
             ))}

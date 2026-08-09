@@ -125,28 +125,11 @@ export const WikiImageGallery: React.FC<WikiImageGalleryProps> = ({ items, pageT
       </div>
 
       {/* Caption & Thumbnail Selection Bar (Wikipedia Style) */}
-      <div className="bg-[#0b0f19] p-3 border-t border-[#1e293b] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-        {/* Caption */}
-        <div className="text-[#cbd5e1] font-medium text-center sm:text-left flex items-center gap-2">
-          {is3DModelActive ? (
-            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shrink-0">
-              <Rotate3d className="w-3 h-3" />
-              3D Model
-            </span>
-          ) : (
-            <span className="px-2 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-500/40 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shrink-0">
-              <Eye className="w-3 h-3" />
-              Image
-            </span>
-          )}
-          <span className="truncate max-w-xs sm:max-w-md">
-            {currentItem.title || currentItem.caption || (is3DModelActive ? '3D Render View' : pageTitle)}
-          </span>
-        </div>
-
-        {/* Thumbnail Selector Strip */}
+      <div className="bg-[#0b0f19] p-4 border-t border-[#1e293b] flex flex-col items-center justify-center gap-4 text-xs">
+        
+        {/* Thumbnail Selector Strip - Centered perfectly on desktop & mobile */}
         {items.length > 1 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto max-w-full pb-1 sm:pb-0">
+          <div className="flex items-center justify-center gap-2 overflow-x-auto max-w-full pb-1">
             {items.map((item, idx) => {
               const isItem3D = idx === 1 || item.is3D;
               const isActive = idx === currentIndex;
@@ -176,6 +159,27 @@ export const WikiImageGallery: React.FC<WikiImageGalleryProps> = ({ items, pageT
             })}
           </div>
         )}
+
+        {/* Caption Info Label */}
+        <div className="text-[#cbd5e1] font-medium text-center flex flex-col sm:flex-row items-center justify-center gap-2">
+          <div className="flex items-center gap-1.5 justify-center">
+            {is3DModelActive ? (
+              <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shrink-0">
+                <Rotate3d className="w-3 h-3" />
+                3D Model
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-500/40 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 shrink-0">
+                <Eye className="w-3 h-3" />
+                Image
+              </span>
+            )}
+          </div>
+          <span className="truncate max-w-xs sm:max-w-md">
+            {currentItem.title || currentItem.caption || (is3DModelActive ? '3D Render View' : pageTitle)}
+          </span>
+        </div>
+
       </div>
 
       {/* Fullscreen Overlay Modal */}

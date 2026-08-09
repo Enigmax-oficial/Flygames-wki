@@ -1,0 +1,71 @@
+{
+  "id": "crystalline-berserker",
+  "title": "Crystalline Berserker",
+  "badge": "BOSS",
+  "badgeColor": "purple",
+  "namespace": "aetheria:boss/crystalline_berserker",
+  "type": "entity",
+  "category": "mobs",
+  "description": "Enormous crystal-clad titan found deep within subterranean mineshafts in Crystal Canyon. Immune to arrows and fire.",
+  "addonVersion": "v1.4.0",
+  "icon": "💎",
+  "tags": ["mob", "boss", "hostile", "crystalline", "canyon", "dungeon"],
+  "lastUpdated": "2026-08-09",
+  "author": "Aetheria Team",
+  "behaviorBullets": [
+    "Spawns in the boss room of Crystal Canyon Mineshafts (~85%+ chance per mineshaft)",
+    "Buy Unknown Maps from Accessory Traders or Cartographers to find mineshafts quickly",
+    "Melee attack (25 damage)",
+    "Slam attack (27 damage)",
+    "Crystal projectile (36 damage)",
+    "Immune to projectiles",
+    "Fire and lava immune",
+    "Has 3 phases/states",
+    "Boss bar visible up to 125 blocks",
+    "10 second death animation",
+    "Drops valuable crystalline loot"
+  ],
+  "behaviorMeta": {
+    "biomes": "Crystal Canyon Mineshaft (boss room)",
+    "groupSize": "1 (boss)"
+  },
+  "difficultyStats": [
+    { "difficulty": "Easy", "health": "1200 HP", "attack": "16 damage", "icon": "🟩", "color": "emerald" },
+    { "difficulty": "Normal", "health": "2000 HP", "attack": "25 damage", "icon": "🟧", "color": "amber" },
+    { "difficulty": "Hard", "health": "3400 HP", "attack": "46 damage", "icon": "🟥", "color": "rose" },
+    { "difficulty": "Brutal", "health": "5000 HP", "attack": "68 damage", "icon": "😈", "color": "purple" }
+  ],
+  "movementSpeed": "0.3",
+  "blockSpeeds": [
+    { "block": "Stone / Cobblestone", "icon": "🪨", "speed": "0.30", "standard": "0.23", "friction": "1.25x (Optimal)" },
+    { "block": "Packed Ice / Blue Ice", "icon": "🧊", "speed": "0.55 (Slide)", "standard": "0.40", "friction": "1.80x (High Inertia)" },
+    { "block": "Soul Sand", "icon": "🟤", "speed": "0.12 (Resisted)", "standard": "0.08", "friction": "0.40x (Viscosity drag)" },
+    { "block": "Honey Block", "icon": "🍯", "speed": "0.10 (Stuck)", "standard": "0.05", "friction": "0.20x (Adhesive drag)" },
+    { "block": "Water (Current / Still)", "icon": "🌊", "speed": "0.22 (Sinking)", "standard": "0.15", "friction": "0.65x (Buoyancy)" }
+  ],
+  "dropsTable": [
+    { "item": "Crystalline Apple", "amount": "1", "chance": "100%", "icon": "🍏" },
+    { "item": "Crystalline Berserker Core", "amount": "1", "chance": "100%", "icon": "🔮" },
+    { "item": "Crystallized Slime Block", "amount": "1–4", "chance": "100%", "icon": "🟩" },
+    { "item": "Compact Crystalline Ingot", "amount": "1–2", "chance": "100%", "icon": "💎" },
+    { "item": "Raw Resonant Crystal Dust", "amount": "32–128", "chance": "100%", "icon": "✨" },
+    { "item": "Crystalline Bulb", "amount": "1–8", "chance": "100%", "icon": "💡" }
+  ],
+  "mobStats": {
+    "health": 2000,
+    "attackDamage": "25 (12.5 Hearts)",
+    "behavior": "Boss",
+    "spawnBiomes": ["aetheria:crystal_canyon", "aetheria:mineshaft_dungeon"],
+    "xpDrop": 2500,
+    "drops": [
+      { "item": "Crystalline Berserker Core", "itemId": "aetheria:crystalline_core", "chance": "100%" },
+      { "item": "Compact Crystalline Ingot", "itemId": "aetheria:compact_ingot", "chance": "100%" }
+    ]
+  },
+  "sections": [
+    {
+      "title": "Tactical Combat Guide",
+      "content": "The **Crystalline Berserker** is one of the most punishing encounters in the Aetheria Addon.\n\n- **Phase 1 (100%–60% HP):** Standard melee and ground slams. Maintain distance or block slams with shields.\n- **Phase 2 (60%–20% HP):** Launches high velocity crystal shards. Since it is completely immune to arrows, close-quarters magic or melee is mandatory.\n- **Phase 3 (< 20% HP):** Enrages, gaining +30% attack speed and constant ground shockwaves."
+    }
+  ]
+}

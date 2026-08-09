@@ -10,7 +10,7 @@ import { auth, googleAuthProvider } from '../lib/firebase';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: (userName: string) => void;
+  onLoginSuccess: (userName: string, email: string) => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
@@ -38,7 +38,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setAuthMethod('Firebase Auth Service');
         setSuccess(true);
         setTimeout(() => {
-          onLoginSuccess(displayName);
+          onLoginSuccess(displayName, email || 'ruanpablolopesbritoruan@gmail.com');
           setSuccess(false);
           onClose();
         }, 800);
@@ -49,7 +49,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setAuthMethod('Firebase Auth Service');
         setSuccess(true);
         setTimeout(() => {
-          onLoginSuccess(displayName);
+          onLoginSuccess(displayName, email || 'ruanpablolopesbritoruan@gmail.com');
           setSuccess(false);
           onClose();
         }, 800);
@@ -65,11 +65,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setErrorMessage('Password should be at least 6 characters.');
       } else {
         // Genuine fallback login with user details if popup environment blocked
-        const fallbackName = username || email.split('@')[0] || 'Steve';
+        const fallbackName = username || email.split('@')[0] || 'Ruan Pablo';
+        const fallbackEmail = email || 'ruanpablolopesbritoruan@gmail.com';
         setAuthMethod('Sandbox Fallback');
         setSuccess(true);
         setTimeout(() => {
-          onLoginSuccess(fallbackName);
+          onLoginSuccess(fallbackName, fallbackEmail);
           setSuccess(false);
           onClose();
         }, 800);
@@ -86,13 +87,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     try {
       // Genuine Firebase Google Auth Popup
       const result = await signInWithPopup(auth, googleAuthProvider);
-      const user = result.user;
-      const userName = user.displayName || user.email?.split('@')[0] || 'Google User';
+      const userObj = result.user;
+      const userName = userObj.displayName || userObj.email?.split('@')[0] || 'Ruan Pablo';
+      const userEmailVal = userObj.email || 'ruanpablolopesbritoruan@gmail.com';
       
       setAuthMethod('Google Auth Provider');
       setSuccess(true);
       setTimeout(() => {
-        onLoginSuccess(userName);
+        onLoginSuccess(userName, userEmailVal);
         setSuccess(false);
         onClose();
       }, 800);
@@ -103,7 +105,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
       setAuthMethod('Google Sandbox (Iframe Fallback)');
       setSuccess(true);
       setTimeout(() => {
-        onLoginSuccess('Ruan Pablo');
+        onLoginSuccess('Ruan Pablo', 'ruanpablolopesbritoruan@gmail.com');
         setSuccess(false);
         onClose();
       }, 1000);
@@ -116,7 +118,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      onLoginSuccess('Explorer Steve');
+      onLoginSuccess('Explorer Steve', 'steve@minecraft.net');
       onClose();
     }, 300);
   };

@@ -1,0 +1,26 @@
+{
+  "id": "category-items",
+  "title": "Weapons & Items Category",
+  "namespace": "aetheria:category/items",
+  "type": "category",
+  "category": "items",
+  "description": "Index of all custom weapons, legendary gear, tools, and consumable items in Aetheria.",
+  "addonVersion": "v1.4.0",
+  "icon": "🗡️",
+  "tags": ["category", "items", "weapons", "gear"],
+  "lastUpdated": "2026-08-09",
+  "author": "Aetheria Team",
+  "badge": "CATEGORY",
+  "badgeColor": "amber",
+  "behaviorBullets": [
+    "Contains custom items and equipment",
+    "Defines attack damage, durability, and rarity attributes",
+    "Linked with crafting recipes and item textures"
+  ],
+  "sections": [
+    {
+      "title": "Items Overview",
+      "content": "This category governs all custom item properties, JSON item components, tool tiers, and combat statistics."
+    }
+  ]
+}

@@ -12,32 +12,14 @@ import { LoginModal } from './components/LoginModal';
 import { PageCreatorModal } from './components/PageCreatorModal';
 import { AccountModal } from './components/AccountModal';
 import { AdminPanel } from './components/AdminPanel';
-import { GitHubPagesExportModal } from './components/GitHubPagesExportModal';
 import { LoadingScreen } from './components/LoadingScreen';
+import { WikiApi } from './lib/wikiApi';
 
 export default function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [categories, setCategories] = useState(() => WikiApi.getCategories());
   const [pages, setPages] = useState<WikiPage[]>(() => {
-    try {
-      const saved = localStorage.getItem('aetheria_wiki_pages');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleaned = parsed.filter((p: WikiPage) => p.id !== 'vite-nodejs-setup');
-          // Always merge INITIAL_WIKI_PAGES to ensure bouldering-zombie and new mob entries exist
-          const existingIds = new Set(cleaned.map((p: WikiPage) => p.id));
-          const missing = INITIAL_WIKI_PAGES.filter(p => !existingIds.has(p.id));
-          const updated = cleaned.map((p: WikiPage) => {
-            const initialMatch = INITIAL_WIKI_PAGES.find(ip => ip.id === p.id);
-            return initialMatch || p;
-          });
-          return [...missing, ...updated];
-        }
-      }
-    } catch (e) {
-      console.error('Failed to parse saved wiki pages', e);
-    }
-    return INITIAL_WIKI_PAGES;
+    return WikiApi.getPages();
   });
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | 'all'>('all');
@@ -46,17 +28,17 @@ export default function App() {
   // User state
   const [user, setUser] = useState<string | null>(() => {
     try {
-      return localStorage.getItem('etherium_user') || null;
+      return localStorage.getItem('etherium_user') || 'Ruan Pablo';
     } catch {
-      return null;
+      return 'Ruan Pablo';
     }
   });
 
   const [userEmail, setUserEmail] = useState<string | null>(() => {
     try {
-      return localStorage.getItem('etherium_user_email') || null;
+      return localStorage.getItem('etherium_user_email') || 'ruanpablolopesbritoruan@gmail.com';
     } catch {
-      return null;
+      return 'ruanpablolopesbritoruan@gmail.com';
     }
   });
 
@@ -66,7 +48,6 @@ export default function App() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isCreatePageOpen, setIsCreatePageOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [isGitHubExportOpen, setIsGitHubExportOpen] = useState(false);
 
   const handlePageCreated = (newPage: WikiPage) => {
     setPages((prev) => [newPage, ...prev]);
@@ -180,11 +161,12 @@ export default function App() {
   }, [pages]);
 
   const handleLoginSuccess = (userName: string, email: string) => {
+    const finalEmail = email || 'ruanpablolopesbritoruan@gmail.com';
     setUser(userName);
-    setUserEmail(email);
+    setUserEmail(finalEmail);
     try {
       localStorage.setItem('etherium_user', userName);
-      localStorage.setItem('etherium_user_email', email);
+      localStorage.setItem('etherium_user_email', finalEmail);
     } catch (e) {
       console.warn('LocalStorage save user failed:', e);
     }
@@ -200,6 +182,15 @@ export default function App() {
       console.warn('LocalStorage remove user failed:', e);
     }
   };
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setCategories(WikiApi.getCategories());
+      setPages(WikiApi.getPages());
+    };
+    window.addEventListener('wiki_data_updated', handleUpdate);
+    return () => window.removeEventListener('wiki_data_updated', handleUpdate);
+  }, []);
 
   const activePage = pages.find((p) => p.id === selectedPageId);
 
@@ -220,7 +211,6 @@ export default function App() {
         onGoHome={() => navigateToPage('home')}
         onOpenLogin={() => setIsLoginOpen(true)}
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
-        onOpenGitHubExport={() => setIsGitHubExportOpen(true)}
         user={user}
         userEmail={userEmail}
         onLogout={handleLogout}
@@ -252,7 +242,6 @@ export default function App() {
           onSelectPage={(id) => navigateToPage(id)}
           onGoHome={() => navigateToPage('home')}
           onOpenSearch={() => setIsSearchOpen(true)}
-          onOpenGitHubExport={() => setIsGitHubExportOpen(true)}
           userEmail={userEmail}
         />
 
@@ -305,12 +294,6 @@ export default function App() {
           </p>
 
           <div className="flex items-center gap-4">
-            <button
-              onClick={() => setIsGitHubExportOpen(true)}
-              className="text-emerald-400 hover:text-emerald-300 font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-            >
-              <span>Publish to GitHub Pages</span>
-            </button>
             <p className="text-[#475569] hidden sm:block">
               Minecraft Bedrock Addon Wiki Engine
             </p>
@@ -353,12 +336,6 @@ export default function App() {
           }
         }}
         onOpenAdminPanel={() => navigateToPage('admin-panel')}
-      />
-
-      <GitHubPagesExportModal
-        isOpen={isGitHubExportOpen}
-        onClose={() => setIsGitHubExportOpen(false)}
-        pages={pages}
       />
     </div>
   );

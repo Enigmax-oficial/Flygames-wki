@@ -1,0 +1,32 @@
+{
+  "id": "crystal-canyon-biome",
+  "title": "Crystal Canyon Biome",
+  "namespace": "aetheria:biome/crystal_canyon",
+  "type": "biome",
+  "category": "biomes",
+  "description": "Subterranean canyon biome filled with glowing crystals, rare mineral veins, and dangerous subterranean bosses.",
+  "addonVersion": "v1.4.0",
+  "icon": "💎",
+  "tags": ["biome", "canyon", "crystals", "underground", "generation"],
+  "lastUpdated": "2026-08-09",
+  "author": "Aetheria World Gen Team",
+  "badge": "BIOME",
+  "badgeColor": "purple",
+  "biomeStats": {
+    "climate": "Celestial",
+    "grassColor": "#8b5cf6",
+    "structures": ["Crystal Mineshaft", "Berserker Arena"],
+    "mobsSpawning": ["aetheria:bouldering_zombie", "aetheria:crystalline_berserker"]
+  },
+  "behaviorBullets": [
+    "Generates below Y: 0 in Mountainous regions",
+    "Contains glowing crystal clusters that emit light level 12",
+    "High concentration of diamond and raw crystal ore veins"
+  ],
+  "sections": [
+    {
+      "title": "Biome Overview & Exploration",
+      "content": "The **Crystal Canyon** is a breathtaking subterranean biome where players can harvest rare crystals and encounter elite bosses."
+    }
+  ]
+}

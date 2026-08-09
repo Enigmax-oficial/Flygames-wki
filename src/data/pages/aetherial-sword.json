@@ -1,0 +1,55 @@
+{
+  "id": "aetherial-sword",
+  "title": "Aetherial Sword",
+  "namespace": "aetheria:item/aetherial_sword",
+  "type": "item",
+  "category": "items",
+  "description": "A legendary weapon forged with Celestial Crystals and Netherite Ingot. Grants temporary flight and levitation upon attacking.",
+  "addonVersion": "v1.4.0",
+  "icon": "🗡️",
+  "tags": ["weapon", "legendary", "crafting", "combat", "aetheria"],
+  "lastUpdated": "2026-08-08",
+  "author": "Aetheria Dev Team",
+  "itemStats": {
+    "rarity": "Legendary",
+    "durability": 2048,
+    "attackDamage": 11,
+    "attackSpeed": 1.6,
+    "stackSize": 1,
+    "enchantable": true
+  },
+  "recipes": [
+    {
+      "type": "crafting_3x3",
+      "grid": [
+        null, "aetheria:celestial_crystal", null,
+        null, "aetheria:celestial_crystal", null,
+        null, "minecraft:netherite_ingot", null
+      ],
+      "output": {
+        "id": "aetheria:aetherial_sword",
+        "name": "Aetherial Sword",
+        "count": 1
+      }
+    }
+  ],
+  "sections": [
+    {
+      "title": "Overview & Attributes",
+      "content": "The **Aetherial Sword** is one of the most formidable weapons in the Aetheria Addon. Beyond inflicting **11 Attack Damage (5.5 Hearts)**, it features a glowing radiant gem in its hilt that channels celestial energy."
+    },
+    {
+      "title": "Special Skill: Celestial Leap",
+      "content": "- **Right Click Use:** Launches the player 12 blocks into the air and grants *Slow Falling I* for 6 seconds.\n- **Cooldown:** 15 seconds.\n- **Critical Magic Strike:** Attacking enemies while falling inflicts +4 bonus Magic Light Damage."
+    },
+    {
+      "title": "How to Obtain",
+      "content": "Crafted using 2x **Celestial Crystals** (dropped by defeating the *Celestial Guardian*) and 1x **Netherite Ingot** on a standard Crafting Table."
+    }
+  ],
+  "customProperties": {
+    "Repair Item": "Celestial Crystal",
+    "Native Effect": "Night Vision I",
+    "Min XP Level": "Level 30"
+  }
+}

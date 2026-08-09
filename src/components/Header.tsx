@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Menu, User, LogOut, Crown, Globe } from 'lucide-react';
+import { Search, Menu, User, LogOut, Crown, BookOpen } from 'lucide-react';
 
 interface HeaderProps {
   onOpenSearch: () => void;
@@ -11,7 +11,6 @@ interface HeaderProps {
   onGoHome: () => void;
   onOpenLogin: () => void;
   onOpenAccountModal?: () => void;
-  onOpenGitHubExport?: () => void;
   user: string | null;
   userEmail?: string | null;
   onLogout: () => void;
@@ -28,7 +27,6 @@ export const Header: React.FC<HeaderProps> = ({
   onGoHome,
   onOpenLogin,
   onOpenAccountModal,
-  onOpenGitHubExport,
   user,
   userEmail,
   onLogout,
@@ -62,29 +60,6 @@ export const Header: React.FC<HeaderProps> = ({
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Brand & Addon Title (Clickable Home Trigger) */}
-          <div 
-            onClick={onGoHome}
-            className="flex items-center gap-3 cursor-pointer select-none group"
-          >
-            <div className="w-9 h-9 bg-sky-500 rounded-xl shadow-[0_0_15px_rgba(56,189,248,0.4)] flex items-center justify-center font-black text-black text-xl transition-transform group-hover:scale-105">
-              E
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-extrabold text-base sm:text-lg text-white leading-tight tracking-tight group-hover:text-sky-300 transition-colors">
-                  Etherium Wiki
-                </h1>
-                <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded">
-                  {addonVersion}
-                </span>
-              </div>
-              <p className="text-[10px] text-[#64748b] uppercase tracking-wider hidden sm:block font-bold">
-                Minecraft Addon • Portal & Database
-              </p>
-            </div>
-          </div>
-
           {/* Admin Panel Button */}
           {isAdmin && onOpenAdminPanel && (
             <button
@@ -116,18 +91,6 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Actions: Login & Search */}
         <div className="flex items-center gap-2">
-          {/* GitHub Pages Export Button */}
-          {onOpenGitHubExport && (
-            <button
-              onClick={onOpenGitHubExport}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-bold transition-all cursor-pointer mr-1"
-              title="Publish or Export to GitHub Pages"
-            >
-              <Globe className="w-3.5 h-3.5 text-emerald-400" />
-              <span>GitHub Pages</span>
-            </button>
-          )}
-
           {/* Mobile Search Button */}
           <button
             onClick={onOpenSearch}

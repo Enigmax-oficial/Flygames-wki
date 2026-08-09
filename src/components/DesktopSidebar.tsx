@@ -2,6 +2,7 @@ import React from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage } from '../data/itemAssets';
 import { AdBanner } from './AdBanner';
+import { WikiApi } from '../lib/wikiApi';
 import { 
   Home,
   Sword, 
@@ -28,15 +29,6 @@ interface DesktopSidebarProps {
   userEmail?: string | null;
 }
 
-const CATEGORIES: Array<{ id: CategoryType; label: string; icon: React.ReactNode; color: string }> = [
-  { id: 'mobs', label: 'Mobs & Bosses', icon: <Ghost className="w-4 h-4" />, color: 'text-rose-400' },
-  { id: 'items', label: 'Items & Weapons', icon: <Sword className="w-4 h-4" />, color: 'text-amber-400' },
-  { id: 'blocks', label: 'Blocks & Ores', icon: <Box className="w-4 h-4" />, color: 'text-sky-400' },
-  { id: 'recipes', label: 'Forge Recipes', icon: <ScrollText className="w-4 h-4" />, color: 'text-cyan-400' },
-  { id: 'biomes', label: 'Biomes & Realms', icon: <Trees className="w-4 h-4" />, color: 'text-purple-400' },
-  { id: 'guides', label: 'Guides & Manuals', icon: <BookOpen className="w-4 h-4" />, color: 'text-indigo-400' },
-];
-
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   pages,
   selectedCategory,
@@ -52,6 +44,18 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
   const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
   const isAdmin = userEmail && authorizedEmails.includes(userEmail.toLowerCase().trim());
+
+  const dynamicCategories = WikiApi.getCategories();
+
+  const renderSidebarIcon = (catId: string, iconStr: string) => {
+    if (catId === 'mobs') return <Ghost className="w-4 h-4 text-rose-400" />;
+    if (catId === 'items') return <Sword className="w-4 h-4 text-amber-400" />;
+    if (catId === 'blocks') return <Box className="w-4 h-4 text-sky-400" />;
+    if (catId === 'recipes') return <ScrollText className="w-4 h-4 text-cyan-400" />;
+    if (catId === 'biomes') return <Trees className="w-4 h-4 text-purple-400" />;
+    if (catId === 'guides') return <BookOpen className="w-4 h-4 text-indigo-400" />;
+    return <span className="text-sm select-none shrink-0">{iconStr || '📁'}</span>;
+  };
 
   return (
     <aside className="w-64 bg-[#111827] border-r border-[#1e293b] text-[#e2e8f0] flex flex-col h-[calc(100vh-61px)] sticky top-[61px] overflow-y-auto hidden md:flex shrink-0 font-sans z-20">
@@ -136,7 +140,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         <p className="text-[10px] uppercase tracking-widest text-[#64748b] mb-2 px-2 font-bold">
           Addon Categories
         </p>
-        {CATEGORIES.map((cat) => {
+        {dynamicCategories.map((cat) => {
           const count = pages.filter((p) => p.category === cat.id).length;
           const isSelected = selectedCategory === cat.id && selectedPageId !== 'home';
 
@@ -151,7 +155,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               }`}
             >
               <span className="flex items-center gap-2">
-                <span className={cat.color}>{cat.icon}</span>
+                <span>{renderSidebarIcon(cat.id, cat.icon)}</span>
                 <span>{cat.label}</span>
               </span>
               <span className="text-[10px] font-mono text-[#64748b]">{count}</span>
