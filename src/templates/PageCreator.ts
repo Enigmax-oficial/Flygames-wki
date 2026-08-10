@@ -224,7 +224,7 @@ export function downloadTemplateScript(
 ) {
   const scriptContent = `/**
  * Etherium Wiki - Page Creator Template Script
- * Author: ruanpablolopesbritor@gmail.com
+ * Author: admin@aetheria.local
  * Generated automatically for direct source code implementation
  */
 
@@ -233,7 +233,7 @@ import { PageCreator } from '../templates/PageCreator';
 export const ${title.replace(/[^a-zA-Z0-9]/g, '') || 'customPage'} = PageCreator.createItem('${title}')
   .setNamespace('${namespace}')
   .setDescription('${title} - Custom item created by Administrator')
-  .setAuthor('ruanpablolopesbritor@gmail.com')
+  .setAuthor('admin@aetheria.local')
   .setBadge('LEGENDARY', 'amber')
   .attachImage('https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=400&q=80')
   .addSection('Overview', '${title} is a specialized item forged for the Aetheria Addon.')

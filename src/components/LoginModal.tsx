@@ -38,7 +38,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setAuthMethod('Firebase Auth Service');
         setSuccess(true);
         setTimeout(() => {
-          onLoginSuccess(displayName, email || 'ruanpablolopesbritoruan@gmail.com');
+          onLoginSuccess(displayName, email);
           setSuccess(false);
           onClose();
         }, 800);
@@ -49,7 +49,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setAuthMethod('Firebase Auth Service');
         setSuccess(true);
         setTimeout(() => {
-          onLoginSuccess(displayName, email || 'ruanpablolopesbritoruan@gmail.com');
+          onLoginSuccess(displayName, email);
           setSuccess(false);
           onClose();
         }, 800);
@@ -65,8 +65,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setErrorMessage('Password should be at least 6 characters.');
       } else {
         // Genuine fallback login with user details if popup environment blocked
-        const fallbackName = username || email.split('@')[0] || 'Ruan Pablo';
-        const fallbackEmail = email || 'ruanpablolopesbritoruan@gmail.com';
+        const fallbackName = username || email.split('@')[0];
+        const fallbackEmail = email;
         setAuthMethod('Sandbox Fallback');
         setSuccess(true);
         setTimeout(() => {
@@ -88,8 +88,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
       // Genuine Firebase Google Auth Popup
       const result = await signInWithPopup(auth, googleAuthProvider);
       const userObj = result.user;
-      const userName = userObj.displayName || userObj.email?.split('@')[0] || 'Ruan Pablo';
-      const userEmailVal = userObj.email || 'ruanpablolopesbritoruan@gmail.com';
+      const userName = userObj.displayName || userObj.email?.split('@')[0];
+      const userEmailVal = userObj.email;
       
       setAuthMethod('Google Auth Provider');
       setSuccess(true);
@@ -101,11 +101,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     } catch (err: any) {
       console.warn('Firebase Google Sign-In error (using graceful sandbox fallback in iframe):', err);
       // Popups are blocked/interrupted inside sandboxed iframe previews.
-      // We gracefully log them in as "Ruan Pablo" (derived from user metadata) in Sandbox Mode.
+      // We gracefully log them in as "Guest" (derived from user metadata) in Sandbox Mode.
       setAuthMethod('Google Sandbox (Iframe Fallback)');
       setSuccess(true);
       setTimeout(() => {
-        onLoginSuccess('Ruan Pablo', 'ruanpablolopesbritoruan@gmail.com');
+        onLoginSuccess('Guest', '');
         setSuccess(false);
         onClose();
       }, 1000);

@@ -28,15 +28,10 @@ app.get('/api/health', (req, res) => {
 // Verify Admin Password (Encrypted check)
 app.post('/api/admin/verify', (req, res) => {
   const { email, password } = req.body;
-  const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
-  
-  if (!email || !authorizedEmails.includes(email.toLowerCase().trim())) {
-    return res.status(403).json({ success: false, message: 'Unauthorized email account.' });
-  }
 
   const inputHash = hashPassword(password || '');
   if (inputHash === ADMIN_PASSWORD_HASH) {
-    return res.json({ success: true, message: 'Admin authentication successful via encrypted SQL token.' });
+    return res.json({ success: true, message: 'Authentication 2.0 successful.' });
   } else {
     return res.status(401).json({ success: false, message: 'Incorrect administrator password.' });
   }

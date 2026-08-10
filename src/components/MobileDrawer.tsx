@@ -45,8 +45,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
-  const isAdmin = userEmail && authorizedEmails.includes(userEmail.toLowerCase().trim());
+  const isAdmin = true; // Authentication 2.0
 
   const dynamicCategories = WikiApi.getCategories();
 

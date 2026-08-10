@@ -41,10 +41,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onClosePanel,
   onSelectPage
 }) => {
-  // Validate authorized email
-  const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
-  const isAuthorized = userEmail && authorizedEmails.includes(userEmail.toLowerCase().trim());
-
+  
   // Encrypted Password State
   const [passwordInput, setPasswordInput] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -280,33 +277,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [catSuccess, setCatSuccess] = useState('');
 
   // Access check
-  if (!isAuthorized) {
-    return (
-      <div className="max-w-3xl mx-auto p-8 bg-[#111827] border border-rose-500/20 rounded-2xl text-center space-y-4 shadow-xl my-10 font-sans">
-        <AlertTriangle className="w-12 h-12 text-rose-500 mx-auto animate-pulse" />
-        <h2 className="text-xl font-bold text-white">Access Denied</h2>
-        <p className="text-sm text-slate-400 max-w-md mx-auto">
-          This administration panel and the options to create dynamic categories, templates, and pages is restricted exclusively to authorized administrator accounts (<code className="text-rose-400 font-mono">ruanpablolopesbritor@gmail.com</code>).
-        </p>
-        <button 
-          onClick={onClosePanel}
-          className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
-        >
-          Return to Portal
-        </button>
-      </div>
-    );
-  }
-
   // Password prompt check for authorized admin
-  if (isAuthorized && !isAdminAuthenticated) {
+  if (!isAdminAuthenticated) {
     return (
       <div className="max-w-md mx-auto p-8 bg-[#111827] border border-amber-500/30 rounded-2xl text-center space-y-6 shadow-2xl my-12 font-sans">
         <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400">
           <Crown className="w-7 h-7" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-bold text-white">Administrator Authentication Required</h2>
+          <h2 className="text-xl font-bold text-white">Authentication 2.0</h2>
           <p className="text-xs text-slate-400">
             Welcome, <span className="text-amber-400 font-mono">{userEmail}</span>. Please enter the secure administrator password to unlock the SQL Admin Panel.
           </p>
@@ -316,7 +295,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <div>
             <input
               type="password"
-              placeholder="Enter Admin Password"
+              placeholder="Enter Authentication 2.0 Password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               className="w-full px-4 py-3 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest text-center"

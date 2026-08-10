@@ -28,17 +28,17 @@ export default function App() {
   // User state
   const [user, setUser] = useState<string | null>(() => {
     try {
-      return localStorage.getItem('etherium_user') || 'Ruan Pablo';
+      return localStorage.getItem('etherium_user');
     } catch {
-      return 'Ruan Pablo';
+      return null;
     }
   });
 
   const [userEmail, setUserEmail] = useState<string | null>(() => {
     try {
-      return localStorage.getItem('etherium_user_email') || 'ruanpablolopesbritoruan@gmail.com';
+      return localStorage.getItem('etherium_user_email');
     } catch {
-      return 'ruanpablolopesbritoruan@gmail.com';
+      return null;
     }
   });
 
@@ -170,7 +170,7 @@ export default function App() {
   }, [pages]);
 
   const handleLoginSuccess = (userName: string, email: string) => {
-    const finalEmail = email || 'ruanpablolopesbritoruan@gmail.com';
+    const finalEmail = email;
     setUser(userName);
     setUserEmail(finalEmail);
     try {

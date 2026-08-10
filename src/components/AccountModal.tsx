@@ -38,7 +38,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   isOpen,
   onClose,
   user,
-  userEmail = 'ruanpablolopesbritoruan@gmail.com',
+  userEmail = '',
   onLogout,
   onUpdateUserName,
   onUpdateUserEmail,
@@ -49,16 +49,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState(user || '');
   const [isEditingEmail, setIsEditingEmail] = useState(false);
-  const [newEmail, setNewEmail] = useState(userEmail || 'ruanpablolopesbritoruan@gmail.com');
+  const [newEmail, setNewEmail] = useState(userEmail || '');
   const [copiedScript, setCopiedScript] = useState(false);
 
   if (!isOpen) return null;
 
-  const displayEmail = userEmail || 'ruanpablolopesbritoruan@gmail.com';
+  const displayEmail = userEmail || '';
   
   // Administrator condition
   const isAdmin = 
-    displayEmail.toLowerCase().includes('ruanpablolopesbrito') ||
+    
     displayEmail.toLowerCase().includes('admin') ||
     (user && user.toLowerCase().includes('admin'));
 
@@ -129,7 +129,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-xl font-black text-white tracking-tight">{user || 'Ruan Pablo'}</h2>
+                    <h2 className="text-xl font-black text-white tracking-tight">{user}</h2>
                     <button
                       onClick={() => setIsEditingName(true)}
                       className="text-[#64748b] hover:text-sky-400 transition-colors p-1"
@@ -240,7 +240,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
                   <div className="p-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl space-y-1">
                     <span className="text-slate-500 block">DISPLAY NAME</span>
-                    <span className="text-white font-bold">{user || 'Ruan Pablo'}</span>
+                    <span className="text-white font-bold">{user}</span>
                   </div>
                   <div className="p-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl space-y-1">
                     <span className="text-slate-500 block">AUTHENTICATED EMAIL</span>
@@ -361,7 +361,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   <span>Security & Local Storage Status</span>
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Authentication state is securely stored in client local storage with automatic fallback defaults (<code className="text-sky-300 font-mono">ruanpablolopesbritoruan@gmail.com</code>).
+                  Authentication state is securely stored in client local storage with automatic fallback defaults (<code className="text-sky-300 font-mono">None</code>).
                 </p>
               </div>
             </div>
