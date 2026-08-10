@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { X, User, Lock, Mail, LogIn, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, User, Lock, Mail, LogIn, CheckCircle2, ShieldCheck, AlertCircle, ArrowLeft } from 'lucide-react';
 import { 
-   
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword 
 } from 'firebase/auth';
@@ -9,13 +8,12 @@ import { auth } from '../lib/firebase';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 
-interface LoginModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface LoginPageProps {
   onLoginSuccess: (userName: string, email: string) => void;
+  onBack: () => void;
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLoginSuccess }) => {
+export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) => {
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -24,8 +22,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [authMethod, setAuthMethod] = useState('Firebase Auth Service');
-
-  if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,10 +38,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setTimeout(() => {
           onLoginSuccess(displayName, email);
           setSuccess(false);
-          onClose();
         }, 800);
       } else {
-        // Genuine Firebase Email Sign In
+        // Genuine Firebase Email Login
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const displayName = userCredential.user.displayName || email.split('@')[0];
         setAuthMethod('Firebase Auth Service');
@@ -53,13 +48,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setTimeout(() => {
           onLoginSuccess(displayName, email);
           setSuccess(false);
-          onClose();
         }, 800);
       }
     } catch (err: any) {
-      console.error('Firebase Authentication Error:', err);
-      // Fallback user-friendly messaging
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
+      console.warn('Firebase email auth error:', err);
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
         setErrorMessage('Invalid email or password.');
       } else if (err.code === 'auth/email-already-in-use') {
         setErrorMessage('An account with this email already exists.');
@@ -74,7 +67,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
         setTimeout(() => {
           onLoginSuccess(fallbackName, fallbackEmail);
           setSuccess(false);
-          onClose();
         }, 800);
       }
     } finally {
@@ -82,22 +74,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
     }
   };
 
-  
   const handleGuestLogin = () => {
     setLoading(true);
+    setErrorMessage('');
     setTimeout(() => {
       setLoading(false);
       onLoginSuccess('Explorer Steve', 'steve@minecraft.net');
-      onClose();
     }, 300);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md font-sans">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 bg-[#0b0f19] font-sans h-full min-h-[calc(100vh-64px)]">
       <div className="bg-[#111827] border border-[#1e293b] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden text-[#e2e8f0]">
         {/* Header */}
         <div className="p-5 bg-[#0b0f19] border-b border-[#1e293b] flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <button
+              onClick={onBack}
+              className="p-1.5 rounded-lg bg-[#1e293b]/60 hover:bg-[#1e293b] text-[#94a3b8] hover:text-white transition-colors cursor-pointer mr-1"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
             </div>
@@ -110,12 +107,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg bg-[#1e293b]/60 hover:bg-[#1e293b] text-[#94a3b8] hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Form Body */}
@@ -148,7 +139,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, onLogin
                       setTimeout(() => {
                         onLoginSuccess(userName, userEmailVal);
                         setSuccess(false);
-                        onClose();
                       }, 800);
                     }
                   }}

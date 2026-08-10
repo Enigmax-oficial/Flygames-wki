@@ -8,7 +8,7 @@ import { WikiArticle } from './components/WikiArticle';
 import { PortalHomePage } from './components/PortalHomePage';
 import { CategoryOverviewPage } from './components/CategoryOverviewPage';
 import { SearchModal } from './components/SearchModal';
-import { LoginModal } from './components/LoginModal';
+import { LoginPage } from './components/LoginPage';
 import { PageCreatorModal } from './components/PageCreatorModal';
 import { AccountModal } from './components/AccountModal';
 import { AdminPanel } from './components/AdminPanel';
@@ -44,8 +44,7 @@ export default function App() {
 
   // Modals & Navigation state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+    const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isCreatePageOpen, setIsCreatePageOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
@@ -81,6 +80,9 @@ export default function App() {
       return { pageId: 'home', category: 'all' as CategoryType | 'all' };
     }
 
+    if (rawHash === 'login') {
+      return { pageId: 'login', category: 'all' as CategoryType | 'all' };
+    }
     if (rawHash === 'admin-panel') {
       return { pageId: 'admin-panel', category: 'all' as CategoryType | 'all' };
     }
@@ -132,6 +134,11 @@ export default function App() {
     if (pageId === 'home') {
       window.location.hash = '#/portal';
       setSelectedPageId('home');
+      return;
+    }
+    if (pageId === 'login') {
+      window.location.hash = '#/login';
+      setSelectedPageId('login');
       return;
     }
     if (pageId === 'admin-panel') {
@@ -209,6 +216,19 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-[#e2e8f0] font-sans selection:bg-sky-500 selection:text-black flex flex-col">
+      
+
+      
+      {selectedPageId === 'login' ? (
+        <LoginPage 
+          onBack={() => navigateToPage('home')}
+          onLoginSuccess={(name, email) => {
+            handleLoginSuccess(name, email);
+            navigateToPage('home');
+          }}
+        />
+      ) : (
+        <>
       {/* Top Header */}
       <Header
         addonVersion="v1.4.0"
@@ -218,13 +238,12 @@ export default function App() {
         onToggleDesktopSidebar={toggleDesktopSidebar}
         isDesktopSidebarOpen={isDesktopSidebarOpen}
         onGoHome={() => navigateToPage('home')}
-        onOpenLogin={() => setIsLoginOpen(true)}
+        onOpenLogin={() => navigateToPage('login')}
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
         user={user}
         userEmail={userEmail}
         onLogout={handleLogout}
       />
-
       {/* Main Container Layout */}
       <div className="flex-1 flex max-w-[1600px] w-full mx-auto">
         {/* PC / Desktop Sidebar */}
@@ -310,18 +329,16 @@ export default function App() {
         </div>
       </footer>
 
+      
+        </>
+      )}
       {/* Modals */}
+  
       <SearchModal
         isOpen={isSearchOpen}
         onClose={() => setIsSearchOpen(false)}
         pages={pages}
         onSelectPage={(id) => navigateToPage(id)}
-      />
-
-      <LoginModal
-        isOpen={isLoginOpen}
-        onClose={() => setIsLoginOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
       />
 
       <PageCreatorModal
