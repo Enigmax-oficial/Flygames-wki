@@ -100,7 +100,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Google Sign In Component via @react-oauth/google */}
-              <div className="flex justify-center w-full rounded-xl overflow-hidden shadow-sm border border-slate-700 bg-white p-1">
+              <div className="flex justify-center w-full my-1">
                 <GoogleLogin
                   onSuccess={async (credentialResponse: CredentialResponse) => {
                     if (credentialResponse.credential) {
@@ -154,8 +154,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                   }}
                   useOneTap
                   theme="outline"
+                  size="large"
                   shape="rectangular"
-                  width="100%"
+                  logo_alignment="left"
+                  width="350"
                 />
               </div>
 
