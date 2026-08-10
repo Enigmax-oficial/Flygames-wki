@@ -64,8 +64,8 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     <div className="fixed inset-0 z-50 md:hidden flex">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-        onClick={onClose}
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity" onClick={onClose}
+        
       />
 
       {/* Drawer Content Panel */}
@@ -82,6 +82,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             </div>
           </div>
           <button
+            
             onClick={onClose}
             className="p-1.5 rounded-lg bg-[#1e293b] text-[#94a3b8] hover:text-white border border-[#334155]"
           >
@@ -103,8 +104,8 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
           </button>
           {!userEmail && (
             <a
-              href="#/login"
-              onClick={onClose}
+              href="/login" onClick={(e) => { e.preventDefault(); window.history.pushState(null, "", "/login"); window.dispatchEvent(new Event("popstate")); onClose(); }}
+              
               className="w-full py-2.5 px-3 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-xl text-xs flex items-center gap-2"
             >
               <User className="w-4 h-4 text-indigo-400" />

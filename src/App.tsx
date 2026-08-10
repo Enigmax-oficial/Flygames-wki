@@ -75,7 +75,7 @@ export default function App() {
 
   // Parse URL hash for page routing
   const parseRoute = useCallback(() => {
-    const rawHash = window.location.hash.replace(/^#\/?/, '');
+    const rawHash = window.location.pathname.replace(/^\//, '');
     if (!rawHash || rawHash === 'portal' || rawHash === 'home') {
       return { pageId: 'home', category: 'all' as CategoryType | 'all' };
     }
@@ -117,43 +117,43 @@ export default function App() {
 
   // Handle URL Hash changes
   useEffect(() => {
-    const handleHashChange = () => {
+    const handlePopState = () => {
       const route = parseRoute();
       setSelectedPageId(route.pageId);
       setSelectedCategory(route.category);
     };
 
-    handleHashChange();
+    handlePopState();
 
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [parseRoute]);
 
   // Navigate function that updates location hash (giving each page a unique URL link)
   const navigateToPage = (pageId: string) => {
     if (pageId === 'home') {
-      window.location.hash = '#/portal';
+      window.history.pushState(null, '', '/portal'); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId('home');
       return;
     }
     if (pageId === 'login') {
-      window.location.hash = '#/login';
+      window.history.pushState(null, '', '/login'); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId('login');
       return;
     }
     if (pageId === 'admin-panel') {
-      window.location.hash = '#/admin-panel';
+      window.history.pushState(null, '', '/admin-panel'); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId('admin-panel');
       return;
     }
 
     const page = pages.find((p) => p.id === pageId);
     if (page) {
-      window.location.hash = `#/${page.category}/${page.id}`;
+      window.history.pushState(null, '', `/${page.category}/${page.id}`); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId(page.id);
       setSelectedCategory(page.category);
     } else {
-      window.location.hash = `#/${pageId}`;
+      window.history.pushState(null, '', `/${pageId}`); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId(pageId);
     }
   };
@@ -161,9 +161,9 @@ export default function App() {
   const navigateToCategory = (category: CategoryType | 'all') => {
     setSelectedCategory(category);
     if (category === 'all') {
-      window.location.hash = '#/portal';
+      window.history.pushState(null, '', '/portal'); window.dispatchEvent(new Event('popstate'));
     } else {
-      window.location.hash = `#/category/${category}`;
+      window.history.pushState(null, '', `/category/${category}`); window.dispatchEvent(new Event('popstate'));
     }
   };
 

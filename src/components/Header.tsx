@@ -125,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           ) : (
             <a
-              href="#/login"
+              href="/login" onClick={(e) => { e.preventDefault(); window.history.pushState(null, "", "/login"); window.dispatchEvent(new Event("popstate")); }}
               className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs sm:text-sm transition-all shadow-[0_0_15px_rgba(56,189,248,0.3)] active:scale-95 cursor-pointer"
             >
               <User className="w-4 h-4" />
