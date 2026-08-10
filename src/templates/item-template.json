@@ -11,7 +11,7 @@
     "category": "items",
     "description": "Brief description of what this item does and how it is obtained.",
     "addonVersion": "v1.0.0",
-    "icon": "⚔️",
+    "icon": "sword",
     "tags": ["item", "weapon", "craftable"],
     "lastUpdated": "2026-08-08",
     "author": "Addon Creator",

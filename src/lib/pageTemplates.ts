@@ -136,7 +136,7 @@ export class TemplateItem extends TemplateWikiPage {
   constructor(data: Partial<WikiPage> & { title: string }) {
     super({
       category: 'items',
-      icon: '🗡️',
+      icon: 'sword',
       badge: 'ITEM',
       badgeColor: 'blue',
       ...data

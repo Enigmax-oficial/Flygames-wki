@@ -147,8 +147,10 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
 
             <div className="flex justify-between border-b border-[#2a2a2a] pb-1">
               <span className="text-[#666]">Health Points</span>
-              <span className="text-rose-400 font-bold">
-                {page.mobStats.health} HP ({page.mobStats.health / 2} ❤️)
+              <span className="text-rose-400 font-bold flex items-center gap-1">
+                <span>{page.mobStats.health} HP ({page.mobStats.health / 2}</span>
+                <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" />
+                <span>)</span>
               </span>
             </div>
 
@@ -198,7 +200,10 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
             {page.blockStats.lightLevel !== undefined && (
               <div className="flex justify-between border-b border-[#2a2a2a] pb-1">
                 <span className="text-[#666]">Light Emission</span>
-                <span className="text-yellow-300 font-mono">💡 {page.blockStats.lightLevel}</span>
+                <span className="text-yellow-300 font-mono flex items-center gap-1">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-300 inline" />
+                  <span>{page.blockStats.lightLevel}</span>
+                </span>
               </div>
             )}
           </div>

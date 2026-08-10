@@ -80,7 +80,95 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'api-playground'>('create-page');
+  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'api-playground' | 'assets'>('create-page');
+
+  // Asset Gallery States
+  const [imageList, setImageList] = useState<string[]>([
+    '/images/weapons/sword.png',
+    '/images/weapons/wood_sword.png',
+    '/images/weapons/stone_sword.png',
+    '/images/weapons/iron_sword.png',
+    '/images/weapons/gold_sword.png',
+    '/images/weapons/diamond_sword.png',
+    '/images/weapons/netherite_sword.png',
+    '/images/tools/wood_axe.png',
+    '/images/tools/wood_pickaxe.png',
+    '/images/tools/wood_hoe.png',
+    '/images/tools/stone_axe.png',
+    '/images/tools/stone_pickaxe.png',
+    '/images/tools/stone_hoe.png',
+    '/images/tools/iron_axe.png',
+    '/images/tools/iron_pickaxe.png',
+    '/images/tools/iron_hoe.png',
+    '/images/tools/copper_axe.png',
+    '/images/tools/copper_pickaxe.png',
+    '/images/tools/copper_hoe.png',
+    '/images/tools/gold_axe.png',
+    '/images/tools/gold_pickaxe.png',
+    '/images/tools/gold_hoe.png',
+    '/images/tools/diamond_axe.png',
+    '/images/tools/diamond_pickaxe.png',
+    '/images/tools/diamond_hoe.png',
+    '/images/tools/netherite_axe.png',
+    '/images/tools/netherite_pickaxe.png',
+    '/images/tools/netherite_hoe.png',
+    '/images/items/apple.png',
+    '/images/items/apple_golden.png',
+    '/images/categories/mobs.png',
+    '/images/categories/items.png',
+    '/images/categories/blocks.png',
+    '/images/categories/recipes.png',
+    '/images/categories/biomes.png',
+    '/images/categories/guides.png',
+    '/images/heart.png'
+  ]);
+  const [isImagesLoading, setIsImagesLoading] = useState(false);
+  const [copiedPath, setCopiedPath] = useState<string | null>(null);
+  const [assetSearch, setAssetSearch] = useState('');
+  const [selectedAssetCat, setSelectedAssetCat] = useState<string>('All');
+
+  const getCategoryFromPath = (path: string): string => {
+    if (path.includes('/weapons/')) return 'Weapons';
+    if (path.includes('/tools/')) return 'Tools';
+    if (path.includes('/items/')) return 'Items';
+    if (path.includes('/categories/')) return 'Categories';
+    return 'UI / Other';
+  };
+
+  const copyToClipboard = (text: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).catch(() => {
+        fallbackCopy(text);
+      });
+    } else {
+      fallbackCopy(text);
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textArea);
+  };
+
+  // Fetch dynamic real image assets when Asset Library is active
+  useEffect(() => {
+    if (activeTab === 'assets') {
+      setIsImagesLoading(true);
+      fetch('/api/images/list')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.images && data.images.length > 0) {
+            setImageList(data.images);
+          }
+        })
+        .catch((err) => console.error('Error fetching images:', err))
+        .finally(() => setIsImagesLoading(false));
+    }
+  }, [activeTab]);
 
   // Dynamic Categories and Templates lists from API
   const [categories, setCategories] = useState<DynamicCategory[]>(() => WikiApi.getCategories());
@@ -576,6 +664,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         >
           <Terminal className="w-4 h-4" />
           <span>Developer API Console</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('assets')}
+          className={`px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+            activeTab === 'assets'
+              ? 'border-amber-400 text-amber-400 bg-amber-500/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+          }`}
+        >
+          <ImageIcon className="w-4 h-4" />
+          <span>Asset Library</span>
         </button>
       </div>
 
@@ -1492,6 +1592,145 @@ wikiApi.createPage({
             </div>
 
           </div>
+        </div>
+      )}
+
+      {activeTab === 'assets' && (
+        <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 space-y-6 shadow-xl animate-in fade-in duration-300">
+          <div className="border-b border-[#1e293b] pb-4">
+            <h2 className="text-base font-extrabold text-white flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-amber-400" />
+              <span>Functional Wiki Asset Library</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Live scan of all real image assets in the wiki database files. Click the copy icon to get relative paths to insert into your guides and page templates.
+            </p>
+          </div>
+
+          {/* Search and Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search images by name or path..."
+                value={assetSearch}
+                onChange={(e) => setAssetSearch(e.target.value)}
+                className="w-full bg-[#0b0f19] border border-[#1e293b] focus:border-amber-400 focus:outline-none rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500"
+              />
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              {['All', 'Weapons', 'Tools', 'Items', 'Categories', 'UI / Other'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedAssetCat(cat)}
+                  className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap ${
+                    selectedAssetCat === cat
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                      : 'bg-[#1e293b]/50 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {isImagesLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 space-y-3">
+              <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-xs font-bold text-slate-400">Loading live asset tree...</span>
+            </div>
+          ) : (
+            (() => {
+              // Categorize and filter files
+              const filtered = imageList.filter(img => {
+                const name = img.split('/').pop() || '';
+                const matchesSearch = name.toLowerCase().includes(assetSearch.toLowerCase()) || img.toLowerCase().includes(assetSearch.toLowerCase());
+                if (!matchesSearch) return false;
+
+                if (selectedAssetCat === 'All') return true;
+                const pathCat = getCategoryFromPath(img);
+                return pathCat === selectedAssetCat;
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="text-center py-16 border border-dashed border-[#1e293b] rounded-2xl">
+                    <p className="text-sm font-bold text-slate-400">No functional images match your filters.</p>
+                    <p className="text-xs text-slate-600 mt-1">Make sure the images are in public/images/ and are larger than 0 bytes.</p>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {filtered.map((img) => {
+                    const filename = img.split('/').pop() || '';
+                    const isCopied = copiedPath === img;
+                    const pathCat = getCategoryFromPath(img);
+
+                    return (
+                      <div
+                        key={img}
+                        className="bg-[#0b0f19] border border-[#1e293b] hover:border-amber-500/40 rounded-xl p-3 flex flex-col justify-between transition group shadow-md"
+                      >
+                        <div>
+                          {/* Image Preview Box with checkerboard */}
+                          <div className="relative aspect-square w-full rounded-lg mb-2 overflow-hidden bg-[#070b13] bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:12px_12px] flex items-center justify-center p-3 border border-slate-900">
+                            <img
+                              src={img}
+                              alt={filename}
+                              className="max-w-full max-h-full h-12 w-12 object-contain group-hover:scale-110 transition duration-300"
+                              referrerPolicy="no-referrer"
+                            />
+                            <span className="absolute top-1.5 left-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded bg-slate-950/80 text-slate-400 uppercase tracking-wide border border-slate-800">
+                              {pathCat}
+                            </span>
+                          </div>
+
+                          <div className="px-0.5">
+                            <h4 className="text-xs font-bold text-white truncate" title={filename}>
+                              {filename.replace('.png', '')}
+                            </h4>
+                            <p className="text-[10px] text-slate-500 font-mono truncate select-all mt-0.5" title={img}>
+                              {img}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-2.5 pt-2 border-t border-slate-900 flex items-center justify-between gap-1">
+                          <button
+                            onClick={() => {
+                              copyToClipboard(img);
+                              setCopiedPath(img);
+                              setTimeout(() => setCopiedPath(null), 2000);
+                            }}
+                            className={`w-full py-1.5 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                              isCopied
+                                ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/10'
+                                : 'bg-[#1e293b]/70 hover:bg-[#1e293b] text-slate-300 hover:text-white border border-[#334155]'
+                            }`}
+                          >
+                            {isCopied ? (
+                              <>
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <ImageIcon className="w-3.5 h-3.5" />
+                                <span>Copy Path</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()
+          )}
         </div>
       )}
 

@@ -61,7 +61,13 @@ const ICON_MAP: Record<string, React.ElementType> = {
   '📝': FileText,
 };
 
-export const WikiIcon = ({ icon, className = "w-4 h-4" }: { icon: string | undefined, className?: string }) => {
+export interface WikiIconProps {
+  icon: string | undefined;
+  className?: string;
+  customImages?: Record<string, string>;
+}
+
+export const WikiIcon = ({ icon, className = "w-4 h-4", customImages }: WikiIconProps) => {
   if (!icon) {
     const FallbackIcon = FileText;
     return <FallbackIcon className={className} />;
@@ -72,8 +78,8 @@ export const WikiIcon = ({ icon, className = "w-4 h-4" }: { icon: string | undef
     return <img src={icon} alt="icon" className={`${className} object-contain`} />;
   }
 
-  // Check if it resolves to an item image asset in itemAssets.ts
-  const assetImage = getItemImage(icon);
+  // Check if it resolves to an item image asset in itemAssets.ts or custom stored images
+  const assetImage = getItemImage(icon, customImages);
   if (assetImage) {
     return <img src={assetImage} alt={icon} className={`${className} object-contain`} />;
   }

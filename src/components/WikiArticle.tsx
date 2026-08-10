@@ -4,7 +4,7 @@ import { CraftingGrid } from './CraftingGrid';
 import { WikiIcon } from './WikiIcon';
 import { Infobox } from './Infobox';
 import { WikiImageGallery, GalleryItem } from './WikiImageGallery';
-import { getItemImage } from '../data/itemAssets';
+import { getItemImage, getPageCoverImage } from '../data/itemAssets';
 import { MINECRAFT_MODELS_REGISTRY } from '../models';
 import { WikiComments } from './WikiComments';
 import { 
@@ -118,7 +118,8 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
     }
 
     const gallery: GalleryItem[] = [];
-    const primaryImg = page.renderImageUrl || 
+    const primaryImg = getPageCoverImage(page) || 
+      page.renderImageUrl || 
       page.imageUrl || 
       getItemImage(page.id) || 
       (page.icon?.startsWith('data:') || page.icon?.startsWith('http') ? page.icon : null);
@@ -201,8 +202,8 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center gap-3">
-              {getItemImage(page.id) ? (
-                <img src={getItemImage(page.id)!} alt={page.title} className="w-10 h-10 object-contain drop-shadow-md" />
+              {getPageCoverImage(page) ? (
+                <img src={getPageCoverImage(page)!} alt={page.title} className="w-10 h-10 object-contain drop-shadow-md" />
               ) : (
                 <WikiIcon icon={page.icon} className="w-8 h-8 text-sky-400" />
               )}
@@ -264,8 +265,10 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
               {page.itemStats.attackDamage !== undefined && (
                 <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
                   <span className="text-[11px] font-semibold text-[#64748b] uppercase">Attack Damage</span>
-                  <span className="mt-1 font-mono font-bold text-sm text-rose-400">
-                    {page.itemStats.attackDamage} HP ({page.itemStats.attackDamage / 2} ❤️)
+                  <span className="mt-1 font-mono font-bold text-sm text-rose-400 flex items-center gap-1">
+                    <span>{page.itemStats.attackDamage} HP ({page.itemStats.attackDamage / 2}</span>
+                    <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline" />
+                    <span>)</span>
                   </span>
                 </div>
               )}
@@ -363,8 +366,8 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                       <th className="py-3 px-5 font-semibold flex items-center gap-1">
                         <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> Health
                       </th>
-                      <th className="py-3 px-5 font-semibold">
-                        <Sword className="w-3.5 h-3.5 text-amber-400 inline mr-1" /> Attack
+                      <th className="py-3 px-5 font-semibold flex items-center gap-1.5">
+                        <img src={getItemImage('sword')!} alt="Attack" className="w-4 h-4 object-contain inline-block" /> Attack
                       </th>
                     </tr>
                   </thead>
@@ -407,7 +410,11 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                     {dropsTable.map((drop, idx) => (
                       <tr key={idx} className="hover:bg-[#1e293b]/30 transition-colors">
                         <td className="py-3.5 px-5 font-semibold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer flex items-center gap-2.5">
-                          <WikiIcon icon={drop.icon || 'gem'} className="w-5 h-5 text-sky-400" />
+                          {getItemImage(drop.item) || (drop.item === page.title && getPageCoverImage(page)) ? (
+                            <img src={getItemImage(drop.item) || getPageCoverImage(page)!} alt={drop.item} className="w-5 h-5 object-contain" />
+                          ) : (
+                            <WikiIcon icon={drop.icon || 'gem'} className="w-5 h-5 text-sky-400" />
+                          )}
                           <span>{drop.item}</span>
                         </td>
                         <td className="py-3.5 px-5 text-[#cbd5e1] font-mono">{drop.amount}</td>
@@ -440,11 +447,6 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
             ))}
           </div>
         )}
-
-        {/* Right Infobox Sidebar Integration */}
-        <div className="pt-4">
-          <Infobox page={page} />
-        </div>
 
         {/* Comments and Q&A Section */}
         <div className="mt-8 border-t border-[#1e293b] pt-8">
@@ -582,10 +584,10 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         </div>
       </div>
 
-      {/* Main Content & Infobox Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Content */}
+      <div className="space-y-6">
         {/* Main Section Column */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           {activeTab === 'article' && (
             <div className="space-y-6">
               {/* Media Gallery & 3D Showcase */}
@@ -666,10 +668,6 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           )}
         </div>
 
-        {/* Infobox Right Column */}
-        <div className="space-y-4">
-          <Infobox page={page} />
-        </div>
       </div>
 
       {/* Comments and Q&A Section */}

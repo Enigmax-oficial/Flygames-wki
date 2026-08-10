@@ -1,6 +1,6 @@
 import React from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
-import { getPageCoverImage } from '../data/itemAssets';
+import { getPageCoverImage, getItemImage } from '../data/itemAssets';
 import { WikiApi } from '../lib/wikiApi';
 import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 import { WikiIcon } from './WikiIcon';
@@ -49,13 +49,13 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   const dynamicCategories = WikiApi.getCategories();
 
   const renderSidebarIcon = (catId: string, iconStr: string) => {
-    if (catId === 'mobs') return <Ghost className="w-4 h-4 text-rose-400" />;
-    if (catId === 'items') return <Sword className="w-4 h-4 text-amber-400" />;
-    if (catId === 'blocks') return <Box className="w-4 h-4 text-sky-400" />;
-    if (catId === 'recipes') return <ScrollText className="w-4 h-4 text-cyan-400" />;
-    if (catId === 'biomes') return <Trees className="w-4 h-4 text-purple-400" />;
-    if (catId === 'guides') return <BookOpen className="w-4 h-4 text-indigo-400" />;
-    return <WikiIcon icon={iconStr || '📁'} className="w-4 h-4" />;
+    if (catId === 'mobs') return <img src="/images/categories/mobs.png" alt="Mobs" className="w-4 h-4 object-contain" />;
+    if (catId === 'items') return <img src="/images/weapons/copper_sword.png" alt="Items" className="w-4 h-4 object-contain" />;
+    if (catId === 'blocks') return <img src="/images/categories/blocks.png" alt="Blocks" className="w-4 h-4 object-contain" />;
+    if (catId === 'recipes') return <img src="/images/categories/recipes.png" alt="Recipes" className="w-4 h-4 object-contain" />;
+    if (catId === 'biomes') return <img src="/images/categories/biomes.png" alt="Biomes" className="w-4 h-4 object-contain" />;
+    if (catId === 'guides') return <img src="/images/categories/guides.png" alt="Guides" className="w-4 h-4 object-contain" />;
+    return <WikiIcon icon={iconStr || 'item'} className="w-4 h-4" />;
   };
 
   return (

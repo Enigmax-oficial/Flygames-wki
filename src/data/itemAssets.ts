@@ -1,6 +1,99 @@
 // SVG Image Data URIs for items, blocks, and materials to be used in crafting grids, icons, and galleries
 
 export const ITEM_IMAGES: Record<string, string> = {
+  // Categorized PNG Asset Archives
+  'sword': '/images/weapons/sword.png',
+  'swords': '/images/weapons/sword.png',
+  'axe': '/images/tools/iron_axe.png',
+  'pickaxe': '/images/tools/iron_pickaxe.png',
+  'hoe': '/images/tools/iron_hoe.png',
+
+  // Copper Tier
+  'copper_sword': '/images/weapons/copper_sword-1.png',
+  'copper_axe': '/images/tools/copper_axe.png',
+  'copper_pickaxe': '/images/tools/copper_pickaxe.png',
+  'copper_hoe': '/images/tools/copper_hoe.png',
+
+  // Diamond Tier
+  'diamond_sword': '/images/weapons/diamond_sword.png',
+  'diamond_axe': '/images/tools/diamond_axe.png',
+  'diamond_pickaxe': '/images/tools/diamond_pickaxe.png',
+  'diamond_hoe': '/images/tools/diamond_hoe.png',
+
+  // Golden Tier
+  'gold_sword': '/images/weapons/gold_sword.png',
+  'golden_sword': '/images/weapons/gold_sword.png',
+  'gold_axe': '/images/tools/gold_axe.png',
+  'golden_axe': '/images/tools/gold_axe.png',
+  'gold_pickaxe': '/images/tools/gold_pickaxe.png',
+  'golden_pickaxe': '/images/tools/gold_pickaxe.png',
+  'gold_hoe': '/images/tools/gold_hoe.png',
+  'golden_hoe': '/images/tools/gold_hoe.png',
+
+  // Iron Tier
+  'iron_sword': '/images/weapons/iron_sword.png',
+  'iron_axe': '/images/tools/iron_axe.png',
+  'iron_pickaxe': '/images/tools/iron_pickaxe.png',
+  'iron_hoe': '/images/tools/iron_hoe.png',
+
+  // Netherite Tier
+  'netherite_sword': '/images/weapons/netherite_sword.png',
+  'netherite_axe': '/images/tools/netherite_axe.png',
+  'netherite_pickaxe': '/images/tools/netherite_pickaxe.png',
+  'netherite_hoe': '/images/tools/netherite_hoe.png',
+
+  // Wooden Tier
+  'wood_sword': '/images/weapons/wood_sword.png',
+  'wooden_sword': '/images/weapons/wood_sword.png',
+  'wood_axe': '/images/tools/wood_axe.png',
+  'wooden_axe': '/images/tools/wood_axe.png',
+  'wood_pickaxe': '/images/tools/wood_pickaxe.png',
+  'wooden_pickaxe': '/images/tools/wood_pickaxe.png',
+  'wood_hoe': '/images/tools/wood_hoe.png',
+  'wooden_hoe': '/images/tools/wood_hoe.png',
+
+  // Stone Tier
+  'stone_sword': '/images/weapons/stone_sword.png',
+  'stone_axe': '/images/tools/stone_axe.png',
+  'stone_pickaxe': '/images/tools/stone_pickaxe.png',
+  'stone_hoe': '/images/tools/stone_hoe.png',
+
+  // Stats / Items
+  'apple': '/images/items/apple.png',
+  'apple_golden': '/images/items/apple_golden.png',
+  'golden_apple': '/images/items/apple_golden.png',
+  'heart': '/images/ui/heart.png',
+  '❤️': '/images/ui/heart.png',
+  '❤': '/images/ui/heart.png',
+
+  // Categories
+  'mobs_cat': '/images/categories/mobs.png',
+  'items_cat': '/images/categories/items.png',
+  'blocks_cat': '/images/categories/blocks.png',
+  'recipes_cat': '/images/categories/recipes.png',
+  'biomes_cat': '/images/categories/biomes.png',
+  'guides_cat': '/images/categories/guides.png',
+  '⚔️': '/images/weapons/sword.png',
+  '🗡️': '/images/weapons/sword.png',
+
+  // Minecraft Diamond Sword
+  'minecraft:diamond_sword': '/images/weapons/diamond_sword.png',
+
+  // Minecraft Golden Sword
+  'minecraft:golden_sword': '/images/weapons/gold_sword.png',
+
+  // Minecraft Iron Sword
+  'minecraft:iron_sword': '/images/weapons/iron_sword.png',
+
+  // Minecraft Netherite Sword
+  'minecraft:netherite_sword': '/images/weapons/netherite_sword.png',
+
+  // Minecraft Stone Sword
+  'minecraft:stone_sword': '/images/weapons/stone_sword.png',
+
+  // Minecraft Wooden Sword
+  'minecraft:wooden_sword': '/images/weapons/wood_sword.png',
+
   // Aetherial Sword
   'aetheria:aetherial_sword': `data:image/svg+xml;utf8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
@@ -206,6 +299,70 @@ export const ITEM_IMAGES: Record<string, string> = {
     </svg>
   `)}`,
 
+  // Minecraft Apple
+  'minecraft:apple': `data:image/svg+xml;utf8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="64" height="64" shape-rendering="crispEdges">
+      <!-- Stem -->
+      <rect x="8" y="1" width="1" height="3" fill="#5c3818"/>
+      <rect x="9" y="2" width="1" height="1" fill="#3a220c"/>
+      <rect x="10" y="1" width="1" height="1" fill="#387018"/>
+      <!-- Outline -->
+      <rect x="5" y="4" width="6" height="1" fill="#3b0000"/>
+      <rect x="4" y="5" width="8" height="1" fill="#3b0000"/>
+      <rect x="3" y="6" width="10" height="7" fill="#3b0000"/>
+      <rect x="4" y="13" width="8" height="1" fill="#3b0000"/>
+      <rect x="5" y="14" width="6" height="1" fill="#3b0000"/>
+      <!-- Body -->
+      <rect x="5" y="5" width="6" height="8" fill="#e21a1a"/>
+      <rect x="4" y="6" width="8" height="6" fill="#f02424"/>
+      <rect x="5" y="13" width="6" height="1" fill="#aa0c0c"/>
+      <!-- Highlights -->
+      <rect x="5" y="6" width="2" height="2" fill="#ff8a8a"/>
+      <rect x="6" y="6" width="1" height="1" fill="#ffffff"/>
+      <rect x="5" y="8" width="1" height="1" fill="#ff6666"/>
+      <!-- Shading -->
+      <rect x="9" y="8" width="2" height="4" fill="#a80808"/>
+      <rect x="8" y="11" width="3" height="2" fill="#800202"/>
+      <rect x="6" y="13" width="4" height="1" fill="#600000"/>
+    </svg>
+  `)}`,
+  'Minecraft:apple': `data:image/svg+xml;utf8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="64" height="64" shape-rendering="crispEdges">
+      <!-- Stem -->
+      <rect x="8" y="1" width="1" height="3" fill="#5c3818"/>
+      <rect x="9" y="2" width="1" height="1" fill="#3a220c"/>
+      <rect x="10" y="1" width="1" height="1" fill="#387018"/>
+      <!-- Outline -->
+      <rect x="5" y="4" width="6" height="1" fill="#3b0000"/>
+      <rect x="4" y="5" width="8" height="1" fill="#3b0000"/>
+      <rect x="3" y="6" width="10" height="7" fill="#3b0000"/>
+      <rect x="4" y="13" width="8" height="1" fill="#3b0000"/>
+      <rect x="5" y="14" width="6" height="1" fill="#3b0000"/>
+      <!-- Body -->
+      <rect x="5" y="5" width="6" height="8" fill="#e21a1a"/>
+      <rect x="4" y="6" width="8" height="6" fill="#f02424"/>
+      <rect x="5" y="13" width="6" height="1" fill="#aa0c0c"/>
+      <!-- Highlights -->
+      <rect x="5" y="6" width="2" height="2" fill="#ff8a8a"/>
+      <rect x="6" y="6" width="1" height="1" fill="#ffffff"/>
+      <rect x="5" y="8" width="1" height="1" fill="#ff6666"/>
+      <!-- Shading -->
+      <rect x="9" y="8" width="2" height="4" fill="#a80808"/>
+      <rect x="8" y="11" width="3" height="2" fill="#800202"/>
+      <rect x="6" y="13" width="4" height="1" fill="#600000"/>
+    </svg>
+  `)}`,
+
+  // Crystalline Apple
+  'aetheria:crystalline_apple': `data:image/svg+xml;utf8,${encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+      <path d="M 32 16 C 20 16, 12 26, 12 40 C 12 54, 24 60, 32 60 C 40 60, 52 54, 52 40 C 52 26, 44 16, 32 16 Z" fill="#10b981" stroke="#047857" stroke-width="2"/>
+      <polygon points="32,16 44,28 32,40 20,28" fill="#6ee7b7" opacity="0.8"/>
+      <path d="M 32 8 C 34 12, 38 14, 42 12" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="26" cy="30" r="2" fill="#ffffff"/>
+    </svg>
+  `)}`,
+
   // Addon Installation Guide Book Cover
   'addon-installation-guide': `data:image/svg+xml;utf8,${encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
@@ -254,40 +411,100 @@ export const ITEM_IMAGES: Record<string, string> = {
   `)}`,
 };
 
-export function getItemImage(idOrName: string): string | null {
+// Custom runtime stored image overrides registry
+const CUSTOM_STORED_IMAGES: Record<string, string> = {};
+
+/**
+ * Register or associate a custom image for a specific value or key
+ * e.g., registerCustomImage('Minecraft:apple', 'data:image/...');
+ */
+export function registerCustomImage(key: string, imageUrl: string): void {
+  if (!key || !imageUrl) return;
+  CUSTOM_STORED_IMAGES[key] = imageUrl;
+  const lower = key.toLowerCase();
+  CUSTOM_STORED_IMAGES[lower] = imageUrl;
+  CUSTOM_STORED_IMAGES[lower.replace(/[- ]/g, '_')] = imageUrl;
+  CUSTOM_STORED_IMAGES[lower.replace(/[_ ]/g, '-')] = imageUrl;
+}
+
+/**
+ * Get all dynamically registered custom images
+ */
+export function getCustomStoredImages(): Record<string, string> {
+  return { ...CUSTOM_STORED_IMAGES };
+}
+
+export function getItemImage(idOrName: string, customImages?: Record<string, string>): string | null {
   if (!idOrName) return null;
+
+  // Combine custom parameter map, runtime registered custom map, and standard ITEM_IMAGES
+  const combinedMap = {
+    ...ITEM_IMAGES,
+    ...CUSTOM_STORED_IMAGES,
+    ...(customImages || {}),
+  };
+
   // Direct match
-  if (ITEM_IMAGES[idOrName]) {
-    return ITEM_IMAGES[idOrName];
+  if (combinedMap[idOrName]) {
+    return combinedMap[idOrName];
   }
-  // Check lowercased or slug matches
-  const key = Object.keys(ITEM_IMAGES).find(
-    (k) => k.toLowerCase() === idOrName.toLowerCase() || k.endsWith(':' + idOrName) || k.includes(idOrName)
-  );
+
+  // Exact case-insensitive match
+  const lower = idOrName.toLowerCase();
+  if (combinedMap[lower]) {
+    return combinedMap[lower];
+  }
+
+  const underscore = lower.replace(/[- ]/g, '_');
+  const dashed = lower.replace(/[_ ]/g, '-');
+
+  const key = Object.keys(combinedMap).find((k) => {
+    const kLower = k.toLowerCase();
+    return (
+      kLower === lower ||
+      kLower === underscore ||
+      kLower === dashed ||
+      kLower.endsWith(':' + underscore) ||
+      kLower.endsWith(':' + dashed) ||
+      kLower.endsWith(':' + lower) ||
+      kLower.includes(underscore) ||
+      kLower.includes(dashed) ||
+      kLower.includes(lower)
+    );
+  });
+
   if (key) {
-    return ITEM_IMAGES[key];
+    return combinedMap[key];
   }
   return null;
 }
 
-export function getPageCoverImage(page: {
-  id?: string;
-  namespace?: string;
-  imageUrl?: string;
-  renderImageUrl?: string;
-  bannerImageUrl?: string;
-  icon?: string;
-}): string | null {
+export function getPageCoverImage(
+  page: {
+    id?: string;
+    title?: string;
+    namespace?: string;
+    imageUrl?: string;
+    renderImageUrl?: string;
+    bannerImageUrl?: string;
+    icon?: string;
+  },
+  customImages?: Record<string, string>
+): string | null {
   if (!page) return null;
   if (page.imageUrl) return page.imageUrl;
   if (page.renderImageUrl) return page.renderImageUrl;
   if (page.bannerImageUrl) return page.bannerImageUrl;
   if (page.id) {
-    const itemImg = getItemImage(page.id);
+    const itemImg = getItemImage(page.id, customImages);
     if (itemImg) return itemImg;
   }
+  if (page.title) {
+    const titleImg = getItemImage(page.title, customImages);
+    if (titleImg) return titleImg;
+  }
   if (page.namespace) {
-    const nsImg = getItemImage(page.namespace);
+    const nsImg = getItemImage(page.namespace, customImages);
     if (nsImg) return nsImg;
   }
   if (page.icon && (page.icon.startsWith('data:') || page.icon.startsWith('http'))) {

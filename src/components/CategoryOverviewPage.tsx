@@ -279,13 +279,15 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
                 {page.itemStats && (page.itemStats.attackDamage !== undefined || page.itemStats.durability !== undefined) && (
                   <div className="p-2 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-between text-xs font-mono">
                     {page.itemStats.attackDamage !== undefined && (
-                      <span className="text-amber-300 font-bold">
-                        ⚔️ {page.itemStats.attackDamage} Attack DMG
+                      <span className="text-amber-300 font-bold flex items-center gap-1">
+                        <img src={getItemImage('sword')!} alt="Attack" className="w-4 h-4 object-contain inline-block" />
+                        <span>{page.itemStats.attackDamage} Attack DMG</span>
                       </span>
                     )}
                     {page.itemStats.durability !== undefined && (
-                      <span className="text-[#94a3b8]">
-                        🛡️ {page.itemStats.durability} Uses
+                      <span className="text-[#94a3b8] flex items-center gap-1">
+                        <Shield className="w-3.5 h-3.5 text-sky-400 inline" />
+                        <span>{page.itemStats.durability} Uses</span>
                       </span>
                     )}
                   </div>

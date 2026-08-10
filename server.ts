@@ -2,6 +2,32 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import crypto from 'crypto';
+import fs from 'fs';
+
+// Helper to scan a directory recursively for functional images (excluding 0-byte placeholders)
+function scanDirRecursive(dirPath: string, rootDir: string): string[] {
+  let results: string[] = [];
+  if (!fs.existsSync(dirPath)) return results;
+  try {
+    const list = fs.readdirSync(dirPath);
+    list.forEach((file) => {
+      const fullPath = path.join(dirPath, file);
+      const stat = fs.statSync(fullPath);
+      if (stat && stat.isDirectory()) {
+        results = results.concat(scanDirRecursive(fullPath, rootDir));
+      } else {
+        // Only include functional image files that have content (greater than 0 bytes)
+        if (/\.(png|jpe?g|gif|svg|webp)$/i.test(file) && stat.size > 0) {
+          const relPath = '/' + path.relative(rootDir, fullPath).replace(/\\/g, '/');
+          results.push(relPath);
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Error scanning dir:', dirPath, err);
+  }
+  return results;
+}
 
 const app = express();
 const PORT = 3000;
@@ -23,6 +49,18 @@ const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD ? hashPassword(process.en
 // API Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', sqlServer: 'connected', timestamp: new Date().toISOString() });
+});
+
+// Endpoint to list all functional wiki image assets
+app.get('/api/images/list', (req, res) => {
+  try {
+    const publicPath = path.join(process.cwd(), 'public');
+    const imagesPath = path.join(publicPath, 'images');
+    const images = scanDirRecursive(imagesPath, publicPath);
+    res.json({ success: true, images });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // Google OAuth verification endpoint

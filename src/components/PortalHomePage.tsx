@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
-import { getPageCoverImage } from '../data/itemAssets';
+import { getPageCoverImage, getItemImage } from '../data/itemAssets';
 import { WikiApi } from '../lib/wikiApi';
 import { WikiIcon } from './WikiIcon';
 import { 
@@ -11,7 +11,8 @@ import {
   ArrowUpRight,
   Search,
   Shuffle,
-  Filter
+  Filter,
+  Heart
 } from 'lucide-react';
 
 interface PortalHomePageProps {
@@ -360,9 +361,15 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
                       </td>
                       <td className="py-3.5 px-5 font-mono text-xs text-[#cbd5e1]">
                         {page.itemStats?.attackDamage !== undefined ? (
-                          <span className="text-amber-300 font-bold">⚔️ {page.itemStats.attackDamage} DMG</span>
+                          <span className="text-amber-300 font-bold flex items-center gap-1">
+                            <img src={getItemImage('sword')!} alt="Attack" className="w-3.5 h-3.5 object-contain inline-block" />
+                            <span>{page.itemStats.attackDamage} DMG</span>
+                          </span>
                         ) : page.mobStats?.health ? (
-                          <span className="text-rose-400 font-bold">❤️ {page.mobStats.health}</span>
+                          <span className="text-rose-400 font-bold flex items-center gap-1">
+                            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline-block" />
+                            <span>{page.mobStats.health} HP</span>
+                          </span>
                         ) : (
                           <span className="text-[#94a3b8]">{page.badge || page.addonVersion || 'v1.4.0'}</span>
                         )}

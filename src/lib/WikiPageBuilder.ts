@@ -23,7 +23,7 @@ export class WikiPageBuilder {
       category: category,
       description: `Description for ${title}.`,
       addonVersion: 'v1.4.0',
-      icon: category === 'mobs' ? '👾' : category === 'items' ? '🗡️' : category === 'blocks' ? '🧊' : '📖',
+      icon: category === 'mobs' ? '👾' : category === 'items' ? 'sword' : category === 'blocks' ? '🧊' : '📖',
       tags: [category, 'Addon', 'v1.4.0'],
       lastUpdated: new Date().toISOString().split('T')[0],
       author: 'Etherium Author',
