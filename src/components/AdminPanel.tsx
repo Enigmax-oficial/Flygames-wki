@@ -103,7 +103,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [description, setDescription] = useState('');
   const [badge, setBadge] = useState('');
   const [badgeColor, setBadgeColor] = useState<'purple' | 'emerald' | 'amber' | 'blue' | 'rose' | 'red' | 'cyan'>('emerald');
-  const [icon, setIcon] = useState('⚔️');
+  const [icon, setIcon] = useState('aetheria:aetherial_sword');
   const [bullet1, setBullet1] = useState('');
   const [bullet2, setBullet2] = useState('');
   const [sectionTitle, setSectionTitle] = useState('Overview');
@@ -747,10 +747,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300">Emoji Icon Identifier</label>
+                  <label className="text-xs font-bold text-slate-300">Item Asset / Icon Identifier</label>
                   <input
                     type="text"
-                    placeholder="⚔️, 🧟, 💎"
+                    placeholder="e.g. aetheria:aetherial_sword, items, shield"
                     value={icon}
                     onChange={(e) => setIcon(e.target.value)}
                     className="w-full bg-[#0b0f19] border border-[#1e293b] focus:border-emerald-500/50 rounded-xl px-3.5 py-2 text-xs text-white text-center focus:outline-none transition font-sans"

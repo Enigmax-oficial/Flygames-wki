@@ -6,7 +6,7 @@ export interface DynamicCategory {
   id: string;
   label: string;
   desc: string;
-  icon: string; // Emoji or Lucide icon key name
+  icon: string; // Lucide icon key name, image URL, or asset key
   color: string; // Tailwind border accent class
   bg: string; // Tailwind gradient class
   isCustom?: boolean;
@@ -18,7 +18,7 @@ export const PRESET_CATEGORIES: DynamicCategory[] = [
     id: 'mobs',
     label: 'Mobs & Bosses',
     desc: 'Climbing undead, cavern titans, and subterranean bosses.',
-    icon: '🧟',
+    icon: 'mobs',
     color: 'border-rose-500/30',
     bg: 'from-rose-950/30 to-[#111827]',
   },
@@ -26,7 +26,7 @@ export const PRESET_CATEGORIES: DynamicCategory[] = [
     id: 'items',
     label: 'Items & Weapons',
     desc: 'Elemental blades, crystal cores, and enchanted relics.',
-    icon: '🗡️',
+    icon: 'items',
     color: 'border-amber-500/30',
     bg: 'from-amber-950/30 to-[#111827]',
   },
@@ -34,7 +34,7 @@ export const PRESET_CATEGORIES: DynamicCategory[] = [
     id: 'blocks',
     label: 'Blocks & Ores',
     desc: 'Crystallized stone, resonant ores, and dungeon bricks.',
-    icon: '🧱',
+    icon: 'blocks',
     color: 'border-sky-500/30',
     bg: 'from-sky-950/30 to-[#111827]',
   },
@@ -42,7 +42,7 @@ export const PRESET_CATEGORIES: DynamicCategory[] = [
     id: 'recipes',
     label: 'Forge Recipes',
     desc: 'Crafting blueprints and anvil combination guides.',
-    icon: '📜',
+    icon: 'recipes',
     color: 'border-cyan-500/30',
     bg: 'from-cyan-950/30 to-[#111827]',
   },
@@ -50,7 +50,7 @@ export const PRESET_CATEGORIES: DynamicCategory[] = [
     id: 'biomes',
     label: 'Biomes & Realms',
     desc: 'Crystal Canyons, Underground Dungeons & Void Caves.',
-    icon: '🌲',
+    icon: 'biomes',
     color: 'border-purple-500/30',
     bg: 'from-purple-950/30 to-[#111827]',
   },
@@ -58,7 +58,7 @@ export const PRESET_CATEGORIES: DynamicCategory[] = [
     id: 'guides',
     label: 'Guides & Manuals',
     desc: 'Addon installation steps, combat tactics & mechanics.',
-    icon: '📖',
+    icon: 'guides',
     color: 'border-indigo-500/30',
     bg: 'from-indigo-950/30 to-[#111827]',
   }

@@ -1,21 +1,20 @@
-import { WikiIcon } from './WikiIcon';
 import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { PageCreator, downloadTemplateScript } from '../templates/PageCreator';
 import { WikiApi } from '../lib/wikiApi';
+import { WikiIcon } from './WikiIcon';
+import { ITEM_IMAGES } from '../data/itemAssets';
 import { 
   X, 
-  Plus, 
   FileText, 
   Image as ImageIcon, 
   Box, 
-  Layers, 
   Sparkles, 
   CheckCircle,
-  HelpCircle,
   Download,
-  Crown,
-  Code
+  Code,
+  Zap,
+  Sword
 } from 'lucide-react';
 
 interface PageCreatorModalProps {
@@ -33,45 +32,65 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
   const [inputMode, setInputMode] = useState<'form' | 'json'>('form');
 
   // Form state
-  const [category, setCategory] = useState<CategoryType>('mobs');
+  const [category, setCategory] = useState<CategoryType>('items');
   const [title, setTitle] = useState('');
   const [namespace, setNamespace] = useState('');
+  const [badge, setBadge] = useState('WEAPON');
+  const [badgeColor, setBadgeColor] = useState<'purple' | 'emerald' | 'amber' | 'blue' | 'rose'>('amber');
   const [description, setDescription] = useState('');
   const [author, setAuthor] = useState('Addon Creator');
+  const [iconAsset, setIconAsset] = useState('aetheria:aetherial_sword');
   const [imageUrl, setImageUrl] = useState('');
-  const [modelKey, setModelKey] = useState<string>('climber_zombie');
-  const [defaultAnim, setDefaultAnim] = useState<'idle' | 'attack' | 'swimming' | 'baby_attack'>('idle');
+  const [multiplePhotosStr, setMultiplePhotosStr] = useState('');
   
-  // Custom Section
-  const [sectionTitle, setSectionTitle] = useState('Tactics & Behavior');
-  const [sectionContent, setSectionContent] = useState('Describe how this entity behaves or how to craft/use it.');
+  // Item Stats
+  const [rarity, setRarity] = useState('Legendary');
+  const [attackDamage, setAttackDamage] = useState('11');
+  const [durability, setDurability] = useState('2048');
+  const [stackSize, setStackSize] = useState('1');
 
-  // Stats
-  const [health, setHealth] = useState<string>('50');
-  const [attack, setAttack] = useState<string>('12 (6 Hearts)');
+  // Bullets
+  const [bulletsStr, setBulletsStr] = useState(
+    'Inflicts high damage with 1.6 attack speed.\nRight-Click Ability: Celestial Leap.\nGrants Slow Falling effect.'
+  );
+
+  // Custom Section
+  const [sectionTitle, setSectionTitle] = useState('Overview & Abilities');
+  const [sectionContent, setSectionContent] = useState('Describe how this item, mob, or block functions inside Minecraft.');
 
   // JSON state
   const [jsonInput, setJsonInput] = useState<string>(
     JSON.stringify(
       {
-        id: 'custom-json-page',
-        title: 'Custom JSON Wiki Page',
-        category: 'mobs',
-        namespace: 'aetheria:custom_json_entity',
-        description: 'A custom page created and imported directly via structured JSON format.',
+        id: 'custom-json-item',
+        title: 'Custom Elemental Blade',
+        category: 'items',
+        namespace: 'aetheria:custom_elemental_blade',
+        badge: 'LEGENDARY WEAPON',
+        badgeColor: 'amber',
+        description: 'A custom blade crafted with Crystalline Ore and Void Dust.',
         addonVersion: 'v1.4.0',
-        icon: '⭐',
-        tags: ['custom', 'json', 'imported'],
-        lastUpdated: new Date().toISOString().split('T')[0],
-        author: 'Aetheria JSON Architect',
+        icon: 'aetheria:aetherial_sword',
+        renderImageUrl: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80',
+        images: [
+          'https://images.unsplash.com/photo-1579783902614-a3fb3927b675?auto=format&fit=crop&w=800&q=80',
+          'https://images.unsplash.com/photo-1607988795691-3d0147b43231?auto=format&fit=crop&w=800&q=80'
+        ],
+        itemStats: {
+          rarity: 'Legendary',
+          durability: 2048,
+          attackDamage: 12,
+          stackSize: 1
+        },
         behaviorBullets: [
-          'Custom behavior bullet 1',
-          'Custom behavior bullet 2'
+          'Inflicts 12 Attack Damage with elemental burn effect',
+          'Launches player forward on right-click use',
+          'Critical strikes cause area-of-effect shockwaves'
         ],
         sections: [
           {
             title: 'Overview',
-            content: 'This page was compiled and assembled directly from pure JSON data.'
+            content: 'This weapon was compiled and assembled directly from custom JSON data.'
           }
         ]
       },
@@ -94,7 +113,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
           throw new Error("JSON must contain at least 'id' and 'title' properties.");
         }
         const newPage: WikiPage = {
-          category: parsed.category || 'mobs',
+          category: parsed.category || 'items',
           addonVersion: parsed.addonVersion || 'v1.4.0',
           tags: ['custom', 'json'],
           lastUpdated: new Date().toISOString().split('T')[0],
@@ -111,7 +130,6 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
 
     if (!title.trim()) return;
 
-    // Use PageCreator class from /src/templates/PageCreator
     let builder: PageCreator;
     switch (category) {
       case 'mobs':
@@ -137,8 +155,10 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
     }
 
     builder
-      .setDescription(description || `${title} page in the Aetheria Addon.`)
-      .setAuthor(author || 'Aetheria Creator');
+      .setDescription(description || `${title} entry in the Aetheria Addon.`)
+      .setAuthor(author || 'Aetheria Creator')
+      .setIcon(iconAsset || category)
+      .setBadge(badge || category.toUpperCase(), badgeColor);
 
     if (namespace.trim()) {
       builder.setNamespace(namespace.trim());
@@ -148,26 +168,36 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
       builder.attachImage(imageUrl.trim());
     }
 
-    if (modelKey) {
-      builder.attach3DModel(modelKey, defaultAnim);
-    }
+    // Multiple photos
+    const photos = multiplePhotosStr
+      .split('\n')
+      .flatMap(line => line.split(','))
+      .map(s => s.trim())
+      .filter(Boolean);
 
     if (sectionTitle.trim() && sectionContent.trim()) {
       builder.addSection(sectionTitle.trim(), sectionContent.trim());
     }
 
-    if (category === 'mobs' && health) {
-      builder.setMobStats({
-        health: parseInt(health) || 40,
-        attackDamage: attack || '10',
-        behavior: 'Hostile',
-        spawnBiomes: ['aetheria:custom_biome'],
-        drops: [],
-        xpDrop: 20
+    // Mechanics bullets
+    const bullets = bulletsStr.split('\n').map(s => s.trim()).filter(Boolean);
+    bullets.forEach(b => builder.addBehaviorBullet(b));
+
+    // Item Stats
+    if (category === 'items' || rarity) {
+      builder.setItemStats({
+        rarity,
+        attackDamage: parseInt(attackDamage) || 10,
+        durability: parseInt(durability) || 1500,
+        stackSize: parseInt(stackSize) || 1
       });
     }
 
     const createdPage = builder.build();
+    if (photos.length > 0) {
+      createdPage.images = photos;
+    }
+
     onPageCreated(createdPage);
     onClose();
 
@@ -175,6 +205,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
     setTitle('');
     setDescription('');
     setImageUrl('');
+    setMultiplePhotosStr('');
   };
 
   return (
@@ -198,7 +229,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                   inputMode === 'form' ? 'bg-sky-500 text-black shadow' : 'text-[#94a3b8] hover:text-white'
                 }`}
               >
-                Template Form
+                Template Builder
               </button>
               <button
                 type="button"
@@ -262,21 +293,17 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
             </div>
           ) : (
             <>
-              <p className="text-[#94a3b8] leading-relaxed">
-                Instantiate a new wiki page using the <code className="text-sky-400 font-mono">PageCreator</code> class template or JSON schema.
-              </p>
-
               {/* Category Picker */}
               <div>
                 <label className="block text-[#94a3b8] font-bold uppercase tracking-wider mb-2">
-                  Category Template
+                  Category Type
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {categories.map((cat) => (
                     <button
                       type="button"
                       key={cat.id}
-                      onClick={() => setCategory(cat.id)}
+                      onClick={() => setCategory(cat.id as CategoryType)}
                       className={`py-2 px-1 rounded-xl font-bold uppercase transition-all border text-center cursor-pointer ${
                         category === cat.id
                           ? 'bg-sky-500 text-black border-sky-400 shadow-[0_0_12px_rgba(56,189,248,0.3)]'
@@ -290,9 +317,9 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                 </div>
               </div>
 
-              {/* Title & Namespace */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
+              {/* Title & Badge */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
                   <label className="block text-[#94a3b8] font-bold uppercase mb-1">
                     Page Title <span className="text-rose-400">*</span>
                   </label>
@@ -300,24 +327,135 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                     type="text"
                     required
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g. Netherite Zombie"
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      const slug = e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_');
+                      if (slug) setNamespace(`aetheria:${slug}`);
+                    }}
+                    placeholder="e.g. Aetherial Claymore"
                     className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-2 text-white focus:outline-none"
                   />
                 </div>
 
                 <div>
                   <label className="block text-[#94a3b8] font-bold uppercase mb-1">
-                    Namespace Identifier
+                    Badge Label
                   </label>
                   <input
                     type="text"
-                    value={namespace}
-                    onChange={(e) => setNamespace(e.target.value)}
-                    placeholder="e.g. aetheria:netherite_zombie"
-                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none"
+                    value={badge}
+                    onChange={(e) => setBadge(e.target.value)}
+                    placeholder="e.g. WEAPON"
+                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-2 text-white focus:outline-none font-bold uppercase"
                   />
                 </div>
+              </div>
+
+              {/* Icon Image Asset Selector */}
+              <div className="space-y-2 p-3.5 bg-[#070a12]/80 border border-[#1e293b] rounded-xl">
+                <label className="block text-sky-400 font-bold uppercase flex items-center gap-1.5">
+                  <Sword className="w-4 h-4 text-sky-400" />
+                  <span>Item Icon Asset</span>
+                </label>
+                <div className="flex flex-wrap gap-2 items-center">
+                  {Object.keys(ITEM_IMAGES).slice(0, 8).map((assetKey) => (
+                    <button
+                      type="button"
+                      key={assetKey}
+                      onClick={() => setIconAsset(assetKey)}
+                      className={`w-10 h-10 p-1 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                        iconAsset === assetKey ? 'bg-sky-500/20 border-sky-400 ring-2 ring-sky-400/30' : 'bg-[#111827] border-[#1e293b]'
+                      }`}
+                      title={assetKey}
+                    >
+                      <WikiIcon icon={assetKey} className="w-7 h-7" />
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={iconAsset}
+                  onChange={(e) => setIconAsset(e.target.value)}
+                  placeholder="Asset ID or Lucide name (e.g. aetheria:aetherial_sword, items, shield)"
+                  className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-1.5 text-white font-mono text-[11px] focus:outline-none"
+                />
+              </div>
+
+              {/* Photos & Screenshots Gallery */}
+              <div className="space-y-2 p-3.5 bg-[#070a12]/80 border border-[#1e293b] rounded-xl">
+                <label className="block text-emerald-400 font-bold uppercase flex items-center gap-1.5">
+                  <ImageIcon className="w-4 h-4 text-emerald-400" />
+                  <span>Multiple Photos / Gallery Screenshots (URLs)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  value={multiplePhotosStr}
+                  onChange={(e) => setMultiplePhotosStr(e.target.value)}
+                  placeholder="Paste photo URLs (one per line or comma-separated)&#10;https://images.unsplash.com/...&#10;https://images.unsplash.com/..."
+                  className="w-full bg-[#111827] border border-[#1e293b] focus:border-emerald-400 rounded-xl p-2.5 text-white font-mono text-[11px] focus:outline-none"
+                />
+              </div>
+
+              {/* Item Attributes */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 p-3.5 bg-[#070a12]/80 border border-[#1e293b] rounded-xl">
+                <div>
+                  <label className="block text-[#64748b] font-bold uppercase mb-1">Rarity</label>
+                  <select
+                    value={rarity}
+                    onChange={(e) => setRarity(e.target.value)}
+                    className="w-full bg-[#111827] border border-[#1e293b] text-white rounded-lg px-2 py-1.5 focus:outline-none text-xs font-bold"
+                  >
+                    <option value="Legendary">Legendary</option>
+                    <option value="Epic">Epic</option>
+                    <option value="Rare">Rare</option>
+                    <option value="Uncommon">Uncommon</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[#64748b] font-bold uppercase mb-1">Attack Damage</label>
+                  <input
+                    type="number"
+                    value={attackDamage}
+                    onChange={(e) => setAttackDamage(e.target.value)}
+                    className="w-full bg-[#111827] border border-[#1e293b] text-rose-400 font-mono font-bold rounded-lg px-2 py-1.5 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#64748b] font-bold uppercase mb-1">Durability</label>
+                  <input
+                    type="number"
+                    value={durability}
+                    onChange={(e) => setDurability(e.target.value)}
+                    className="w-full bg-[#111827] border border-[#1e293b] text-sky-400 font-mono font-bold rounded-lg px-2 py-1.5 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[#64748b] font-bold uppercase mb-1">Stack Size</label>
+                  <input
+                    type="number"
+                    value={stackSize}
+                    onChange={(e) => setStackSize(e.target.value)}
+                    className="w-full bg-[#111827] border border-[#1e293b] text-emerald-400 font-mono font-bold rounded-lg px-2 py-1.5 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Key Features & Mechanics Bullets */}
+              <div className="space-y-1.5">
+                <label className="block text-sky-400 font-bold uppercase flex items-center gap-1.5">
+                  <Zap className="w-4 h-4 text-sky-400" />
+                  <span>Key Mechanics & Abilities (Bullet Points)</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={bulletsStr}
+                  onChange={(e) => setBulletsStr(e.target.value)}
+                  placeholder="One mechanic per line..."
+                  className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl p-2.5 text-white focus:outline-none"
+                />
               </div>
 
               {/* Description */}
@@ -334,76 +472,6 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                 />
               </div>
 
-              {/* Author & Image URL */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[#94a3b8] font-bold uppercase mb-1">
-                    Author / Creator
-                  </label>
-                  <input
-                    type="text"
-                    value={author}
-                    onChange={(e) => setAuthor(e.target.value)}
-                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-2 text-white focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[#94a3b8] font-bold uppercase mb-1">
-                    Banner / Render Image URL
-                  </label>
-                  <input
-                    type="url"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {/* 3D Model Attachment */}
-              <div className="p-4 bg-[#070a12]/80 border border-[#1e293b] rounded-xl space-y-3">
-                <div className="flex items-center gap-2 text-sky-400 font-bold uppercase">
-                  <Box className="w-4 h-4" />
-                  <span>3D Blockbench Model Simulator</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[#94a3b8] mb-1">Select Model Rig</label>
-                    <select
-                      value={modelKey}
-                      onChange={(e) => setModelKey(e.target.value)}
-                      className="w-full bg-[#111827] border border-[#1e293b] text-white rounded-lg px-2 py-1.5 focus:outline-none"
-                    >
-                      <option value="climber_zombie">Climber Zombie Rig</option>
-                      <option value="crystalline_titan">Crystalline Titan Rig</option>
-                      <option value="magical_staff">Magical Staff Rig</option>
-                      <option value="celestial_boss">Celestial Boss Rig</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[#94a3b8] mb-1">Default Animation</label>
-                    <div className="flex gap-1.5">
-                      {(['idle', 'attack', 'swimming'] as const).map((anim) => (
-                        <button
-                          type="button"
-                          key={anim}
-                          onClick={() => setDefaultAnim(anim)}
-                          className={`flex-1 py-1 rounded-lg font-mono capitalize transition-all border cursor-pointer text-[11px] ${
-                            defaultAnim === anim
-                              ? 'bg-purple-500/20 text-purple-300 border-purple-500/50 font-bold'
-                              : 'bg-[#111827] text-[#94a3b8] border-[#1e293b]'
-                          }`}
-                        >
-                          {anim}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               {/* Section details */}
               <div className="space-y-2 pt-2 border-t border-[#1e293b]">
                 <label className="block text-sky-400 font-bold uppercase">
@@ -413,7 +481,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                   type="text"
                   value={sectionTitle}
                   onChange={(e) => setSectionTitle(e.target.value)}
-                  placeholder="Section Title (e.g. Combat Tactics)"
+                  placeholder="Section Title (e.g. Combat Abilities)"
                   className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-1.5 text-white focus:outline-none"
                 />
                 <textarea

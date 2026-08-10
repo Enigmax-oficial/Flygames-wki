@@ -14,12 +14,12 @@ interface TemplateViewerModalProps {
 }
 
 const ALL_TEMPLATES_MAP: Record<string, { name: string; icon: string; file: any }> = {
-  'item-template.json': { name: 'Item / Equipment', icon: '🗡️', file: itemTemplate },
-  'mob-template.json': { name: 'Mob / Boss', icon: '👾', file: mobTemplate },
-  'block-template.json': { name: 'Block / Ore', icon: '🧱', file: blockTemplate },
-  'recipe-template.json': { name: 'Crafting Recipe', icon: '📜', file: recipeTemplate },
-  'biome-template.json': { name: 'Biome / Realm', icon: '🌲', file: biomeTemplate },
-  'guide-template.json': { name: 'Guide / Workflow', icon: '📖', file: guideTemplate },
+  'item-template.json': { name: 'Item / Equipment', icon: 'items', file: itemTemplate },
+  'mob-template.json': { name: 'Mob / Boss', icon: 'mobs', file: mobTemplate },
+  'block-template.json': { name: 'Block / Ore', icon: 'blocks', file: blockTemplate },
+  'recipe-template.json': { name: 'Crafting Recipe', icon: 'recipes', file: recipeTemplate },
+  'biome-template.json': { name: 'Biome / Realm', icon: 'biomes', file: biomeTemplate },
+  'guide-template.json': { name: 'Guide / Workflow', icon: 'guides', file: guideTemplate },
 };
 
 export const TemplateViewerModal: React.FC<TemplateViewerModalProps> = ({ isOpen, onClose }) => {

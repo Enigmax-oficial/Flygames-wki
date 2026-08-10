@@ -21,7 +21,7 @@ export const TemplateCreatorModal: React.FC<TemplateCreatorModalProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('item-template');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [icon, setIcon] = useState('🗡️');
+  const [icon, setIcon] = useState('items');
   const [activeTab, setActiveTab] = useState<'form' | 'preview' | 'json'>('form');
   const [jsonText, setJsonText] = useState<string>(() => JSON.stringify(wikiPageTemplate.sample, null, 2));
   const [jsonError, setJsonError] = useState<string | null>(null);

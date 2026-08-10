@@ -32,7 +32,7 @@ export class PageCreator {
       namespace: `aetheria:${id.replace(/-/g, '_')}`,
       description: `${title} page created via template script.`,
       addonVersion: 'v1.4.0',
-      icon: category === 'mobs' ? '🧟' : category === 'blocks' ? '🧱' : category === 'biomes' ? '🌲' : category === 'recipes' ? '📜' : category === 'guides' ? '📖' : '🗡️',
+      icon: category === 'mobs' ? 'mobs' : category === 'blocks' ? 'blocks' : category === 'biomes' ? 'biomes' : category === 'recipes' ? 'recipes' : category === 'guides' ? 'guides' : 'items',
       badge: category.toUpperCase(),
       badgeColor: category === 'mobs' ? 'emerald' : category === 'blocks' ? 'amber' : category === 'biomes' ? 'purple' : category === 'recipes' ? 'cyan' : 'blue',
       tags: ['addon', category],

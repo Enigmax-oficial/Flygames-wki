@@ -44,16 +44,9 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
 
   const categoriesList = WikiApi.getCategories();
 
-  // Helper to render emoji or default Lucide icon gracefully
+  // Helper to render category icon gracefully via WikiIcon
   const renderCategoryIcon = (icon: string) => {
-    if (!icon) return '📁';
-    if (icon === '🧟') return <Ghost className="w-6 h-6 text-rose-400" />;
-    if (icon === '🗡️') return <Sword className="w-6 h-6 text-amber-400" />;
-    if (icon === '🧱') return <Box className="w-6 h-6 text-sky-400" />;
-    if (icon === '📜') return <ScrollText className="w-6 h-6 text-cyan-400" />;
-    if (icon === '🌲') return <Trees className="w-6 h-6 text-purple-400" />;
-    if (icon === '📖') return <BookOpen className="w-6 h-6 text-indigo-400" />;
-    return <WikiIcon icon={icon} className="w-6 h-6 text-xl" />;
+    return <WikiIcon icon={icon || 'folder'} className="w-6 h-6 text-sky-400" />;
   };
 
   // Random article generator function for the "Surprise Me" button

@@ -13,9 +13,13 @@ import {
   Sparkles, 
   BookOpen, 
   Layers, 
-  ChevronLeft,
   Home,
-  Clock
+  Clock,
+  Heart,
+  Sword,
+  Zap,
+  Shield,
+  Tag
 } from 'lucide-react';
 
 interface WikiArticleProps {
@@ -43,7 +47,17 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
-  const isRichBossPage = Boolean(page.behaviorBullets || page.difficultyStats || page.renderImageUrl);
+  // Enable rich layout for items, mobs, blocks, biomes, and guides
+  const isRichPage = Boolean(
+    page.behaviorBullets || 
+    page.difficultyStats || 
+    page.renderImageUrl || 
+    page.imageUrl || 
+    page.gallery || 
+    page.itemStats || 
+    page.blockStats ||
+    page.recipes
+  );
 
   // Calculate estimated reading time based on word count
   const calculateReadingTime = (): number => {
@@ -115,12 +129,12 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
     }
 
     if (page.images && page.images.length > 0) {
-      page.images.forEach((imgUrl, idx) => {
+      page.images.forEach((imgUrl) => {
         if (!gallery.some((it) => it.url === imgUrl)) {
           gallery.push({
             url: imgUrl,
-            title: `${page.title} - Image #${gallery.length + 1}`,
-            caption: `Showcase image for ${page.title}`,
+            title: `${page.title} - Photo #${gallery.length + 1}`,
+            caption: `Showcase screenshot/photo for ${page.title}`,
             is3D: false,
           });
         }
@@ -132,7 +146,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
   const galleryItems = buildGalleryItems();
 
-  if (isRichBossPage) {
+  if (isRichPage) {
     return (
       <article className="max-w-4xl mx-auto text-[#cbd5e1] pb-16 font-sans space-y-6">
         {/* Top Breadcrumb Path & Navigation Back Button */}
@@ -151,15 +165,20 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
             <span className="text-white font-bold">{page.id}</span>
           </div>
 
-
+          <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-mono font-bold">
+            <Clock className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{readingTime} min read</span>
+          </span>
         </div>
 
-        {/* 1. Header Title & Badge (Appears FIRST / ABOVE mob image as requested) */}
+        {/* 1. Header Title & Badge */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <div className="flex items-center gap-3">
             <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center gap-3">
-              {getItemImage(page.id) && (
-                <img src={getItemImage(page.id)!} alt={page.title} className="w-10 h-10 object-contain" />
+              {getItemImage(page.id) ? (
+                <img src={getItemImage(page.id)!} alt={page.title} className="w-10 h-10 object-contain drop-shadow-md" />
+              ) : (
+                <WikiIcon icon={page.icon} className="w-8 h-8 text-sky-400" />
               )}
               <span>{page.title}</span>
             </h1>
@@ -185,16 +204,73 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           </button>
         </div>
 
-        {/* 2. Wikipedia-Style Image Gallery & Interactive 3D Model (Appears BELOW Title) */}
+        {/* Description Banner */}
+        <p className="text-sm text-[#94a3b8] leading-relaxed bg-[#111827]/60 border border-[#1e293b] p-4 rounded-xl">
+          {page.description}
+        </p>
+
+        {/* 2. Wikipedia-Style Image Gallery & Interactive 3D Model */}
         {galleryItems.length > 0 && (
           <WikiImageGallery items={galleryItems} pageTitle={page.title} />
         )}
 
-        {/* 3. BEHAVIOR Section */}
+        {/* ITEM ATTRIBUTES & PERFORMANCE GRID */}
+        {page.itemStats && (
+          <section className="space-y-3">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>ITEM ATTRIBUTES & PERFORMANCE</span>
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {page.itemStats.rarity && (
+                <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
+                  <span className="text-[11px] font-semibold text-[#64748b] uppercase">Rarity Class</span>
+                  <span className={`mt-1 font-mono font-bold text-sm ${
+                    page.itemStats.rarity === 'Legendary' ? 'text-amber-400' :
+                    page.itemStats.rarity === 'Epic' ? 'text-purple-400' :
+                    page.itemStats.rarity === 'Rare' ? 'text-blue-400' : 'text-emerald-400'
+                  }`}>
+                    {page.itemStats.rarity}
+                  </span>
+                </div>
+              )}
+
+              {page.itemStats.attackDamage !== undefined && (
+                <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
+                  <span className="text-[11px] font-semibold text-[#64748b] uppercase">Attack Damage</span>
+                  <span className="mt-1 font-mono font-bold text-sm text-rose-400">
+                    {page.itemStats.attackDamage} HP ({page.itemStats.attackDamage / 2} ❤️)
+                  </span>
+                </div>
+              )}
+
+              {page.itemStats.durability !== undefined && (
+                <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
+                  <span className="text-[11px] font-semibold text-[#64748b] uppercase">Max Durability</span>
+                  <span className="mt-1 font-mono font-bold text-sm text-sky-400">
+                    {page.itemStats.durability} Uses
+                  </span>
+                </div>
+              )}
+
+              {page.itemStats.stackSize !== undefined && (
+                <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
+                  <span className="text-[11px] font-semibold text-[#64748b] uppercase">Max Stack</span>
+                  <span className="mt-1 font-mono font-bold text-sm text-emerald-400">
+                    {page.itemStats.stackSize} Items
+                  </span>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* 3. KEY MECHANICS / ABILITIES / BEHAVIOR Section */}
         {page.behaviorBullets && (
           <section className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
-              BEHAVIOR
+            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+              <Zap className="w-4 h-4 text-sky-400" />
+              <span>KEY MECHANICS & ABILITIES</span>
             </h2>
             <div className="bg-[#111827]/90 border border-[#1e293b] rounded-2xl p-6 shadow-xl space-y-4">
               <ul className="space-y-2.5 text-sm sm:text-base text-[#cbd5e1] leading-relaxed">
@@ -226,7 +302,27 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           </section>
         )}
 
-        {/* 5. STATS BY DIFFICULTY Section & Speed Panel Blocks */}
+        {/* CRAFTING RECIPE FORMULA */}
+        {page.recipes && page.recipes.length > 0 && (
+          <section className="space-y-3">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <span>FORGE & CRAFTING FORMULA</span>
+            </h2>
+            <div className="bg-[#111827]/90 border border-[#1e293b] rounded-2xl p-5 shadow-xl space-y-4">
+              {page.recipes.map((rec, i) => (
+                <div key={i} className="space-y-2">
+                  <h3 className="font-bold text-sky-400 text-xs font-mono uppercase tracking-wider">
+                    Recipe #{i + 1} - {rec.output.name}
+                  </h3>
+                  <CraftingGrid recipe={rec} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* STATS BY DIFFICULTY Section */}
         {page.difficultyStats && (
           <section className="space-y-2">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
@@ -238,15 +334,19 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                   <thead>
                     <tr className="border-b border-[#1e293b] text-[#94a3b8] font-medium bg-[#0b0f19]/60">
                       <th className="py-3 px-5 font-semibold">Difficulty</th>
-                      <th className="py-3 px-5 font-semibold">♥ Health</th>
-                      <th className="py-3 px-5 font-semibold">⚔ Attack</th>
+                      <th className="py-3 px-5 font-semibold flex items-center gap-1">
+                        <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> Health
+                      </th>
+                      <th className="py-3 px-5 font-semibold">
+                        <Sword className="w-3.5 h-3.5 text-amber-400 inline mr-1" /> Attack
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b]">
                     {page.difficultyStats.map((stat, idx) => (
                       <tr key={idx} className="hover:bg-[#1e293b]/30 transition-colors">
                         <td className="py-3 px-5 font-semibold text-white flex items-center gap-2.5">
-                          <span className="text-base">{stat.icon}</span>
+                          <WikiIcon icon={stat.icon || 'shield'} className="w-4 h-4 text-sky-400" />
                           <span>{stat.difficulty}</span>
                         </td>
                         <td className="py-3 px-5 text-[#cbd5e1]">{stat.health}</td>
@@ -257,50 +357,15 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                 </table>
               </div>
             </div>
-
-            {/* Speed Panel in Blocks */}
-            <div className="pt-1.5">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-[#94a3b8] mb-2 flex items-center gap-1.5">
-                <span>👟</span>
-                <span>Speed Panel by Difficulty Mode</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {page.difficultyStats.map((stat, idx) => {
-                  const speeds = ['0.22x', '0.28x', '0.34x', '0.42x'];
-                  const speedVal = page.movementSpeed || speeds[idx % speeds.length];
-                  return (
-                    <div 
-                      key={idx}
-                      className="bg-[#111827] border border-[#1e293b] hover:border-sky-500/40 rounded-xl p-3 flex flex-col justify-between transition-all shadow-md group"
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                          <span>{stat.icon}</span>
-                          <span>{stat.difficulty}</span>
-                        </span>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                          Mode
-                        </span>
-                      </div>
-                      <div className="mt-2 pt-2 border-t border-[#1e293b]/60 flex items-center justify-between">
-                        <span className="text-[10px] text-[#64748b] uppercase font-semibold">Speed</span>
-                        <span className="text-xs font-mono font-bold text-sky-300 group-hover:scale-105 transition-transform">
-                          {speedVal}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </section>
         )}
 
-        {/* 6. DROPS Section */}
+        {/* DROPS & OBTAIN TABLE */}
         {page.dropsTable && (
           <section className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
-              DROPS
+            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+              <Layers className="w-4 h-4 text-rose-400" />
+              <span>LOOT DROPS & ACQUISITION</span>
             </h2>
             <div className="bg-[#111827]/90 border border-[#1e293b] rounded-2xl overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
@@ -309,17 +374,17 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                     <tr className="border-b border-[#1e293b] text-[#94a3b8] font-medium bg-[#0b0f19]/60">
                       <th className="py-3.5 px-5 font-semibold">Item</th>
                       <th className="py-3.5 px-5 font-semibold">Amount</th>
-                      <th className="py-3.5 px-5 font-semibold">Chance</th>
+                      <th className="py-3.5 px-5 font-semibold">Chance / Source</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b]">
                     {page.dropsTable.map((drop, idx) => (
                       <tr key={idx} className="hover:bg-[#1e293b]/30 transition-colors">
                         <td className="py-3.5 px-5 font-semibold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer flex items-center gap-2.5">
-                          {drop.icon && <span className="text-base">{drop.icon}</span>}
+                          <WikiIcon icon={drop.icon || 'gem'} className="w-5 h-5 text-sky-400" />
                           <span>{drop.item}</span>
                         </td>
-                        <td className="py-3.5 px-5 text-[#cbd5e1]">{drop.amount}</td>
+                        <td className="py-3.5 px-5 text-[#cbd5e1] font-mono">{drop.amount}</td>
                         <td className="py-3.5 px-5 text-[#cbd5e1]">{drop.chance}</td>
                       </tr>
                     ))}
@@ -330,50 +395,42 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           </section>
         )}
 
-        {/* Mob Speed Across Different Blocks Comparison Table (Loaded from JSON file) */}
-        {page.blockSpeeds && page.blockSpeeds.length > 0 && (
-          <section className="space-y-4 pt-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
-                <span>🏃‍♂️</span>
-                <span>Mob Speed Across Different Blocks (JSON Physics Data)</span>
-              </h2>
-              <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-lg">
-                JSON Data Matrix
-              </span>
-            </div>
-
-            <div className="bg-[#111827] border border-[#1e293b] rounded-2xl overflow-hidden shadow-xl">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-[#1e293b] text-[#94a3b8] font-semibold bg-[#0b0f19]/80 text-xs uppercase tracking-wider">
-                      <th className="py-3.5 px-5">Block Type</th>
-                      <th className="py-3.5 px-5">{page.title}</th>
-                      <th className="py-3.5 px-5">Standard Hostile Mob</th>
-                      <th className="py-3.5 px-5">Friction / Multiplier</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#1e293b]">
-                    {page.blockSpeeds.map((bs, idx) => (
-                      <tr key={idx} className="hover:bg-[#1e293b]/40 transition-colors">
-                        <td className="py-3 px-5 font-bold text-white flex items-center gap-2">
-                          <span>{bs.icon}</span>
-                          <span>{bs.block}</span>
-                        </td>
-                        <td className="py-3 px-5 text-emerald-400 font-mono font-bold">{bs.speed}</td>
-                        <td className="py-3 px-5 text-[#cbd5e1] font-mono">{bs.standard}</td>
-                        <td className="py-3 px-5 text-sky-400 font-mono text-xs">{bs.friction}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
+        {/* SECTIONS & DETAILED OVERVIEW */}
+        {page.sections && page.sections.length > 0 && (
+          <div className="space-y-4">
+            {page.sections.map((section, idx) => (
+              <section
+                key={idx}
+                className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3"
+              >
+                <h2 className="text-xl font-bold text-white border-b border-[#1e293b] pb-2 flex items-center gap-2 uppercase tracking-tight">
+                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></span>
+                  {section.title}
+                </h2>
+                <div className="text-[#cbd5e1] text-sm sm:text-base leading-relaxed whitespace-pre-line space-y-2">
+                  {section.content}
+                </div>
+              </section>
+            ))}
+          </div>
         )}
 
-        {/* 7. Bottom Identifier Chip */}
+        {/* Right Infobox Sidebar Integration */}
+        <div className="pt-4">
+          <Infobox page={page} />
+        </div>
+
+        {/* Comments and Q&A Section */}
+        <div className="mt-8 border-t border-[#1e293b] pt-8">
+          <WikiComments 
+            pageId={page.id} 
+            pageTitle={page.title} 
+            currentUser={currentUser} 
+            currentUserEmail={currentUserEmail} 
+          />
+        </div>
+
+        {/* Bottom Identifier Chip */}
         <div className="pt-6 border-t border-[#1e293b] text-xs font-mono text-[#64748b]">
           Identifier Path: <span className="text-[#94a3b8] font-semibold">/{page.category}/{page.id}</span>
         </div>
@@ -381,7 +438,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
     );
   }
 
-  // Fallback Standard Wiki Article Layout for items / recipes / guides
+  // Fallback Standard Wiki Article Layout
   return (
     <article className="max-w-5xl mx-auto space-y-6 text-[#e2e8f0] pb-12 font-sans">
       {/* Breadcrumbs */}
@@ -416,7 +473,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                   className="w-full h-full object-contain" 
                 />
               ) : (
-                page.icon
+                <WikiIcon icon={page.icon} className="w-8 h-8 text-sky-400" />
               )}
             </div>
 
@@ -447,7 +504,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           <div className="flex sm:flex-col gap-2 shrink-0">
             <button
               onClick={handleShare}
-              className="px-3.5 py-2 bg-[#1e293b]/80 hover:bg-[#1e293b] text-[#cbd5e1] border border-[#334155] rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-sm"
+              className="px-3.5 py-2 bg-[#1e293b]/80 hover:bg-[#1e293b] text-[#cbd5e1] border border-[#334155] rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-sm cursor-pointer"
             >
               {copiedLink ? <Check className="w-4 h-4 text-sky-400" /> : <Share2 className="w-4 h-4 text-sky-400" />}
               <span>{copiedLink ? 'Link Copied' : 'Share Article'}</span>
@@ -569,7 +626,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                     {page.mobStats.drops.map((drop, idx) => (
                       <tr key={idx} className="hover:bg-[#1e293b]/50">
                         <td className="p-3 font-semibold text-white flex items-center gap-2">
-                          <span>{drop.icon || '💎'}</span>
+                          <WikiIcon icon={drop.icon || 'gem'} className="w-4 h-4 text-sky-400" />
                           <span>{drop.item}</span>
                         </td>
                         <td className="p-3 text-sky-400 font-bold">{drop.chance}</td>
@@ -585,11 +642,12 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
         {/* Infobox Right Column */}
         <div className="space-y-4">
-          <Infobox page={page} />        </div>
+          <Infobox page={page} />
+        </div>
       </div>
 
       {/* Comments and Q&A Section */}
-      <div className="mt-8">
+      <div className="mt-8 border-t border-[#1e293b] pt-8">
         <WikiComments 
           pageId={page.id} 
           pageTitle={page.title} 
@@ -600,5 +658,3 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
     </article>
   );
 };
-
-

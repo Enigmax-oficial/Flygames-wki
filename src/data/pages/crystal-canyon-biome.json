@@ -6,7 +6,7 @@
   "category": "biomes",
   "description": "Subterranean canyon biome filled with glowing crystals, rare mineral veins, and dangerous subterranean bosses.",
   "addonVersion": "v1.4.0",
-  "icon": "💎",
+  "icon": "biomes",
   "tags": ["biome", "canyon", "crystals", "underground", "generation"],
   "lastUpdated": "2026-08-09",
   "author": "Aetheria World Gen Team",
