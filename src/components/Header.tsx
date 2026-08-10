@@ -1,6 +1,8 @@
 import React from 'react';
 import { Search, Menu, User, LogOut, Crown, BookOpen } from 'lucide-react';
 
+import { isAuthorizedAdminEmail } from '../lib/adminAuth';
+
 interface HeaderProps {
   onOpenSearch: () => void;
   onOpenCreatePage?: () => void;
@@ -32,8 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   addonVersion,
 }) => {
-  const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
-  const isAdmin = userEmail && authorizedEmails.includes(userEmail.toLowerCase().trim());
+  const isAdmin = isAuthorizedAdminEmail(userEmail);
   return (
     <header className="sticky top-0 z-30 bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1e293b] text-[#e2e8f0] px-4 sm:px-6 py-3 shadow-xl">
       <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-3">

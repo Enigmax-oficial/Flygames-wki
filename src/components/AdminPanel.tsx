@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { WikiPage, CategoryType, PageTemplate } from '../types/wiki';
 import { WikiApi, DynamicCategory, PRESET_IMAGES } from '../lib/wikiApi';
+import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 
 interface AdminPanelProps {
   pages: WikiPage[];
@@ -43,8 +44,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 }) => {
   
   // Encrypted Password State
-  const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
-  const isAuthorized = userEmail && authorizedEmails.includes(userEmail.toLowerCase().trim());
+  const isAuthorized = isAuthorizedAdminEmail(userEmail);
 
   const [passwordInput, setPasswordInput] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -73,12 +73,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         setAuthError(data.message || 'Incorrect password ');
       }
     } catch {
-      if (true) {
-        setIsAdminAuthenticated(true);
-        sessionStorage.setItem('admin_auth_verified', 'true');
-      } else {
-        setAuthError('Incorrect password. ');
-      }
+      setAuthError('Connection to authentication server failed.');
     } finally {
       setIsVerifying(false);
     }

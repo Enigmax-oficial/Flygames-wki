@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { downloadTemplateScript, downloadGlobalPageCreator } from '../templates/PageCreator';
 import { WikiPage } from '../types/wiki';
+import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -57,10 +58,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const displayEmail = userEmail || '';
   
   // Administrator condition
-  const isAdmin = 
-    
-    displayEmail.toLowerCase().includes('admin') ||
-    (user && user.toLowerCase().includes('admin'));
+  const isAdmin = isAuthorizedAdminEmail(displayEmail);
 
   const handleSaveName = () => {
     if (newName.trim() && onUpdateUserName) {

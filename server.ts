@@ -57,11 +57,12 @@ app.post('/auth/google', (req, res) => {
 });
 
 
+import { isAuthorizedAdminEmail } from './src/lib/adminAuth';
+
 // Verify Admin Password (Encrypted check)
 app.post('/api/admin/verify', (req, res) => {
   const { email, password } = req.body;
-  const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
-  if (!email || !authorizedEmails.includes(email.toLowerCase().trim())) {
+  if (!email || !isAuthorizedAdminEmail(email)) {
     return res.status(403).json({ success: false, message: 'Unauthorized email account.' });
   }
 

@@ -2,6 +2,7 @@ import React from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage } from '../data/itemAssets';
 import { WikiApi } from '../lib/wikiApi';
+import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 import { WikiIcon } from './WikiIcon';
 import { 
   X, 
@@ -46,8 +47,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
-  const isAdmin = userEmail && authorizedEmails.includes(userEmail.toLowerCase().trim());
+  const isAdmin = isAuthorizedAdminEmail(userEmail);
 
   const dynamicCategories = WikiApi.getCategories();
 
