@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { WikiPage } from '../types/wiki';
 import { CraftingGrid } from './CraftingGrid';
+import { WikiIcon } from './WikiIcon';
 import { Infobox } from './Infobox';
 import { WikiImageGallery, GalleryItem } from './WikiImageGallery';
-import { AdBanner } from './AdBanner';
 import { getItemImage } from '../data/itemAssets';
 import { MINECRAFT_MODELS_REGISTRY } from '../models';
 import { WikiComments } from './WikiComments';
@@ -296,9 +296,6 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           </section>
         )}
 
-        {/* Ad Placement */}
-        <AdBanner type="inline" slotId="boss-article-mid" className="my-6" />
-
         {/* 6. DROPS Section */}
         {page.dropsTable && (
           <section className="space-y-3">
@@ -529,9 +526,6 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                 </section>
               ))}
 
-              {/* Ad Placement */}
-              <AdBanner type="inline" slotId="standard-article-bottom" className="my-6" />
-
               {/* Inlined Crafting Preview if available */}
               {page.recipes && page.recipes.length > 0 && (
                 <section className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 shadow-md space-y-3">
@@ -591,9 +585,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
         {/* Infobox Right Column */}
         <div className="space-y-4">
-          <Infobox page={page} />
-          <AdBanner type="sidebar" slotId="standard-article-sidebar" className="sticky top-20" />
-        </div>
+          <Infobox page={page} />        </div>
       </div>
 
       {/* Comments and Q&A Section */}

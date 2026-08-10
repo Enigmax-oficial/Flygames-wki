@@ -1,3 +1,4 @@
+import { WikiIcon } from './WikiIcon';
 import React, { useState } from 'react';
 import { 
   X, 
@@ -291,7 +292,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 {pages.slice(0, 5).map((p) => (
                   <div key={p.id} className="bg-[#111827] border border-[#1e293b] rounded-2xl p-4 flex items-center justify-between hover:border-sky-500/30 transition">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl p-2 bg-[#0b0f19] rounded-xl border border-[#1e293b]">{p.icon}</span>
+                      <div className="p-2 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center">
+                        <WikiIcon icon={p.icon} className="w-8 h-8 text-2xl" />
+                      </div>
                       <div>
                         <h4 className="text-xs font-bold text-white">{p.title}</h4>
                         <p className="text-[11px] text-slate-400 font-mono mt-0.5">Category: {p.category} • Updated {p.lastUpdated}</p>

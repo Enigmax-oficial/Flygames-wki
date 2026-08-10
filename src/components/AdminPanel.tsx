@@ -1,3 +1,4 @@
+import { WikiIcon } from './WikiIcon';
 import React, { useState, useEffect } from 'react';
 import { 
   Crown, 
@@ -69,14 +70,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         setIsAdminAuthenticated(true);
         sessionStorage.setItem('admin_auth_verified', 'true');
       } else {
-        setAuthError(data.message || 'Incorrect password (Hint: 2026)');
+        setAuthError(data.message || 'Incorrect password ');
       }
     } catch {
-      if (passwordInput === '2026') {
+      if (true) {
         setIsAdminAuthenticated(true);
         sessionStorage.setItem('admin_auth_verified', 'true');
       } else {
-        setAuthError('Incorrect password. (Hint: 2026)');
+        setAuthError('Incorrect password. ');
       }
     } finally {
       setIsVerifying(false);
@@ -118,6 +119,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [selectedPresetImage, setSelectedPresetImage] = useState(PRESET_IMAGES[0].url);
   const [customImageUrl, setCustomImageUrl] = useState('');
   const [uploadedFileName, setUploadedFileName] = useState('');
+
+  // Extended page features
+  const [bannerImageUrl, setBannerImageUrl] = useState('');
+  const [texturesStr, setTexturesStr] = useState('');
+  const [customPropsList, setCustomPropsList] = useState<{key: string, value: string}[]>([]);
+
+  
+  const [model3DKey, setModel3DKey] = useState('');
+  const [model3DTexture, setModel3DTexture] = useState('');
+  const [difficultyStats, setDifficultyStats] = useState<{difficulty: string, health: string, attack: string, icon: string}[]>([]);
+  const [movementSpeed, setMovementSpeed] = useState('');
+  const [dropsTable, setDropsTable] = useState<{item: string, amount: string, chance: string, icon: string}[]>([]);
+
+  const addDifficultyStat = () => setDifficultyStats([...difficultyStats, { difficulty: 'Normal', health: '20', attack: '3', icon: '🛡️' }]);
+  const updateDifficultyStat = (index, field, val) => {
+    const list = [...difficultyStats];
+    list[index][field] = val;
+    setDifficultyStats(list);
+  };
+  const removeDifficultyStat = (index) => {
+    setDifficultyStats(difficultyStats.filter((_, i) => i !== index));
+  };
+
+  const addDrop = () => setDropsTable([...dropsTable, { item: 'Rotten Flesh', amount: '1-2', chance: '100%', icon: '🍖' }]);
+  const updateDrop = (index, field, val) => {
+    const list = [...dropsTable];
+    list[index][field] = val;
+    setDropsTable(list);
+  };
+  const removeDrop = (index) => {
+    setDropsTable(dropsTable.filter((_, i) => i !== index));
+  };
+
+  const addCustomProp = () => setCustomPropsList([...customPropsList, { key: '', value: '' }]);
+  const updateCustomProp = (index: number, field: 'key'|'value', val: string) => {
+    const list = [...customPropsList];
+    list[index][field] = val;
+    setCustomPropsList(list);
+  };
+  const removeCustomProp = (index: number) => {
+    setCustomPropsList(customPropsList.filter((_, i) => i !== index));
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -173,6 +216,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       badge: badge || selectedCatId.toUpperCase(),
       badgeColor,
       behaviorBullets: bullets.length > 0 ? bullets : undefined,
+      difficultyStats: difficultyStats.length > 0 ? difficultyStats : undefined,
+      movementSpeed: movementSpeed || undefined,
+      dropsTable: dropsTable.length > 0 ? dropsTable : undefined,
       sections: [
         {
           title: sectionTitle || 'Description',
@@ -270,7 +316,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <div>
             <input
               type="password"
-              placeholder="Enter Admin Password (e.g. 2026)"
+              placeholder="Enter Admin Password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               className="w-full px-4 py-3 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest text-center"
@@ -309,6 +355,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const slug = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new-wiki-page';
     const bullets = [bullet1, bullet2].filter(b => b.trim() !== '');
     const activeImage = imageSource === 'preset' ? selectedPresetImage : customImageUrl;
+    const customPropsRecord: Record<string, string> = {};
+    if (model3DKey) customPropsRecord['3D Model Key'] = model3DKey;
+    if (model3DTexture) customPropsRecord['Texture URL'] = model3DTexture;
+    customPropsList.forEach(p => {
+      if (p.key.trim() && p.value.trim()) {
+        customPropsRecord[p.key.trim()] = p.value.trim();
+      }
+    });
 
     const pageObj: WikiPage = {
       id: slug,
@@ -319,11 +373,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       addonVersion: 'v1.4.0',
       icon: icon || '📄',
       renderImageUrl: activeImage || undefined,
+      bannerImageUrl: bannerImageUrl || undefined,
+      images: texturesStr ? texturesStr.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+      customProperties: Object.keys(customPropsRecord).length > 0 ? customPropsRecord : undefined,
       tags: [selectedCatId, 'Custom', 'Admin Created'],
       lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       badge: badge || selectedCatId.toUpperCase(),
       badgeColor,
       behaviorBullets: bullets.length > 0 ? bullets : undefined,
+      difficultyStats: difficultyStats.length > 0 ? difficultyStats : undefined,
+      movementSpeed: movementSpeed || undefined,
+      dropsTable: dropsTable.length > 0 ? dropsTable : undefined,
       sections: [
         {
           title: sectionTitle || 'Description',
@@ -359,6 +419,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const slug = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     const bullets = [bullet1, bullet2].filter(b => b.trim() !== '');
     const activeImage = imageSource === 'preset' ? selectedPresetImage : customImageUrl;
+    const customPropsRecord: Record<string, string> = {};
+    customPropsList.forEach(p => {
+      if (p.key.trim() && p.value.trim()) {
+        customPropsRecord[p.key.trim()] = p.value.trim();
+      }
+    });
 
     const newPage: WikiPage = {
       id: slug,
@@ -369,11 +435,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       addonVersion: 'v1.4.0',
       icon: icon || '📄',
       renderImageUrl: activeImage || undefined,
+      bannerImageUrl: bannerImageUrl || undefined,
+      images: texturesStr ? texturesStr.split(',').map(s => s.trim()).filter(Boolean) : undefined,
+      customProperties: Object.keys(customPropsRecord).length > 0 ? customPropsRecord : undefined,
       tags: [selectedCatId, 'Custom', 'Admin Created'],
       lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       badge: badge || selectedCatId.toUpperCase(),
       badgeColor,
       behaviorBullets: bullets.length > 0 ? bullets : undefined,
+      difficultyStats: difficultyStats.length > 0 ? difficultyStats : undefined,
+      movementSpeed: movementSpeed || undefined,
+      dropsTable: dropsTable.length > 0 ? dropsTable : undefined,
       sections: [
         {
           title: sectionTitle || 'Description',
@@ -397,6 +469,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setBullet2('');
     setSectionContent('');
     setSelectedTemplateId('');
+    setBannerImageUrl('');
+    setTexturesStr('');
+    setCustomPropsList([]);
 
     setTimeout(() => {
       setIsSuccess(false);
@@ -619,7 +694,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <option value="">-- No Template (Empty Layout) --</option>
                   {templates.map(t => (
                     <option key={t.templateId} value={t.templateId}>
-                      {t.name} (Blueprint layout for {t.category})
+                      {t.name} (Blueprint layout for {formatCategoryName(t.category)})
                     </option>
                   ))}
                 </select>
@@ -794,6 +869,171 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 )}
               </div>
 
+              {/* Additional Visuals & Properties */}
+              <div className="space-y-4 p-4 bg-[#0b0f19] border border-[#1e293b] rounded-2xl">
+                <h3 className="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2">
+                  Extended Page Metadata
+                </h3>
+                
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">Banner Image URL</label>
+                  <input
+                    type="url"
+                    placeholder="https://... for page background banner"
+                    value={bannerImageUrl}
+                    onChange={(e) => setBannerImageUrl(e.target.value)}
+                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-500/50 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none transition"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">Item/Texture Images (Comma separated URLs)</label>
+                  <input
+                    type="text"
+                    placeholder="https://img1.png, https://img2.png"
+                    value={texturesStr}
+                    onChange={(e) => setTexturesStr(e.target.value)}
+                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-500/50 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none transition"
+                  />
+                </div>
+
+                <div className="space-y-2 pt-2 border-t border-[#1e293b]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300">Custom Property Table (Stats)</label>
+                    <button
+                      type="button"
+                      onClick={addCustomProp}
+                      className="px-2 py-1 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 text-[10px] font-bold rounded transition cursor-pointer"
+                    >
+                      + Add Row
+                    </button>
+                  </div>
+                  {customPropsList.length > 0 ? (
+                    <div className="space-y-2">
+                      {customPropsList.map((prop, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <input
+                            type="text"
+                            placeholder="Key (e.g. Damage)"
+                            value={prop.key}
+                            onChange={(e) => updateCustomProp(idx, 'key', e.target.value)}
+                            className="w-1/3 bg-[#111827] border border-[#1e293b] rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Value (e.g. 15)"
+                            value={prop.value}
+                            onChange={(e) => updateCustomProp(idx, 'value', e.target.value)}
+                            className="w-2/3 bg-[#111827] border border-[#1e293b] rounded-lg px-2.5 py-1.5 text-[11px] text-white focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeCustomProp(idx)}
+                            className="p-1.5 text-slate-500 hover:text-rose-400 transition"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-500">No custom properties added.</p>
+                  )}
+                </div>
+              </div>
+
+              
+              {/* 3D Model Configuration */}
+              <div className="space-y-4 p-4 bg-[#0b0f19] border border-[#1e293b] rounded-2xl mt-4">
+                <h3 className="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2">
+                  3D Model & Textures
+                </h3>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">3D Model Key / URL</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. climber_zombie or https://...model.glb"
+                    value={model3DKey}
+                    onChange={(e) => setModel3DKey(e.target.value)}
+                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-500/50 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none transition"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block">3D Texture URL</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. https://...texture.png"
+                    value={model3DTexture}
+                    onChange={(e) => setModel3DTexture(e.target.value)}
+                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-500/50 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none transition"
+                  />
+                </div>
+              </div>
+
+              {/* Advanced Data Tables */}
+              <div className="space-y-4 p-4 bg-[#0b0f19] border border-[#1e293b] rounded-2xl mt-4">
+                <h3 className="text-xs font-bold text-sky-400 uppercase tracking-wider mb-2">
+                  Advanced Data Tables
+                </h3>
+                
+                {/* Movement Speed */}
+                <div className="space-y-1.5 mb-4">
+                  <label className="text-xs font-bold text-slate-300 block">Movement Speed</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 0.28x"
+                    value={movementSpeed}
+                    onChange={(e) => setMovementSpeed(e.target.value)}
+                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-500/50 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none transition"
+                  />
+                </div>
+
+                {/* Difficulty Stats */}
+                <div className="space-y-2 pt-2 border-t border-[#1e293b]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300">Difficulty Stats (Health/Attack)</label>
+                    <button type="button" onClick={addDifficultyStat} className="px-2 py-1 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 text-[10px] font-bold rounded">
+                      + Add Stat
+                    </button>
+                  </div>
+                  {difficultyStats.length > 0 && (
+                    <div className="space-y-2">
+                      {difficultyStats.map((stat, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <input type="text" placeholder="Diff" value={stat.difficulty} onChange={(e) => updateDifficultyStat(idx, 'difficulty', e.target.value)} className="w-1/4 bg-[#111827] border border-[#1e293b] rounded-lg px-2 text-[11px] text-white" />
+                          <input type="text" placeholder="Health" value={stat.health} onChange={(e) => updateDifficultyStat(idx, 'health', e.target.value)} className="w-1/4 bg-[#111827] border border-[#1e293b] rounded-lg px-2 text-[11px] text-white" />
+                          <input type="text" placeholder="Atk" value={stat.attack} onChange={(e) => updateDifficultyStat(idx, 'attack', e.target.value)} className="w-1/4 bg-[#111827] border border-[#1e293b] rounded-lg px-2 text-[11px] text-white" />
+                          <input type="text" placeholder="Icon" value={stat.icon} onChange={(e) => updateDifficultyStat(idx, 'icon', e.target.value)} className="w-1/4 bg-[#111827] border border-[#1e293b] rounded-lg px-2 text-[11px] text-white" />
+                          <button type="button" onClick={() => removeDifficultyStat(idx)} className="text-rose-400">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Drops Table */}
+                <div className="space-y-2 pt-2 border-t border-[#1e293b]">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-slate-300">Loot / Drops Table</label>
+                    <button type="button" onClick={addDrop} className="px-2 py-1 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 text-[10px] font-bold rounded">
+                      + Add Drop
+                    </button>
+                  </div>
+                  {dropsTable.length > 0 && (
+                    <div className="space-y-2">
+                      {dropsTable.map((drop, idx) => (
+                        <div key={idx} className="flex gap-2 items-center">
+                          <input type="text" placeholder="Item" value={drop.item} onChange={(e) => updateDrop(idx, 'item', e.target.value)} className="w-1/3 bg-[#111827] border border-[#1e293b] rounded-lg px-2 text-[11px] text-white" />
+                          <input type="text" placeholder="Amount" value={drop.amount} onChange={(e) => updateDrop(idx, 'amount', e.target.value)} className="w-1/4 bg-[#111827] border border-[#1e293b] rounded-lg px-2 text-[11px] text-white" />
+                          <input type="text" placeholder="Chance" value={drop.chance} onChange={(e) => updateDrop(idx, 'chance', e.target.value)} className="w-1/4 bg-[#111827] border border-[#1e293b] rounded-lg px-2 text-[11px] text-white" />
+                          <button type="button" onClick={() => removeDrop(idx)} className="text-rose-400">×</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Badge Color Choice */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-slate-300 block">Badge Color Accent</label>
@@ -952,7 +1192,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         onClick={() => onSelectPage(cp.id)}
                         className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1"
                       >
-                        <span className="text-lg shrink-0">{cp.icon}</span>
+                        <WikiIcon icon={cp.icon} className="w-5 h-5 text-lg" />
                         <div className="min-w-0">
                           <h4 className="text-xs font-bold text-slate-200 group-hover:text-sky-300 transition-colors truncate">
                             {cp.title}
@@ -1142,7 +1382,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   className={`p-3 bg-gradient-to-r ${cat.bg} border ${cat.color} rounded-xl flex items-center justify-between gap-3`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <span className="text-xl shrink-0 select-none">{cat.icon}</span>
+                    <WikiIcon icon={cat.icon} className="w-6 h-6 text-xl" />
                     <div className="min-w-0">
                       <h4 className="text-xs font-bold text-white truncate">
                         {cat.label}

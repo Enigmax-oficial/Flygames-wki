@@ -1,3 +1,4 @@
+import { WikiIcon } from './WikiIcon';
 import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { PageCreator, downloadTemplateScript } from '../templates/PageCreator';
@@ -282,7 +283,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                           : 'bg-[#111827] text-[#94a3b8] border-[#1e293b] hover:text-white'
                       }`}
                     >
-                      <span className="mr-1">{cat.icon}</span>
+                      <WikiIcon icon={cat.icon} className="w-4 h-4 mr-1 inline-block" />
                       <span>{cat.id}</span>
                     </button>
                   ))}

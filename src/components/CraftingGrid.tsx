@@ -1,3 +1,4 @@
+import { WikiIcon } from './WikiIcon';
 import React from 'react';
 import { CraftingRecipe } from '../types/wiki';
 import { ArrowRight, Flame, Sparkles } from 'lucide-react';
@@ -161,7 +162,7 @@ export const CraftingGrid: React.FC<CraftingGridProps> = ({ recipe, onItemClick 
             {getItemImage(recipe.output.id) ? (
               <img src={getItemImage(recipe.output.id)!} alt={recipe.output.name} className="w-11 h-11 object-contain drop-shadow" />
             ) : (
-              <span className="text-2xl">{recipe.output.icon || '⚔️'}</span>
+              <WikiIcon icon={recipe.output.icon || '⚔️'} className="w-11 h-11 text-2xl" />
             )}
           </div>
         </div>

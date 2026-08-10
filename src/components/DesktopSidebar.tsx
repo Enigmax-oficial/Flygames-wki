@@ -1,8 +1,8 @@
 import React from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage } from '../data/itemAssets';
-import { AdBanner } from './AdBanner';
 import { WikiApi } from '../lib/wikiApi';
+import { WikiIcon } from './WikiIcon';
 import { 
   Home,
   Sword, 
@@ -54,7 +54,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     if (catId === 'recipes') return <ScrollText className="w-4 h-4 text-cyan-400" />;
     if (catId === 'biomes') return <Trees className="w-4 h-4 text-purple-400" />;
     if (catId === 'guides') return <BookOpen className="w-4 h-4 text-indigo-400" />;
-    return <span className="text-sm select-none shrink-0">{iconStr || '📁'}</span>;
+    return <WikiIcon icon={iconStr || '📁'} className="w-4 h-4" />;
   };
 
   return (
@@ -191,7 +191,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                       <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
                     </div>
                   ) : (
-                    <span className="text-sm select-none">{page.icon}</span>
+                    <WikiIcon icon={page.icon} className="w-5 h-5 text-sm" />
                   )}
                   <span className="truncate">{page.title}</span>
                 </div>
@@ -204,9 +204,6 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             );
           })}
       </div>
-
-      {/* Ad Placement */}
-      <AdBanner type="sidebar" slotId="sidebar-ad" className="mx-3 mb-3 shrink-0" />
 
       {/* Footer Info */}
       <div className="p-3 border-t border-[#1e293b] bg-[#0b0f19] text-center text-[11px] text-[#64748b]">

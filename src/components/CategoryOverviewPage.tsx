@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
+import { WikiIcon } from './WikiIcon';
 import { getItemImage, getPageCoverImage } from '../data/itemAssets';
-import { AdBanner } from './AdBanner';
 import { 
   Sword, 
   Ghost, 
@@ -143,9 +143,6 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
         </div>
       </div>
 
-      {/* Ad Placement */}
-      <AdBanner type="footer" slotId="category-hero-bottom" className="my-6" />
-
       {/* Filter and Search Bar */}
       <div className="bg-[#141414] border border-[#2a2a2a] rounded-lg p-4 space-y-3 shadow-md">
         <div className="flex flex-col sm:flex-row items-center gap-3">
@@ -162,9 +159,9 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
 
           {/* Category Switchers */}
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs shrink-0">
-            {(['all', 'items', 'mobs', 'blocks', 'recipes', 'biomes', 'guides'] as const).map((cat) => (
+            {(['all', 'items', 'mobs', 'blocks', 'recipes', 'biomes', 'guides'] as const).map((cat, idx) => (
               <button
-                key={cat}
+                key={`${cat}-${idx}`}
                 onClick={() => onSelectCategory(cat)}
                 className={`px-3 py-1.5 rounded font-semibold capitalize transition-all whitespace-nowrap ${
                   category === cat
@@ -194,9 +191,9 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
             >
               All
             </button>
-            {allTags.map((tag) => (
+            {allTags.map((tag, idx) => (
               <button
-                key={tag}
+                key={`${tag}-${idx}`}
                 onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
                 className={`px-2 py-0.5 rounded text-[11px] font-mono capitalize transition-all ${
                   selectedTag === tag
@@ -223,7 +220,7 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
             <div
               key={page.id}
               onClick={() => onSelectPage(page.id)}
-              className="bg-[#141414] hover:bg-[#1a1a1a] border border-[#2a2a2a] hover:border-emerald-500/50 rounded-xl p-5 shadow-lg transition-all duration-200 cursor-pointer group flex flex-col justify-between relative overflow-hidden"
+              className="bg-[#141414] hover:bg-[#1a1a1a] border border-[#2a2a2a] hover:border-emerald-500/50 rounded-xl p-5 shadow-lg transition-all duration-200 cursor-pointer group flex flex-col justify-between relative overflow-hidden h-full"
             >
               <div className="space-y-3">
                 {/* Top Badge & Rarity */}
@@ -253,7 +250,7 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
                         className="w-full h-full object-contain" 
                       />
                     ) : (
-                      <span>{page.icon}</span>
+                      <WikiIcon icon={page.icon} />
                     )}
                   </div>
 

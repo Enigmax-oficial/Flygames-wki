@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage } from '../data/itemAssets';
+import { WikiIcon } from './WikiIcon';
 import { Search, X, CornerDownLeft } from 'lucide-react';
 
 interface SearchModalProps {
@@ -80,9 +81,9 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         {/* Category Filters */}
         <div className="px-4 py-2.5 bg-[#141414] border-b border-[#2a2a2a] flex items-center gap-2 overflow-x-auto text-xs">
           <span className="text-[#666] font-bold uppercase text-[10px] tracking-wider shrink-0">Filter:</span>
-          {(['all', 'items', 'mobs', 'blocks', 'recipes', 'biomes', 'guides'] as const).map((cat) => (
+          {(['all', 'items', 'mobs', 'blocks', 'recipes', 'biomes', 'guides'] as const).map((cat, idx) => (
             <button
-              key={cat}
+              key={`${cat}-${idx}`}
               onClick={() => setSelectedCategoryFilter(cat)}
               className={`px-2.5 py-1 rounded capitalize transition-colors whitespace-nowrap text-xs font-semibold ${
                 selectedCategoryFilter === cat
@@ -117,7 +118,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                     {getPageCoverImage(page) ? (
                       <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
                     ) : (
-                      <span>{page.icon}</span>
+                      <WikiIcon icon={page.icon} className="w-5 h-5" />
                     )}
                   </div>
                   <div className="truncate">

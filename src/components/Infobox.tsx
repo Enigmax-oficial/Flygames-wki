@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { WikiPage } from '../types/wiki';
+import { WikiIcon } from './WikiIcon';
 import { Heart, Sparkles, ChevronDown, ChevronUp, Layers, Tag, User } from 'lucide-react';
 import { getItemImage } from '../data/itemAssets';
 
@@ -50,7 +51,7 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
               className="w-full h-full object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
             />
           ) : (
-            <span>{page.icon}</span>
+            <WikiIcon icon={page.icon} className="w-6 h-6 text-xl" />
           )}
         </div>
         <div className="absolute bottom-2 right-2 text-[10px] font-mono text-[#555]">
@@ -209,8 +210,8 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
             <h4 className="font-bold text-[10px] uppercase text-emerald-400 tracking-wider">
               Additional Info
             </h4>
-            {Object.entries(page.customProperties).map(([key, val]) => (
-              <div key={key} className="flex justify-between border-b border-[#2a2a2a] pb-1">
+            {Object.entries(page.customProperties).map(([key, val], idx) => (
+              <div key={`${key}-${idx}`} className="flex justify-between border-b border-[#2a2a2a] pb-1">
                 <span className="text-[#666]">{key}</span>
                 <span className="text-white font-medium">{val}</span>
               </div>
@@ -226,9 +227,9 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
               <span>Tags</span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {page.tags.map((tag) => (
+              {page.tags.map((tag, idx) => (
                 <span
-                  key={tag}
+                  key={`${tag}-${idx}`}
                   className="px-2 py-0.5 bg-[#1a1a1a] text-[#888] border border-[#2a2a2a] rounded text-[10px] font-mono"
                 >
                   #{tag}

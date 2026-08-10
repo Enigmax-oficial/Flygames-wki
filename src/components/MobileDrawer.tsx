@@ -2,6 +2,7 @@ import React from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage } from '../data/itemAssets';
 import { WikiApi } from '../lib/wikiApi';
+import { WikiIcon } from './WikiIcon';
 import { 
   X, 
   Home,
@@ -56,7 +57,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
     if (catId === 'recipes') return <ScrollText className="w-4 h-4 text-cyan-400" />;
     if (catId === 'biomes') return <Trees className="w-4 h-4 text-purple-400" />;
     if (catId === 'guides') return <BookOpen className="w-4 h-4 text-indigo-400" />;
-    return <span className="text-xs select-none shrink-0">{iconStr || '📁'}</span>;
+    return <WikiIcon icon={iconStr || '📁'} className="w-4 h-4 text-xs" />;
   };
 
   return (
@@ -189,7 +190,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                         <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
                       </div>
                     ) : (
-                      <span className="text-base select-none">{page.icon}</span>
+                      <WikiIcon icon={page.icon} className="w-6 h-6 text-base" />
                     )}
                     <span className="truncate">{page.title}</span>
                   </div>

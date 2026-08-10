@@ -1,3 +1,4 @@
+import { WikiIcon } from './WikiIcon';
 import React, { useState } from 'react';
 import { X, FolderCode, Copy, Check, Download, FileJson } from 'lucide-react';
 import itemTemplate from '../templates/item-template.json';
@@ -95,7 +96,7 @@ export const TemplateViewerModal: React.FC<TemplateViewerModalProps> = ({ isOpen
                     <FileJson className={`w-4 h-4 ${isSelected ? 'text-emerald-400' : 'text-[#666]'}`} />
                     <span className="truncate">{fileName}</span>
                   </div>
-                  <span className="text-sm select-none">{data.icon}</span>
+                  <WikiIcon icon={data.icon} className="w-4 h-4 text-sm" />
                 </button>
               );
             })}

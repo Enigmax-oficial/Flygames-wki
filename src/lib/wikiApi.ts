@@ -100,7 +100,10 @@ export class WikiApi {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return [...PRESET_CATEGORIES, ...parsed.map(c => ({ ...c, isCustom: true }))];
+          const all = [...PRESET_CATEGORIES, ...parsed.map(c => ({ ...c, isCustom: true }))];
+          const unique = new Map();
+          for (const item of all) { if (!unique.has(item.id)) unique.set(item.id, item); }
+          return Array.from(unique.values());
         }
       }
     } catch (e) {
@@ -161,7 +164,10 @@ export class WikiApi {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          return [...presets, ...parsed];
+          const all = [...presets, ...parsed];
+          const unique = new Map();
+          for (const item of all) { if (!unique.has(item.templateId)) unique.set(item.templateId, item); }
+          return Array.from(unique.values());
         }
       }
       return presets;
@@ -192,10 +198,13 @@ export class WikiApi {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleaned = parsed.filter(p => p.id !== 'vite-nodejs-setup');
+          const cleaned = parsed.filter(p => p.id !== 'vite-nodejs-setup' && p.id !== 'category-items' && p.id !== 'category-mobs');
           const existingIds = new Set(cleaned.map(p => p.id));
           const missing = INITIAL_WIKI_PAGES.filter(p => !existingIds.has(p.id));
-          return [...missing, ...cleaned];
+          const all = [...missing, ...cleaned];
+          const unique = new Map();
+          for (const item of all) { if (!unique.has(item.id)) unique.set(item.id, item); }
+          return Array.from(unique.values());
         }
       }
     } catch {}

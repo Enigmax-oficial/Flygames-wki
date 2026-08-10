@@ -17,8 +17,8 @@ function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// Admin password hash for '2026'
-const ADMIN_PASSWORD_HASH = hashPassword('2026');
+// Admin password hash for the configured password
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD ? hashPassword(process.env.ADMIN_PASSWORD) : '764db7d1b0fd9d8686646266120c04bbbe5c1df9107b39c16754e538b3cce756';
 
 // API Routes
 app.get('/api/health', (req, res) => {
@@ -38,7 +38,7 @@ app.post('/api/admin/verify', (req, res) => {
   if (inputHash === ADMIN_PASSWORD_HASH) {
     return res.json({ success: true, message: 'Admin authentication successful via encrypted SQL token.' });
   } else {
-    return res.status(401).json({ success: false, message: 'Incorrect administrator password. (Hint: 2026)' });
+    return res.status(401).json({ success: false, message: 'Incorrect administrator password.' });
   }
 });
 

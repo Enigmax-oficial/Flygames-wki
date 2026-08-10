@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage } from '../data/itemAssets';
-import { AdBanner } from './AdBanner';
 import { WikiApi } from '../lib/wikiApi';
+import { WikiIcon } from './WikiIcon';
 import { 
   Sparkles, 
   Ghost, 
@@ -53,7 +53,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
     if (icon === '📜') return <ScrollText className="w-6 h-6 text-cyan-400" />;
     if (icon === '🌲') return <Trees className="w-6 h-6 text-purple-400" />;
     if (icon === '📖') return <BookOpen className="w-6 h-6 text-indigo-400" />;
-    return <span className="text-xl select-none">{icon}</span>;
+    return <WikiIcon icon={icon} className="w-6 h-6 text-xl" />;
   };
 
   // Random article generator function for the "Surprise Me" button
@@ -143,9 +143,6 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
         </div>
       </section>
 
-      {/* High-Impact Top Ad Placement */}
-      <AdBanner type="inline" slotId="portal-hero-leaderboard" className="my-4" />
-
       {/* 2. Featured Mobs Spotlight Cards */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
@@ -161,7 +158,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
           {boulderingZombie && (
             <div 
               onClick={() => onSelectPage(boulderingZombie.id)}
-              className="group bg-[#111827] border border-[#1e293b] hover:border-emerald-500/50 rounded-2xl p-5 shadow-xl transition-all cursor-pointer hover:translate-y-[-2px] flex flex-col sm:flex-row items-center gap-5"
+              className="group bg-[#111827] border border-[#1e293b] hover:border-emerald-500/50 rounded-2xl p-5 shadow-xl transition-all cursor-pointer hover:translate-y-[-2px] flex flex-col sm:flex-row items-center gap-5 h-full"
             >
               {boulderingZombie.renderImageUrl && (
                 <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform">
@@ -193,7 +190,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
           {crystallineBerserker && (
             <div 
               onClick={() => onSelectPage(crystallineBerserker.id)}
-              className="group bg-[#111827] border border-[#1e293b] hover:border-purple-500/50 rounded-2xl p-5 shadow-xl transition-all cursor-pointer hover:translate-y-[-2px] flex flex-col sm:flex-row items-center gap-5"
+              className="group bg-[#111827] border border-[#1e293b] hover:border-purple-500/50 rounded-2xl p-5 shadow-xl transition-all cursor-pointer hover:translate-y-[-2px] flex flex-col sm:flex-row items-center gap-5 h-full"
             >
               {crystallineBerserker.renderImageUrl && (
                 <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform">
@@ -222,9 +219,6 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
           )}
         </div>
       </section>
-
-      {/* Ad Placement */}
-      <AdBanner type="footer" slotId="portal-mid-leaderboard" className="my-8" />
 
 
 
@@ -359,7 +353,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
                             <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
                           </div>
                         ) : (
-                          <span className="text-lg select-none">{page.icon}</span>
+                          <WikiIcon icon={page.icon} className="w-8 h-8 text-lg" />
                         )}
                         <span className="group-hover:text-sky-300 transition-colors">{page.title}</span>
                       </td>
