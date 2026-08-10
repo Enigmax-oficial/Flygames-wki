@@ -5,20 +5,13 @@ import { WikiApi } from '../lib/wikiApi';
 import { WikiIcon } from './WikiIcon';
 import { 
   Sparkles, 
-  Ghost, 
-  Sword, 
-  Box, 
-  ScrollText, 
-  Trees, 
-  BookOpen, 
   ChevronRight, 
   Compass, 
   Flame,
   ArrowUpRight,
   Search,
   Shuffle,
-  Filter,
-  CheckCircle2
+  Filter
 } from 'lucide-react';
 
 interface PortalHomePageProps {
@@ -143,7 +136,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
             <Compass className="w-4 h-4 text-sky-400" />
             <span>FEATURED SHOWCASE MOBS</span>
           </h2>
-          <span className="text-xs font-mono text-sky-400 font-semibold">Direct Path Navigation</span>
+          <span className="text-xs font-mono text-sky-400 font-semibold">Direct Spotlight</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -153,17 +146,23 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
               onClick={() => onSelectPage(boulderingZombie.id)}
               className="group bg-[#111827] border border-[#1e293b] hover:border-emerald-500/50 rounded-2xl p-5 shadow-xl transition-all cursor-pointer hover:translate-y-[-2px] flex flex-col sm:flex-row items-center gap-5 h-full"
             >
-              {boulderingZombie.renderImageUrl && (
+              {getPageCoverImage(boulderingZombie) ? (
+                <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
+                  <img src={getPageCoverImage(boulderingZombie)!} alt={boulderingZombie.title} className="w-full h-full object-contain" />
+                </div>
+              ) : (
                 <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform">
-                  <img src={boulderingZombie.renderImageUrl} alt={boulderingZombie.title} className="max-h-full object-contain" />
+                  <WikiIcon icon={boulderingZombie.icon || 'mobs'} className="w-12 h-12 text-emerald-400" />
                 </div>
               )}
               <div className="space-y-2 flex-1 text-center sm:text-left">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span className="px-2.5 py-0.5 bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold uppercase">
+                  <span className="px-2.5 py-0.5 bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold uppercase font-mono">
                     CLIMBING MOB
                   </span>
-                  <span className="text-[11px] font-mono text-[#64748b]">/mobs/bouldering-zombie</span>
+                  <span className="px-2 py-0.5 bg-[#0b0f19] text-[#cbd5e1] border border-[#1e293b] rounded text-[10px] font-mono font-bold">
+                    v1.4.0 ADDON
+                  </span>
                 </div>
                 <h3 className="text-xl font-bold text-white group-hover:text-emerald-300 transition-colors">
                   {boulderingZombie.title}
@@ -185,17 +184,23 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
               onClick={() => onSelectPage(crystallineBerserker.id)}
               className="group bg-[#111827] border border-[#1e293b] hover:border-purple-500/50 rounded-2xl p-5 shadow-xl transition-all cursor-pointer hover:translate-y-[-2px] flex flex-col sm:flex-row items-center gap-5 h-full"
             >
-              {crystallineBerserker.renderImageUrl && (
+              {getPageCoverImage(crystallineBerserker) ? (
+                <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
+                  <img src={getPageCoverImage(crystallineBerserker)!} alt={crystallineBerserker.title} className="w-full h-full object-contain" />
+                </div>
+              ) : (
                 <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform">
-                  <img src={crystallineBerserker.renderImageUrl} alt={crystallineBerserker.title} className="max-h-full object-contain" />
+                  <WikiIcon icon={crystallineBerserker.icon || 'mobs'} className="w-12 h-12 text-purple-400" />
                 </div>
               )}
               <div className="space-y-2 flex-1 text-center sm:text-left">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span className="px-2.5 py-0.5 bg-purple-950/80 text-purple-300 border border-purple-500/30 rounded text-[10px] font-bold uppercase">
+                  <span className="px-2.5 py-0.5 bg-purple-950/80 text-purple-300 border border-purple-500/30 rounded text-[10px] font-bold uppercase font-mono">
                     DUNGEON BOSS
                   </span>
-                  <span className="text-[11px] font-mono text-[#64748b]">/mobs/crystalline-berserker</span>
+                  <span className="px-2 py-0.5 bg-[#0b0f19] text-[#cbd5e1] border border-[#1e293b] rounded text-[10px] font-mono font-bold">
+                    v1.4.0 ADDON
+                  </span>
                 </div>
                 <h3 className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">
                   {crystallineBerserker.title}
@@ -213,9 +218,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
         </div>
       </section>
 
-
-
-      {/* 4. Category Explorer Grid */}
+      {/* 3. Category Explorer Grid */}
       <section className="space-y-4">
         <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
           BROWSE BY CATEGORY
@@ -261,7 +264,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
         </div>
       </section>
 
-      {/* 4. Complete Knowledge Index Table with Live Filter & Search */}
+      {/* 5. Complete Knowledge Index Table with Live Filter & Search */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
@@ -322,7 +325,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
                 <tr className="border-b border-[#1e293b] text-[#94a3b8] font-semibold bg-[#0b0f19]/80 text-xs uppercase tracking-wider">
                   <th className="py-3.5 px-5">Name</th>
                   <th className="py-3.5 px-5">Category</th>
-                  <th className="py-3.5 px-5">Identifier Path</th>
+                  <th className="py-3.5 px-5">Key Attributes</th>
                   <th className="py-3.5 px-5">Action</th>
                 </tr>
               </thead>
@@ -355,8 +358,14 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
                           {page.category}
                         </span>
                       </td>
-                      <td className="py-3.5 px-5 font-mono text-xs text-[#64748b]">
-                        /{page.category}/{page.id}
+                      <td className="py-3.5 px-5 font-mono text-xs text-[#cbd5e1]">
+                        {page.itemStats?.attackDamage !== undefined ? (
+                          <span className="text-amber-300 font-bold">⚔️ {page.itemStats.attackDamage} DMG</span>
+                        ) : page.mobStats?.health ? (
+                          <span className="text-rose-400 font-bold">❤️ {page.mobStats.health}</span>
+                        ) : (
+                          <span className="text-[#94a3b8]">{page.badge || page.addonVersion || 'v1.4.0'}</span>
+                        )}
                       </td>
                       <td className="py-3.5 px-5">
                         <button

@@ -56,7 +56,33 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
     page.gallery || 
     page.itemStats || 
     page.blockStats ||
-    page.recipes
+    page.recipes ||
+    page.category === 'mobs' ||
+    page.category === 'items'
+  );
+
+  const behaviorBullets = page.behaviorBullets || (
+    page.category === 'mobs' || page.category === 'items' ? [
+      page.description,
+      `Namespace: ${page.namespace || 'aetheria:' + page.id}`,
+      `Category: ${page.category.toUpperCase()}`,
+      `Addon Version: ${page.addonVersion || 'v1.4.0'}`
+    ] : []
+  );
+
+  const difficultyStats = page.difficultyStats || (
+    page.category === 'mobs' ? [
+      { difficulty: 'Easy', health: 'Baseline Specs', attack: 'Standard 1.0x', icon: '🟩', color: 'emerald' },
+      { difficulty: 'Normal', health: 'Default Specs', attack: 'Standard 1.0x', icon: '🟧', color: 'amber' },
+      { difficulty: 'Hard', health: 'High Usage Load', attack: '1.25x Threat', icon: '🟥', color: 'rose' },
+      { difficulty: 'Brutal', health: 'Maximum Impact', attack: '2.0x Threat', icon: '😈', color: 'purple' }
+    ] : []
+  );
+
+  const dropsTable = page.dropsTable || (
+    page.category === 'mobs' || page.category === 'items' ? [
+      { item: page.title, amount: '1', chance: '100% Obtainable', icon: page.icon || 'gem' }
+    ] : []
   );
 
   // Calculate estimated reading time based on word count
@@ -266,7 +292,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         )}
 
         {/* 3. KEY MECHANICS / ABILITIES / BEHAVIOR Section */}
-        {page.behaviorBullets && (
+        {behaviorBullets.length > 0 && (
           <section className="space-y-3">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
               <Zap className="w-4 h-4 text-sky-400" />
@@ -274,7 +300,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
             </h2>
             <div className="bg-[#111827]/90 border border-[#1e293b] rounded-2xl p-6 shadow-xl space-y-4">
               <ul className="space-y-2.5 text-sm sm:text-base text-[#cbd5e1] leading-relaxed">
-                {page.behaviorBullets.map((bullet, idx) => (
+                {behaviorBullets.map((bullet, idx) => (
                   <li key={idx} className="flex items-start gap-3">
                     <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-2.5 shrink-0" />
                     <span>{bullet}</span>
@@ -323,7 +349,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         )}
 
         {/* STATS BY DIFFICULTY Section */}
-        {page.difficultyStats && (
+        {difficultyStats.length > 0 && (
           <section className="space-y-2">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
               STATS BY DIFFICULTY
@@ -343,7 +369,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b]">
-                    {page.difficultyStats.map((stat, idx) => (
+                    {difficultyStats.map((stat, idx) => (
                       <tr key={idx} className="hover:bg-[#1e293b]/30 transition-colors">
                         <td className="py-3 px-5 font-semibold text-white flex items-center gap-2.5">
                           <WikiIcon icon={stat.icon || 'shield'} className="w-4 h-4 text-sky-400" />
@@ -361,7 +387,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         )}
 
         {/* DROPS & OBTAIN TABLE */}
-        {page.dropsTable && (
+        {dropsTable.length > 0 && (
           <section className="space-y-3">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
               <Layers className="w-4 h-4 text-rose-400" />
@@ -378,7 +404,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b]">
-                    {page.dropsTable.map((drop, idx) => (
+                    {dropsTable.map((drop, idx) => (
                       <tr key={idx} className="hover:bg-[#1e293b]/30 transition-colors">
                         <td className="py-3.5 px-5 font-semibold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer flex items-center gap-2.5">
                           <WikiIcon icon={drop.icon || 'gem'} className="w-5 h-5 text-sky-400" />

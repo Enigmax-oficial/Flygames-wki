@@ -8,6 +8,8 @@
   "category": "mobs",
   "description": "Enormous crystal-clad titan found deep within subterranean mineshafts in Crystal Canyon. Immune to arrows and fire.",
   "addonVersion": "v1.4.0",
+  "renderImageUrl": "https://images.unsplash.com/photo-1607988795691-3d0147b43231?auto=format&fit=crop&w=800&q=80",
+  "imageUrl": "https://images.unsplash.com/photo-1607988795691-3d0147b43231?auto=format&fit=crop&w=800&q=80",
   "icon": "mobs",
   "tags": ["mob", "boss", "hostile", "crystalline", "canyon", "dungeon"],
   "lastUpdated": "2026-08-09",

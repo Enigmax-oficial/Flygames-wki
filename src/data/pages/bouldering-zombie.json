@@ -8,6 +8,8 @@
   "category": "mobs",
   "description": "A stone-skinned climbing zombie variant that scales cliffs, walls, and mountains to swarm players from high terrain.",
   "addonVersion": "v1.4.0",
+  "renderImageUrl": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80",
+  "imageUrl": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80",
   "icon": "mobs",
   "tags": ["mob", "hostile", "zombie", "climbing", "caves", "mountain"],
   "lastUpdated": "2026-08-09",

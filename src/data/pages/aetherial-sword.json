@@ -39,6 +39,16 @@
     "Critical Strike Passive: Attacking enemies while airborne inflicts +4 bonus Magic Light Damage.",
     "Grants permanent Night Vision I while equipped in the main hand."
   ],
+  "behaviorMeta": {
+    "biomes": "Crystal Canyon, Celestial Altar",
+    "groupSize": "Single Legendary Weapon"
+  },
+  "difficultyStats": [
+    { "difficulty": "Easy", "health": "100% Durability Rate", "attack": "11 Damage (5.5 ❤️)", "icon": "🟩", "color": "emerald" },
+    { "difficulty": "Normal", "health": "2048 Max Uses", "attack": "11 Damage + Celestial Leap", "icon": "🟧", "color": "amber" },
+    { "difficulty": "Hard", "health": "1.25x Durability Loss", "attack": "15 Damage (Airborne Crit)", "icon": "🟥", "color": "rose" },
+    { "difficulty": "Brutal", "health": "High Impact Consumption", "attack": "19 Damage (Full Magic Combo)", "icon": "😈", "color": "purple" }
+  ],
   "tags": ["weapon", "legendary", "crafting", "combat", "aetheria"],
   "lastUpdated": "2026-08-08",
   "author": "Aetheria Dev Team",

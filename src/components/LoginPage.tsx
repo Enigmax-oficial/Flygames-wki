@@ -152,7 +152,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                   onError={() => {
                     setErrorMessage('Google Sign-In failed');
                   }}
-                  useOneTap
+                  useOneTap={false}
                   theme="outline"
                   size="large"
                   shape="rectangular"
