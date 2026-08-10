@@ -101,6 +101,16 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             <Home className="w-4 h-4 text-sky-400" />
             <span>Portal Homepage</span>
           </button>
+          {!userEmail && (
+            <a
+              href="#/login"
+              onClick={onClose}
+              className="w-full py-2.5 px-3 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-xl text-xs flex items-center gap-2"
+            >
+              <User className="w-4 h-4 text-indigo-400" />
+              <span>Sign In / Register</span>
+            </a>
+          )}
 
           {isAdmin && (
             <button

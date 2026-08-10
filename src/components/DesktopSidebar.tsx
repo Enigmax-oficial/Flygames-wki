@@ -99,6 +99,17 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           </span>
           <span className="text-[10px] uppercase font-mono text-sky-400 font-bold">Main</span>
         </button>
+        {!userEmail && (
+          <a
+            href="#/login"
+            className="w-full text-left px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-all mb-4 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400"
+          >
+            <span className="flex items-center gap-2">
+              <User className="w-4 h-4 text-indigo-400" />
+              <span>Sign In / Register</span>
+            </span>
+          </a>
+        )}
 
         {/* All Pages Button */}
         <button

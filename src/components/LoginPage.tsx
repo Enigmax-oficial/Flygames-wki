@@ -263,6 +263,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
             </p>
           )}
         </div>
+        {/* Redirect Link Back */}
+        <div className="p-4 bg-[#0b0f19] border-t border-[#1e293b] text-center">
+          <button onClick={onBack} className="text-sky-400 hover:underline font-bold text-xs cursor-pointer">
+            ← Return to Home Portal
+          </button>
+        </div>
       </div>
     </div>
   );
