@@ -15,7 +15,8 @@ import {
   Sparkles, 
   Search,
   Crown,
-  Globe
+  Globe,
+  User
 } from 'lucide-react';
 
 interface MobileDrawerProps {

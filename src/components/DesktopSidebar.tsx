@@ -14,7 +14,8 @@ import {
   Sparkles,
   ChevronRight,
   ChevronLeft,
-  Crown
+  Crown,
+  User
 } from 'lucide-react';
 
 interface DesktopSidebarProps {
