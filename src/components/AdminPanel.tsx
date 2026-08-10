@@ -43,6 +43,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 }) => {
   
   // Encrypted Password State
+  const authorizedEmails = ['ruanpablolopesbritor@gmail.com', 'ruanpablolopesbritoruan@gmail.com'];
+  const isAuthorized = userEmail && authorizedEmails.includes(userEmail.toLowerCase().trim());
+
   const [passwordInput, setPasswordInput] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return sessionStorage.getItem('admin_auth_verified') === 'true';
@@ -277,8 +280,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [catSuccess, setCatSuccess] = useState('');
 
   // Access check
+  if (!isAuthorized) {
+    return (
+      <div className="max-w-3xl mx-auto p-8 bg-[#111827] border border-rose-500/20 rounded-2xl text-center space-y-4 shadow-xl my-10 font-sans">
+        <h2 className="text-xl font-bold text-white">Access Denied</h2>
+        <p className="text-sm text-slate-400 max-w-md mx-auto">
+          This administration panel is restricted exclusively to authorized administrator accounts.
+        </p>
+        <button 
+          onClick={onClosePanel}
+          className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
+
   // Password prompt check for authorized admin
-  if (!isAdminAuthenticated) {
+  if (isAuthorized && !isAdminAuthenticated) {
     return (
       <div className="max-w-md mx-auto p-8 bg-[#111827] border border-amber-500/30 rounded-2xl text-center space-y-6 shadow-2xl my-12 font-sans">
         <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400">
