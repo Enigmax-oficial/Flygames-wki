@@ -26,11 +26,23 @@ export const INITIAL_WIKI_PAGES: WikiPage[] = Object.entries(jsonFiles).map(([fi
 
   const derivedNamespace = `aetheria:${singularType}/${derivedId.replace(/-/g, '_')}`;
 
+  const {
+    id, category, namespace, title, type, description, addonVersion, icon, imageUrl, coverImage, tags,
+    lastUpdated, author, badge, badgeColor, renderImageUrl, bannerImageUrl, behaviorBullets, behaviorMeta,
+    difficultyStats, movementSpeed, dropsTable, images, gallery, itemStats, mobStats, blockStats, biomeStats,
+    recipes, sections, blockSpeeds, customProperties,
+    ...unknownKeys
+  } = content;
+
   return {
     ...content,
-    id: derivedId,
-    category: derivedCategory,
-    namespace: derivedNamespace
+    id: id || derivedId,
+    category: category || derivedCategory,
+    namespace: namespace || derivedNamespace,
+    customProperties: {
+      ...customProperties,
+      ...unknownKeys
+    }
   } as WikiPage;
 });
 

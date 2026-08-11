@@ -49,6 +49,7 @@ export default function App() {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   const handlePageCreated = (newPage: WikiPage) => {
+    WikiApi.createPage(newPage);
     setPages((prev) => [newPage, ...prev]);
     navigateToPage(newPage.id);
   };
@@ -167,14 +168,7 @@ export default function App() {
     }
   };
 
-  // Save to localStorage when pages change
-  useEffect(() => {
-    try {
-      localStorage.setItem('aetheria_wiki_pages', JSON.stringify(pages));
-    } catch (e) {
-      console.warn('LocalStorage save failed:', e);
-    }
-  }, [pages]);
+  // (Redundant localStorage sync removed to avoid poisoning state)
 
   const handleLoginSuccess = (userName: string, email: string) => {
     const finalEmail = email;

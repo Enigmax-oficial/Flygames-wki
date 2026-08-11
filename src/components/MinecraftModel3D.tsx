@@ -28,10 +28,11 @@ interface MinecraftModel3DProps {
 
 export const MinecraftModel3D: React.FC<MinecraftModel3DProps> = ({
   modelData,
-  modelKey = 'climber_zombie',
+  modelKey,
   textureUrl,
   pageTitle = 'Minecraft 3D Entity'
 }) => {
+  const resolvedModelKey = modelKey || Object.keys(MINECRAFT_MODELS_REGISTRY)[0];
   const mountRef = useRef<HTMLDivElement>(null);
   const [isAutoRotate, setIsAutoRotate] = useState(true);
   const [wireframe, setWireframe] = useState(false);
@@ -96,10 +97,11 @@ export const MinecraftModel3D: React.FC<MinecraftModel3DProps> = ({
     scene.add(gridHelper);
 
     // 5. Select & Parse Minecraft Bedrock Geometry
-    const normalizedKey = modelKey ? modelKey.toLowerCase().replace(/-/g, '_') : '';
+    const activeKey = resolvedModelKey;
+    const normalizedKey = activeKey ? activeKey.toLowerCase().replace(/-/g, '_') : '';
     const activeModelFile =
       modelData ||
-      MINECRAFT_MODELS_REGISTRY[modelKey] ||
+      MINECRAFT_MODELS_REGISTRY[activeKey] ||
       MINECRAFT_MODELS_REGISTRY[normalizedKey];
 
     if (!activeModelFile) {
@@ -112,7 +114,7 @@ export const MinecraftModel3D: React.FC<MinecraftModel3DProps> = ({
     // Texture Creation
     let texture: THREE.Texture;
     const resolvedTextureUrl =
-      textureUrl || createDefaultMinecraftTexture(geomData?.description?.identifier || modelKey);
+      textureUrl || createDefaultMinecraftTexture(geomData?.description?.identifier || activeKey);
 
     const textureLoader = new THREE.TextureLoader();
     texture = textureLoader.load(resolvedTextureUrl);

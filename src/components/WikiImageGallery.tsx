@@ -111,12 +111,7 @@ export const WikiImageGallery: React.FC<WikiImageGalleryProps> = ({ items, pageT
         {is3DModelActive && (
           <div className="w-full relative z-10">
             <MinecraftModel3D
-              modelKey={
-                currentItem.modelKey ||
-                (pageTitle.toLowerCase().includes('berserker')
-                  ? 'crystalline_berserker'
-                  : 'climber_zombie')
-              }
+              modelKey={currentItem.modelKey}
               textureUrl={currentItem.url}
               pageTitle={pageTitle}
             />
@@ -208,11 +203,7 @@ export const WikiImageGallery: React.FC<WikiImageGalleryProps> = ({ items, pageT
             {is3DModelActive ? (
               <div className="w-full h-[500px]">
                 <MinecraftModel3D
-                  modelKey={
-                    pageTitle.toLowerCase().includes('berserker')
-                      ? 'crystalline_berserker'
-                      : 'climber_zombie'
-                  }
+                  modelKey={currentItem.modelKey}
                   textureUrl={currentItem.url}
                   pageTitle={pageTitle}
                 />

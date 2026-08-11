@@ -64,9 +64,12 @@ export interface WikiPage {
   type?: 'entity' | 'item' | 'biome' | 'category' | 'block' | 'recipe' | 'guide' | string; // Namespace function type
   category: CategoryType;
   description: string;
+  metaDescription?: string;
+  seoKeywords?: string;
   addonVersion: string;
   icon: string; // Icon identifier or emoji/image URL
   imageUrl?: string; // High quality visual image banner/illustration
+  coverImage?: string; // Standardized cover image property
   tags: string[];
   lastUpdated: string;
   author?: string;

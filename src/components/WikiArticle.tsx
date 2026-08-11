@@ -19,7 +19,10 @@ import {
   Sword,
   Zap,
   Shield,
-  Tag
+  Tag,
+  List,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface WikiArticleProps {
@@ -44,6 +47,17 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
   const [activeTab, setActiveTab] = useState<'article' | 'crafting' | 'drops'>('article');
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isTocCollapsed, setIsTocCollapsed] = useState(false);
+
+  // Smooth scroll to element by ID with sticky offset
+  const handleScrollTo = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      const yOffset = -90;
+      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
 
   // Find up to 3 similar/suggested articles
   const getSuggestedArticles = (): WikiPage[] => {
@@ -134,10 +148,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
   const readingTime = calculateReadingTime();
 
   // Check if page has a 3D model
-  const pageModelKey = page.customProperties?.['3D Model Key'] || 
-    (page.id === 'climber-zombie' ? 'climber_zombie' : 
-     page.id === 'crystalline-berserker' ? 'crystalline_berserker' : 
-     page.id === 'bouldering-zombie' ? 'bouldering_zombie' : null);
+  const pageModelKey = page.customProperties?.['3D Model Key'] || (page as any).modelKey || (page as any)['3dModelKey'] || null;
 
   const has3DModel = Boolean(pageModelKey && MINECRAFT_MODELS_REGISTRY[pageModelKey]);
 
@@ -203,6 +214,218 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
   const galleryItems = buildGalleryItems();
 
+  // Helper to extract markdown headings from section content
+  const parseContentHeadings = (content: string) => {
+    const headings: { title: string; subIdx: number }[] = [];
+    if (!content) return headings;
+
+    const lines = content.split('\n');
+    let subCount = 0;
+
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      const mdHeadingMatch = trimmed.match(/^#{1,4}\s+(.+)$/);
+      if (mdHeadingMatch) {
+        headings.push({ title: mdHeadingMatch[1].trim(), subIdx: subCount++ });
+        return;
+      }
+
+      const boldHeadingMatch = trimmed.match(/^\*\*(.+?)\*\*$/);
+      if (boldHeadingMatch && boldHeadingMatch[1].length < 60) {
+        headings.push({ title: boldHeadingMatch[1].trim(), subIdx: subCount++ });
+        return;
+      }
+    });
+
+    return headings;
+  };
+
+  // Helper to render formatted content with TOC sub-heading anchor IDs
+  const renderFormattedContent = (content: string, sectionIdx: number) => {
+    if (!content) return null;
+
+    const lines = content.split('\n');
+    let subIdxCounter = 0;
+
+    return lines.map((line, lineIdx) => {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        return <div key={lineIdx} className="h-1" />;
+      }
+
+      // Markdown Headers (#, ##, ###, ####)
+      const mdHeadingMatch = trimmed.match(/^#{1,4}\s+(.+)$/);
+      if (mdHeadingMatch) {
+        const headingText = mdHeadingMatch[1].trim();
+        const elementId = `toc-section-${sectionIdx}-sub-${subIdxCounter++}`;
+        return (
+          <h3
+            key={lineIdx}
+            id={elementId}
+            className="text-[#f8fafc] font-extrabold text-base sm:text-lg mt-5 mb-2 pt-2 border-b border-[#1e293b] flex items-center gap-2 scroll-mt-24 text-sky-300"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block"></span>
+            <span>{headingText}</span>
+          </h3>
+        );
+      }
+
+      // Standalone Bold Line Headers (**Header**)
+      const boldHeadingMatch = trimmed.match(/^\*\*(.+?)\*\*$/);
+      if (boldHeadingMatch && boldHeadingMatch[1].length < 60) {
+        const headingText = boldHeadingMatch[1].trim();
+        const elementId = `toc-section-${sectionIdx}-sub-${subIdxCounter++}`;
+        return (
+          <h4
+            key={lineIdx}
+            id={elementId}
+            className="text-sky-400 font-bold text-sm sm:text-base mt-4 mb-1.5 font-mono uppercase tracking-wide scroll-mt-24"
+          >
+            {headingText}
+          </h4>
+        );
+      }
+
+      // Bullet points
+      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        return (
+          <div key={lineIdx} className="flex items-start gap-2.5 ml-2 my-1 text-sm sm:text-base text-[#cbd5e1]">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 mt-2 shrink-0"></span>
+            <span>{trimmed.substring(2)}</span>
+          </div>
+        );
+      }
+
+      return (
+        <p key={lineIdx} className="text-[#cbd5e1] text-sm sm:text-base leading-relaxed my-1">
+          {trimmed}
+        </p>
+      );
+    });
+  };
+
+  // Generate Table of Contents items dynamically
+  const generateTocItems = () => {
+    const items: Array<{ id: string; title: string; level: number; numberStr: string }> = [];
+    let mainCounter = 1;
+
+    // 1. Media Gallery & 3D Model
+    if (galleryItems.length > 0) {
+      items.push({
+        id: 'toc-gallery',
+        title: 'Media Gallery & 3D Model',
+        level: 1,
+        numberStr: `${mainCounter++}.`
+      });
+    }
+
+    // 2. Item Attributes
+    if (page.itemStats) {
+      items.push({
+        id: 'toc-attributes',
+        title: 'Item Attributes & Performance',
+        level: 1,
+        numberStr: `${mainCounter++}.`
+      });
+    }
+
+    // 3. Key Mechanics
+    if (behaviorBullets.length > 0) {
+      items.push({
+        id: 'toc-mechanics',
+        title: 'Key Mechanics & Abilities',
+        level: 1,
+        numberStr: `${mainCounter++}.`
+      });
+    }
+
+    // 4. Crafting Formula
+    if (page.recipes && page.recipes.length > 0) {
+      items.push({
+        id: 'toc-crafting',
+        title: 'Forge & Crafting Formula',
+        level: 1,
+        numberStr: `${mainCounter++}.`
+      });
+    }
+
+    // 5. Difficulty Stats
+    if (difficultyStats.length > 0) {
+      items.push({
+        id: 'toc-difficulty',
+        title: 'Stats by Difficulty',
+        level: 1,
+        numberStr: `${mainCounter++}.`
+      });
+    }
+
+    // 6. Loot Drops
+    if (dropsTable.length > 0) {
+      items.push({
+        id: 'toc-drops',
+        title: 'Loot Drops & Acquisition',
+        level: 1,
+        numberStr: `${mainCounter++}.`
+      });
+    }
+
+    // 7. Page Content Sections
+    if (page.sections && page.sections.length > 0) {
+      page.sections.forEach((sec, idx) => {
+        const sectionNum = mainCounter++;
+        items.push({
+          id: `toc-section-${idx}`,
+          title: sec.title || `Overview ${idx + 1}`,
+          level: 1,
+          numberStr: `${sectionNum}.`
+        });
+
+        // Sub-headings inside section content
+        const subHeadings = parseContentHeadings(sec.content);
+        subHeadings.forEach((sub, subIdx) => {
+          items.push({
+            id: `toc-section-${idx}-sub-${sub.subIdx}`,
+            title: sub.title,
+            level: 2,
+            numberStr: `${sectionNum}.${subIdx + 1}`
+          });
+        });
+      });
+    }
+
+    // 8. Custom Properties
+    if (page.customProperties && Object.keys(page.customProperties).filter(k => k !== '3D Model Key').length > 0) {
+      items.push({
+        id: 'toc-additional-info',
+        title: 'Additional Information',
+        level: 1,
+        numberStr: `${mainCounter++}.`
+      });
+    }
+
+    // 9. Recommended Reading
+    if (suggestions.length > 0) {
+      items.push({
+        id: 'toc-recommendations',
+        title: 'Recommended Reading',
+        level: 1,
+        numberStr: `${mainCounter++}.`
+      });
+    }
+
+    // 10. Comments
+    items.push({
+      id: 'toc-comments',
+      title: 'Community Comments',
+      level: 1,
+      numberStr: `${mainCounter++}.`
+    });
+
+    return items;
+  };
+
+  const tocItems = generateTocItems();
+
   if (isRichPage) {
     return (
       <article className="max-w-4xl mx-auto text-[#cbd5e1] pb-16 font-sans space-y-6">
@@ -266,14 +489,57 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           {page.description}
         </p>
 
+        {/* Wikipedia-Style Auto-Generated Table of Contents */}
+        {tocItems.length >= 2 && (
+          <nav className="bg-[#111827]/90 border border-[#1e293b] rounded-2xl p-4 sm:p-5 shadow-xl my-4">
+            <div className="flex items-center justify-between border-b border-[#1e293b] pb-3 mb-3">
+              <div className="flex items-center gap-2 text-sky-400 font-extrabold text-xs sm:text-sm uppercase tracking-wider">
+                <List className="w-4 h-4 text-sky-400" />
+                <span>Table of Contents</span>
+                <span className="text-[10px] text-[#64748b] font-mono font-normal">({tocItems.length} topics)</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsTocCollapsed(!isTocCollapsed)}
+                className="text-xs font-mono font-semibold text-[#94a3b8] hover:text-sky-400 transition-colors flex items-center gap-1 bg-[#1e293b]/60 hover:bg-[#1e293b] px-2.5 py-1 rounded-lg border border-[#334155]/50 cursor-pointer"
+              >
+                <span>{isTocCollapsed ? '[ Show ]' : '[ Hide ]'}</span>
+                {isTocCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+
+            {!isTocCollapsed && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-xs font-mono pt-1">
+                {tocItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => handleScrollTo(item.id)}
+                    className={`text-left text-[#cbd5e1] hover:text-sky-400 transition-colors flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-sky-500/10 cursor-pointer ${
+                      item.level === 2 ? 'ml-5 text-[11px] text-[#94a3b8]' : 'font-semibold'
+                    }`}
+                  >
+                    <span className="text-sky-400/80 text-[10px] font-bold w-6 shrink-0">
+                      {item.numberStr}
+                    </span>
+                    <span className="truncate">{item.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </nav>
+        )}
+
         {/* 2. Wikipedia-Style Image Gallery & Interactive 3D Model */}
         {galleryItems.length > 0 && (
-          <WikiImageGallery items={galleryItems} pageTitle={page.title} />
+          <div id="toc-gallery" className="scroll-mt-24">
+            <WikiImageGallery items={galleryItems} pageTitle={page.title} />
+          </div>
         )}
 
         {/* ITEM ATTRIBUTES & PERFORMANCE GRID */}
         {page.itemStats && (
-          <section className="space-y-3">
+          <section id="toc-attributes" className="space-y-3 scroll-mt-24">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
               <span>ITEM ATTRIBUTES & PERFORMANCE</span>
@@ -326,7 +592,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
         {/* 3. KEY MECHANICS / ABILITIES / BEHAVIOR Section */}
         {behaviorBullets.length > 0 && (
-          <section className="space-y-3">
+          <section id="toc-mechanics" className="space-y-3 scroll-mt-24">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
               <Zap className="w-4 h-4 text-sky-400" />
               <span>KEY MECHANICS & ABILITIES</span>
@@ -363,7 +629,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
         {/* CRAFTING RECIPE FORMULA */}
         {page.recipes && page.recipes.length > 0 && (
-          <section className="space-y-3">
+          <section id="toc-crafting" className="space-y-3 scroll-mt-24">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-cyan-400" />
               <span>FORGE & CRAFTING FORMULA</span>
@@ -383,7 +649,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
         {/* STATS BY DIFFICULTY Section */}
         {difficultyStats.length > 0 && (
-          <section className="space-y-2">
+          <section id="toc-difficulty" className="space-y-2 scroll-mt-24">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
               STATS BY DIFFICULTY
             </h2>
@@ -427,7 +693,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
         {/* DROPS & OBTAIN TABLE */}
         {dropsTable.length > 0 && (
-          <section className="space-y-3">
+          <section id="toc-drops" className="space-y-3 scroll-mt-24">
             <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
               <Layers className="w-4 h-4 text-rose-400" />
               <span>LOOT DROPS & ACQUISITION</span>
@@ -470,23 +736,46 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
             {page.sections.map((section, idx) => (
               <section
                 key={idx}
-                className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3"
+                id={`toc-section-${idx}`}
+                className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3 scroll-mt-24"
               >
                 <h2 className="text-xl font-bold text-white border-b border-[#1e293b] pb-2 flex items-center gap-2 uppercase tracking-tight">
                   <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></span>
                   {section.title}
                 </h2>
-                <div className="text-[#cbd5e1] text-sm sm:text-base leading-relaxed whitespace-pre-line space-y-2">
-                  {section.content}
+                <div className="text-[#cbd5e1] text-sm sm:text-base leading-relaxed space-y-2">
+                  {renderFormattedContent(section.content, idx)}
                 </div>
               </section>
             ))}
           </div>
         )}
 
+        {/* CUSTOM PROPERTIES / ADDITIONAL FUNCTIONS */}
+        {page.customProperties && Object.keys(page.customProperties).filter(k => k !== '3D Model Key').length > 0 && (
+          <section id="toc-additional-info" className="space-y-3 scroll-mt-24">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+              <Tag className="w-4 h-4 text-emerald-400" />
+              <span>ADDITIONAL INFORMATION</span>
+            </h2>
+            <div className="bg-[#111827]/90 border border-[#1e293b] rounded-2xl p-5 shadow-xl space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {Object.entries(page.customProperties)
+                  .filter(([key]) => key !== '3D Model Key')
+                  .map(([key, value], idx) => (
+                    <div key={idx} className="bg-[#0b0f19] border border-[#1e293b] rounded-xl p-4">
+                      <span className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider block mb-1">{key}</span>
+                      <span className="text-sm text-[#cbd5e1] font-mono leading-relaxed whitespace-pre-wrap">{value}</span>
+                    </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* Recommended Reads & Suggestions */}
         {suggestions.length > 0 && (
-          <div className="mt-12 border-t border-[#1e293b] pt-8 space-y-4">
+          <div id="toc-recommendations" className="mt-12 border-t border-[#1e293b] pt-8 space-y-4 scroll-mt-24">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-sky-400" />
@@ -532,7 +821,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         )}
 
         {/* Comments and Q&A Section */}
-        <div className="mt-8 border-t border-[#1e293b] pt-8">
+        <div id="toc-comments" className="mt-8 border-t border-[#1e293b] pt-8 scroll-mt-24">
           <WikiComments 
             pageId={page.id} 
             pageTitle={page.title} 
@@ -669,6 +958,47 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         </div>
       </div>
 
+      {/* Table of Contents for Fallback Layout */}
+      {tocItems.length >= 2 && (
+        <nav className="bg-[#111827]/90 border border-[#1e293b] rounded-2xl p-4 sm:p-5 shadow-xl my-4">
+          <div className="flex items-center justify-between border-b border-[#1e293b] pb-3 mb-3">
+            <div className="flex items-center gap-2 text-sky-400 font-extrabold text-xs sm:text-sm uppercase tracking-wider">
+              <List className="w-4 h-4 text-sky-400" />
+              <span>Table of Contents</span>
+              <span className="text-[10px] text-[#64748b] font-mono font-normal">({tocItems.length} topics)</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsTocCollapsed(!isTocCollapsed)}
+              className="text-xs font-mono font-semibold text-[#94a3b8] hover:text-sky-400 transition-colors flex items-center gap-1 bg-[#1e293b]/60 hover:bg-[#1e293b] px-2.5 py-1 rounded-lg border border-[#334155]/50 cursor-pointer"
+            >
+              <span>{isTocCollapsed ? '[ Show ]' : '[ Hide ]'}</span>
+              {isTocCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          {!isTocCollapsed && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-xs font-mono pt-1">
+              {tocItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => handleScrollTo(item.id)}
+                  className={`text-left text-[#cbd5e1] hover:text-sky-400 transition-colors flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-sky-500/10 cursor-pointer ${
+                    item.level === 2 ? 'ml-5 text-[11px] text-[#94a3b8]' : 'font-semibold'
+                  }`}
+                >
+                  <span className="text-sky-400/80 text-[10px] font-bold w-6 shrink-0">
+                    {item.numberStr}
+                  </span>
+                  <span className="truncate">{item.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </nav>
+      )}
+
       {/* Main Content */}
       <div className="space-y-6">
         {/* Main Section Column */}
@@ -677,39 +1007,62 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
             <div className="space-y-6">
               {/* Media Gallery & 3D Showcase */}
               {galleryItems.length > 0 && (
-                <WikiImageGallery items={galleryItems} pageTitle={page.title} />
+                <div id="toc-gallery" className="scroll-mt-24">
+                  <WikiImageGallery items={galleryItems} pageTitle={page.title} />
+                </div>
               )}
 
               {/* Sections */}
               {page.sections.map((section, idx) => (
                 <section
                   key={idx}
-                  className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3"
+                  id={`toc-section-${idx}`}
+                  className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3 scroll-mt-24"
                 >
                   <h2 className="text-xl font-bold text-white border-b border-[#1e293b] pb-2 flex items-center gap-2 uppercase tracking-tight">
                     <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></span>
                     {section.title}
                   </h2>
-                  <div className="text-[#cbd5e1] text-sm sm:text-base leading-relaxed whitespace-pre-line space-y-2">
-                    {section.content}
+                  <div className="text-[#cbd5e1] text-sm sm:text-base leading-relaxed space-y-2">
+                    {renderFormattedContent(section.content, idx)}
                   </div>
                 </section>
               ))}
 
               {/* Inlined Crafting Preview if available */}
               {page.recipes && page.recipes.length > 0 && (
-                <section className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 shadow-md space-y-3">
+                <section id="toc-crafting" className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 shadow-md space-y-3 scroll-mt-24">
                   <h3 className="text-xs uppercase font-bold text-sky-400 tracking-wider flex items-center gap-1.5 mb-2">
                     <Sparkles className="w-4 h-4 text-amber-400" /> Crafting Formula
                   </h3>
                   <CraftingGrid recipe={page.recipes[0]} />
                 </section>
               )}
+
+              {/* CUSTOM PROPERTIES */}
+              {page.customProperties && Object.keys(page.customProperties).filter(k => k !== '3D Model Key').length > 0 && (
+                <section id="toc-additional-info" className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3 scroll-mt-24">
+                  <h2 className="text-xl font-bold text-white border-b border-[#1e293b] pb-2 flex items-center gap-2 uppercase tracking-tight">
+                    <Tag className="w-4 h-4 text-emerald-400" />
+                    Additional Information
+                  </h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    {Object.entries(page.customProperties)
+                      .filter(([key]) => key !== '3D Model Key')
+                      .map(([key, value], idx) => (
+                        <div key={idx} className="bg-[#0b0f19] border border-[#1e293b] rounded-xl p-4">
+                          <span className="text-[11px] font-bold text-[#64748b] uppercase tracking-wider block mb-1">{key}</span>
+                          <span className="text-sm text-[#cbd5e1] font-mono leading-relaxed whitespace-pre-wrap">{value}</span>
+                        </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           )}
 
           {activeTab === 'crafting' && page.recipes && (
-            <div className="space-y-4">
+            <div id="toc-crafting" className="space-y-4 scroll-mt-24">
               {page.recipes.map((rec, i) => (
                 <div key={i} className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-3">
                   <h3 className="font-bold text-sky-400 text-sm font-mono">
@@ -722,7 +1075,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           )}
 
           {activeTab === 'drops' && page.mobStats?.drops && (
-            <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-3">
+            <div id="toc-drops" className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-3 scroll-mt-24">
               <h3 className="font-bold text-rose-400 text-xs uppercase font-mono tracking-wider">
                 Entity Drops & Loot Table
               </h3>
@@ -757,7 +1110,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
       {/* Recommended Reads & Suggestions */}
       {suggestions.length > 0 && (
-        <div className="mt-12 border-t border-[#1e293b] pt-8 space-y-4">
+        <div id="toc-recommendations" className="mt-12 border-t border-[#1e293b] pt-8 space-y-4 scroll-mt-24">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-sky-400" />
@@ -803,7 +1156,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
       )}
 
       {/* Comments and Q&A Section */}
-      <div className="mt-8 border-t border-[#1e293b] pt-8">
+      <div id="toc-comments" className="mt-8 border-t border-[#1e293b] pt-8 scroll-mt-24">
         <WikiComments 
           pageId={page.id} 
           pageTitle={page.title} 

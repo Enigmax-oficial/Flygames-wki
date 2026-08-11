@@ -33,9 +33,6 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
   const [tableSearch, setTableSearch] = useState('');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<CategoryType | 'all'>('all');
 
-  const boulderingZombie = pages.find((p) => p.id === 'bouldering-zombie');
-  const crystallineBerserker = pages.find((p) => p.id === 'crystalline-berserker');
-
   const categoriesList = WikiApi.getCategories();
 
   // Helper to render category icon gracefully via WikiIcon
@@ -84,22 +81,6 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
           {/* Action Buttons Row */}
           <div className="pt-2 flex flex-wrap gap-3">
             <button
-              onClick={() => onSelectPage('bouldering-zombie')}
-              className="px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-black font-bold rounded-xl text-xs sm:text-sm transition-all shadow-[0_0_20px_rgba(56,189,248,0.4)] flex items-center gap-2 cursor-pointer active:scale-95"
-            >
-              <span>Explore Bouldering Zombie</span>
-              <ArrowUpRight className="w-4 h-4" />
-            </button>
-
-            <button
-              onClick={() => onSelectPage('crystalline-berserker')}
-              className="px-5 py-2.5 bg-[#1e293b]/90 hover:bg-[#1e293b] text-white border border-[#334155] font-bold rounded-xl text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer hover:border-purple-500/40"
-            >
-              <Flame className="w-4 h-4 text-purple-400" />
-              <span>View Boss: Crystalline Berserker</span>
-            </button>
-
-            <button
               onClick={onOpenSearch}
               className="px-4 py-2.5 bg-[#0b0f19] hover:bg-[#1e293b] text-[#cbd5e1] border border-[#1e293b] hover:border-sky-500/40 font-semibold rounded-xl text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer"
             >
@@ -130,96 +111,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
         </div>
       </section>
 
-      {/* 2. Featured Mobs Spotlight Cards */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
-            <Compass className="w-4 h-4 text-sky-400" />
-            <span>FEATURED SHOWCASE MOBS</span>
-          </h2>
-          <span className="text-xs font-mono text-sky-400 font-semibold">Direct Spotlight</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Featured Mob 1: Bouldering Zombie */}
-          {boulderingZombie && (
-            <div 
-              onClick={() => onSelectPage(boulderingZombie.id)}
-              className="group bg-[#111827] border border-[#1e293b] hover:border-emerald-500/50 rounded-2xl p-5 shadow-xl transition-all cursor-pointer hover:translate-y-[-2px] flex flex-col sm:flex-row items-center gap-5 h-full"
-            >
-              {getPageCoverImage(boulderingZombie) ? (
-                <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
-                  <img src={getPageCoverImage(boulderingZombie)!} alt={boulderingZombie.title} className="w-full h-full object-contain" />
-                </div>
-              ) : (
-                <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform">
-                  <WikiIcon icon={boulderingZombie.icon || 'mobs'} className="w-12 h-12 text-emerald-400" />
-                </div>
-              )}
-              <div className="space-y-2 flex-1 text-center sm:text-left">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span className="px-2.5 py-0.5 bg-emerald-950/80 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-bold uppercase font-mono">
-                    CLIMBING MOB
-                  </span>
-                  <span className="px-2 py-0.5 bg-[#0b0f19] text-[#cbd5e1] border border-[#1e293b] rounded text-[10px] font-mono font-bold">
-                    v1.4.0 ADDON
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold text-white group-hover:text-emerald-300 transition-colors">
-                  {boulderingZombie.title}
-                </h3>
-                <p className="text-xs text-[#94a3b8] line-clamp-2">
-                  {boulderingZombie.description}
-                </p>
-                <div className="pt-2 text-xs font-bold text-sky-400 flex items-center justify-center sm:justify-start gap-1">
-                  <span>View Complete Mob Guide</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Featured Mob 2: Crystalline Berserker */}
-          {crystallineBerserker && (
-            <div 
-              onClick={() => onSelectPage(crystallineBerserker.id)}
-              className="group bg-[#111827] border border-[#1e293b] hover:border-purple-500/50 rounded-2xl p-5 shadow-xl transition-all cursor-pointer hover:translate-y-[-2px] flex flex-col sm:flex-row items-center gap-5 h-full"
-            >
-              {getPageCoverImage(crystallineBerserker) ? (
-                <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform overflow-hidden shadow-inner">
-                  <img src={getPageCoverImage(crystallineBerserker)!} alt={crystallineBerserker.title} className="w-full h-full object-contain" />
-                </div>
-              ) : (
-                <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[#0b0f19] rounded-xl border border-[#1e293b] flex items-center justify-center p-2 shrink-0 group-hover:scale-105 transition-transform">
-                  <WikiIcon icon={crystallineBerserker.icon || 'mobs'} className="w-12 h-12 text-purple-400" />
-                </div>
-              )}
-              <div className="space-y-2 flex-1 text-center sm:text-left">
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span className="px-2.5 py-0.5 bg-purple-950/80 text-purple-300 border border-purple-500/30 rounded text-[10px] font-bold uppercase font-mono">
-                    DUNGEON BOSS
-                  </span>
-                  <span className="px-2 py-0.5 bg-[#0b0f19] text-[#cbd5e1] border border-[#1e293b] rounded text-[10px] font-mono font-bold">
-                    v1.4.0 ADDON
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">
-                  {crystallineBerserker.title}
-                </h3>
-                <p className="text-xs text-[#94a3b8] line-clamp-2">
-                  {crystallineBerserker.description}
-                </p>
-                <div className="pt-2 text-xs font-bold text-sky-400 flex items-center justify-center sm:justify-start gap-1">
-                  <span>View Boss Phase Guide</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* 3. Category Explorer Grid */}
+      {/* 2. Category Explorer Grid */}
       <section className="space-y-4">
         <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
           BROWSE BY CATEGORY

@@ -1,6 +1,7 @@
 import { WikiPage, CategoryType, PageTemplate } from '../types/wiki';
 import { INITIAL_WIKI_PAGES } from '../data/wikiPages';
 import { AVAILABLE_TEMPLATES } from '../data/templateRegistry';
+import { ITEM_IMAGES } from '../data/itemAssets';
 
 export interface DynamicCategory {
   id: string;
@@ -72,8 +73,8 @@ export const PRESET_CATEGORIES: DynamicCategory[] = [
   }
 ];
 
-// Preset high quality images that users can choose from
-export const PRESET_IMAGES = [
+// Dynamic aggregation of all available images from item assets, JSON files, and preset landscapes
+const defaultPresets = [
   {
     url: 'https://images.unsplash.com/photo-1607988795691-3d0147b43231?auto=format&fit=crop&w=600&q=80',
     label: 'Crystalline Cavern Room (Glow)'
@@ -99,6 +100,28 @@ export const PRESET_IMAGES = [
     label: 'Aetheria Portal Shimmer'
   }
 ];
+
+const imageMap = new Map<string, { url: string; label: string }>();
+
+defaultPresets.forEach((item) => imageMap.set(item.url, item));
+
+Object.entries(ITEM_IMAGES).forEach(([key, url]) => {
+  if (url && !imageMap.has(url)) {
+    const formattedLabel = key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    imageMap.set(url, { url, label: `Asset: ${formattedLabel}` });
+  }
+});
+
+INITIAL_WIKI_PAGES.forEach((page) => {
+  const imagesToInclude = [page.imageUrl, page.coverImage, page.renderImageUrl, ...(page.images || [])];
+  imagesToInclude.forEach((url, i) => {
+    if (url && typeof url === 'string' && !imageMap.has(url)) {
+      imageMap.set(url, { url, label: `${page.title || page.id} Image ${i + 1}` });
+    }
+  });
+});
+
+export const PRESET_IMAGES = Array.from(imageMap.values());
 
 export class WikiApi {
   // Category Methods
@@ -224,7 +247,7 @@ export class WikiApi {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const customPages = parsed.filter(p => p.isCustom || p.tags?.includes('Custom') || !INITIAL_WIKI_PAGES.some(ip => ip.id === p.id));
+          const customPages = parsed.filter(p => p.isCustom || p.tags?.includes('Custom'));
           const validCustomPages = customPages.filter(p => !deletedIds.includes(p.id));
           
           const uniqueMap = new Map<string, WikiPage>();
@@ -244,6 +267,7 @@ export class WikiApi {
     localStorage.setItem('aetheria_wiki_pages', JSON.stringify(updated));
 
     window.dispatchEvent(new Event('wiki_data_updated'));
+    fetch("/api/pages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(page) }).catch(err => console.error("Failed to save JSON", err));
     return page;
   }
 

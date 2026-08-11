@@ -112,6 +112,35 @@ app.post('/api/admin/verify', (req, res) => {
   }
 });
 
+// Local JSON file generation endpoint
+app.post('/api/pages', async (req, res) => {
+  try {
+    const page = req.body;
+    if (!page || !page.id || !page.category) {
+      return res.status(400).json({ success: false, message: 'Invalid page object' });
+    }
+    
+    // Determine target directory: src/data/pages/<category>
+    const targetDir = path.join(process.cwd(), 'src', 'data', 'pages', page.category);
+    
+    // Ensure directory exists
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    
+    const filename = `${page.id}.json`;
+    const filepath = path.join(targetDir, filename);
+    
+    // Write JSON file
+    fs.writeFileSync(filepath, JSON.stringify(page, null, 2), 'utf-8');
+    
+    return res.json({ success: true, message: 'Page JSON created successfully', path: filepath });
+  } catch (err: any) {
+    console.error('Error saving page JSON:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // SQL Sync Endpoints for Wiki Pages & Categories
 app.get('/api/sql/pages', (req, res) => {
   res.json({ success: true, pages: dbPages });

@@ -487,11 +487,13 @@ export function getPageCoverImage(
     imageUrl?: string;
     renderImageUrl?: string;
     bannerImageUrl?: string;
+    coverImage?: string;
     icon?: string;
   },
   customImages?: Record<string, string>
 ): string | null {
   if (!page) return null;
+  if (page.coverImage) return page.coverImage;
   if (page.imageUrl) return page.imageUrl;
   if (page.renderImageUrl) return page.renderImageUrl;
   if (page.bannerImageUrl) return page.bannerImageUrl;

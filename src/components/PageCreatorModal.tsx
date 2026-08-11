@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { PageCreator, downloadTemplateScript } from '../templates/PageCreator';
-import { WikiApi } from '../lib/wikiApi';
+import { WikiApi, PRESET_IMAGES } from '../lib/wikiApi';
 import { WikiIcon } from './WikiIcon';
 import { ITEM_IMAGES } from '../data/itemAssets';
 import { 
@@ -38,6 +38,8 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
   const [badge, setBadge] = useState('WEAPON');
   const [badgeColor, setBadgeColor] = useState<'purple' | 'emerald' | 'amber' | 'blue' | 'rose'>('amber');
   const [description, setDescription] = useState('');
+  const [metaDescription, setMetaDescription] = useState('');
+  const [seoKeywords, setSeoKeywords] = useState('');
   const [author, setAuthor] = useState('Addon Creator');
   const [iconAsset, setIconAsset] = useState('aetheria:aetherial_sword');
   const [imageUrl, setImageUrl] = useState('');
@@ -197,6 +199,12 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
     }
 
     const createdPage = builder.build();
+    if (metaDescription.trim()) {
+      createdPage.metaDescription = metaDescription.trim();
+    }
+    if (seoKeywords.trim()) {
+      createdPage.seoKeywords = seoKeywords.trim();
+    }
     if (photos.length > 0) {
       createdPage.images = photos;
     }
@@ -388,6 +396,33 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
               <div className="space-y-2 p-3.5 bg-[#070a12]/80 border border-[#1e293b] rounded-xl">
                 <label className="block text-emerald-400 font-bold uppercase flex items-center gap-1.5">
                   <ImageIcon className="w-4 h-4 text-emerald-400" />
+                  <span>Cover Image (Available Images)</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+                  {PRESET_IMAGES.map((img, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setImageUrl(img.url)}
+                      className={`relative aspect-video rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:scale-105 ${
+                        imageUrl === img.url
+                          ? 'border-emerald-400 ring-2 ring-emerald-400/35'
+                          : 'border-[#1e293b] opacity-65 hover:opacity-100'
+                      }`}
+                    >
+                      <img src={img.url} alt="Preset" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="Or paste a custom image URL..."
+                  className="w-full bg-[#111827] border border-[#1e293b] focus:border-emerald-400 rounded-xl px-3 py-1.5 text-white font-mono text-[11px] focus:outline-none mb-4"
+                />
+
+                <label className="block text-emerald-400 font-bold uppercase flex items-center gap-1.5 mt-4">
+                  <ImageIcon className="w-4 h-4 text-emerald-400" />
                   <span>Multiple Photos / Gallery Screenshots (URLs)</span>
                 </label>
                 <textarea
@@ -472,6 +507,36 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Short overview of this wiki page entry..."
                   className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl p-3 text-white focus:outline-none"
+                />
+              </div>
+
+              {/* SEO Meta Description */}
+              <div>
+                <label className="block text-[#94a3b8] font-bold uppercase mb-1 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-sky-400" />
+                  Meta Description (SEO)
+                </label>
+                <textarea
+                  rows={2}
+                  value={metaDescription}
+                  onChange={(e) => setMetaDescription(e.target.value)}
+                  placeholder="Brief summary used by search engines..."
+                  className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl p-3 text-white focus:outline-none"
+                />
+              </div>
+
+              {/* SEO Keywords */}
+              <div>
+                <label className="block text-[#94a3b8] font-bold uppercase mb-1 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  SEO Keywords
+                </label>
+                <input
+                  type="text"
+                  value={seoKeywords}
+                  onChange={(e) => setSeoKeywords(e.target.value)}
+                  placeholder="e.g. minecraft addon, magic sword, epic item..."
+                  className="w-full bg-[#111827] border border-[#1e293b] focus:border-emerald-400 rounded-xl p-3 text-white focus:outline-none"
                 />
               </div>
 
