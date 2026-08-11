@@ -44,7 +44,26 @@ export default function App() {
 
   // Modals & Navigation state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [isVoiceSearchActive, setIsVoiceSearchActive] = useState(false);
+
+  const handleOpenSearch = useCallback((isVoice: boolean = false) => {
+    setIsVoiceSearchActive(isVoice);
+    setIsSearchOpen(true);
+  }, []);
+
+  // Global shortcut Ctrl+K to open search modal
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        handleOpenSearch(false);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleOpenSearch]);
+
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [isCreatePageOpen, setIsCreatePageOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
@@ -226,7 +245,7 @@ export default function App() {
       {/* Top Header */}
       <Header
         addonVersion="v1.4.0"
-        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenSearch={handleOpenSearch}
         onOpenAdminPanel={() => navigateToPage('admin-panel')}
         onToggleMobileDrawer={() => setIsMobileDrawerOpen(true)}
         onToggleDesktopSidebar={toggleDesktopSidebar}
@@ -263,7 +282,7 @@ export default function App() {
           onSelectCategory={(cat) => navigateToCategory(cat)}
           onSelectPage={(id) => navigateToPage(id)}
           onGoHome={() => navigateToPage('home')}
-          onOpenSearch={() => setIsSearchOpen(true)}
+          onOpenSearch={handleOpenSearch}
           userEmail={userEmail}
         />
 
@@ -290,7 +309,7 @@ export default function App() {
                 pages={pages}
                 onSelectPage={(id) => navigateToPage(id)}
                 onSelectCategory={(cat) => navigateToCategory(cat)}
-                onOpenSearch={() => setIsSearchOpen(true)}
+                onOpenSearch={handleOpenSearch}
               />
             )
           ) : (
@@ -332,9 +351,13 @@ export default function App() {
   
       <SearchModal
         isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
+        onClose={() => {
+          setIsSearchOpen(false);
+          setIsVoiceSearchActive(false);
+        }}
         pages={pages}
         onSelectPage={(id) => navigateToPage(id)}
+        initialVoiceSearch={isVoiceSearchActive}
       />
 
       <PageCreatorModal

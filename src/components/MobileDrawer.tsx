@@ -17,7 +17,8 @@ import {
   Search,
   Crown,
   Globe,
-  User
+  User,
+  Mic
 } from 'lucide-react';
 
 interface MobileDrawerProps {
@@ -29,7 +30,7 @@ interface MobileDrawerProps {
   onSelectCategory: (category: CategoryType | 'all') => void;
   onSelectPage: (pageId: string) => void;
   onGoHome: () => void;
-  onOpenSearch: () => void;
+  onOpenSearch: (isVoice?: boolean) => void;
   userEmail?: string | null;
 }
 
@@ -121,16 +122,28 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             </button>
           )}
 
-          <button
-            onClick={() => {
-              onClose();
-              onOpenSearch();
-            }}
-            className="w-full py-2 px-3 bg-[#0b0f19] text-[#94a3b8] rounded-xl border border-[#1e293b] flex items-center gap-2 text-xs font-medium"
-          >
-            <Search className="w-4 h-4 text-sky-400" />
-            <span>Search articles & items...</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                onClose();
+                onOpenSearch(false);
+              }}
+              className="flex-1 py-2 px-3 bg-[#0b0f19] text-[#94a3b8] rounded-xl border border-[#1e293b] flex items-center gap-2 text-xs font-medium hover:border-sky-500/40"
+            >
+              <Search className="w-4 h-4 text-sky-400" />
+              <span>Search articles...</span>
+            </button>
+            <button
+              onClick={() => {
+                onClose();
+                onOpenSearch(true);
+              }}
+              className="p-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30 text-xs font-bold transition-colors"
+              title="Search with Voice"
+            >
+              <Mic className="w-4 h-4 text-emerald-400" />
+            </button>
+          </div>
         </div>
 
         {/* Category Pills Slider */}

@@ -1,10 +1,10 @@
 import React from 'react';
-import { Search, Menu, User, LogOut, Crown, BookOpen } from 'lucide-react';
+import { Search, Menu, User, LogOut, Crown, Mic } from 'lucide-react';
 
 import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 
 interface HeaderProps {
-  onOpenSearch: () => void;
+  onOpenSearch: (isVoice?: boolean) => void;
   onOpenCreatePage?: () => void;
   onOpenAdminPanel?: () => void;
   onToggleMobileDrawer: () => void;
@@ -75,25 +75,48 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Center: Search Trigger Bar */}
         <div className="flex-1 max-w-md hidden md:block">
-          <button
-            onClick={onOpenSearch}
-            className="w-full py-2 px-3.5 bg-[#111827] hover:bg-[#1e293b]/80 text-[#94a3b8] rounded-xl border border-[#1e293b] flex items-center justify-between text-xs transition-all hover:border-sky-500/50 group"
+          <div
+            onClick={() => onOpenSearch(false)}
+            className="w-full py-2 px-3.5 bg-[#111827] hover:bg-[#1e293b]/80 text-[#94a3b8] rounded-xl border border-[#1e293b] flex items-center justify-between text-xs transition-all hover:border-sky-500/50 group cursor-pointer"
           >
             <span className="flex items-center gap-2 text-[#94a3b8] group-hover:text-[#cbd5e1]">
               <Search className="w-4 h-4 text-sky-400" />
               <span>Search mobs, items, recipes, bosses...</span>
             </span>
-            <kbd className="px-2 py-0.5 text-[10px] font-mono bg-[#0b0f19] text-[#64748b] rounded border border-[#1e293b]">
-              Ctrl + K
-            </kbd>
-          </button>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenSearch(true);
+                }}
+                className="p-1 hover:bg-emerald-500/20 text-[#94a3b8] hover:text-emerald-400 rounded transition-colors"
+                title="Search with Voice"
+              >
+                <Mic className="w-3.5 h-3.5 text-emerald-400" />
+              </button>
+              <kbd className="px-2 py-0.5 text-[10px] font-mono bg-[#0b0f19] text-[#64748b] rounded border border-[#1e293b]">
+                Ctrl + K
+              </kbd>
+            </div>
+          </div>
         </div>
 
         {/* Right Actions: Login & Search */}
         <div className="flex items-center gap-2">
+          {/* Mobile Voice Search Button */}
+          <button
+            onClick={() => onOpenSearch(true)}
+            className="md:hidden p-2 rounded-lg bg-[#1e293b] text-emerald-400 border border-[#334155] hover:border-emerald-500/40"
+            aria-label="Voice Search Wiki"
+            title="Search with Voice"
+          >
+            <Mic className="w-5 h-5" />
+          </button>
+
           {/* Mobile Search Button */}
           <button
-            onClick={onOpenSearch}
+            onClick={() => onOpenSearch(false)}
             className="md:hidden p-2 rounded-lg bg-[#1e293b] text-sky-400 border border-[#334155]"
             aria-label="Search Wiki"
           >
@@ -138,4 +161,5 @@ export const Header: React.FC<HeaderProps> = ({
     </header>
   );
 };
+
 

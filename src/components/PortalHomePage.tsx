@@ -12,14 +12,15 @@ import {
   Search,
   Shuffle,
   Filter,
-  Heart
+  Heart,
+  Mic
 } from 'lucide-react';
 
 interface PortalHomePageProps {
   pages: WikiPage[];
   onSelectPage: (pageId: string) => void;
   onSelectCategory: (category: CategoryType | 'all') => void;
-  onOpenSearch: () => void;
+  onOpenSearch: (isVoice?: boolean) => void;
   onOpenCreatePage?: () => void;
 }
 
@@ -81,11 +82,20 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
           {/* Action Buttons Row */}
           <div className="pt-2 flex flex-wrap gap-3">
             <button
-              onClick={onOpenSearch}
+              onClick={() => onOpenSearch(false)}
               className="px-4 py-2.5 bg-[#0b0f19] hover:bg-[#1e293b] text-[#cbd5e1] border border-[#1e293b] hover:border-sky-500/40 font-semibold rounded-xl text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer"
             >
               <Search className="w-4 h-4 text-sky-400" />
               <span>Search Database</span>
+            </button>
+
+            <button
+              onClick={() => onOpenSearch(true)}
+              className="px-4 py-2.5 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 border border-emerald-500/40 font-semibold rounded-xl text-xs sm:text-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95 shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+              title="Search with your voice"
+            >
+              <Mic className="w-4 h-4 text-emerald-400" />
+              <span>Voice Search</span>
             </button>
 
             <button
