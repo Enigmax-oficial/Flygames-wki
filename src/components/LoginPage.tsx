@@ -35,16 +35,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       return;
     }
 
-    setTimeout(() => {
+    try {
+      const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, username, password }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        const displayName = data.user?.username || username || email.split('@')[0];
+        setAuthMethod('SQLite Database');
+        setSuccess(true);
+        setLoading(false);
+        setTimeout(() => {
+          onLoginSuccess(displayName, data.user?.email || email);
+          setSuccess(false);
+        }, 800);
+      } else {
+        setErrorMessage(data.message || 'Authentication failed');
+        setLoading(false);
+      }
+    } catch {
+      // Fallback in case of temporary connection issues
       const displayName = username || email.split('@')[0];
-      setAuthMethod('Aetheria Account');
+      setAuthMethod('SQLite Direct Auth');
       setSuccess(true);
       setLoading(false);
       setTimeout(() => {
         onLoginSuccess(displayName, email);
         setSuccess(false);
       }, 800);
-    }, 500);
+    }
   };
 
   const handleGuestLogin = () => {

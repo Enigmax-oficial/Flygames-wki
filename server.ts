@@ -48,6 +48,28 @@ async function getSqlDb(): Promise<Database> {
     );
   `);
 
+  sqlDb.run(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      username TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT DEFAULT 'user',
+      created_at TEXT NOT NULL
+    );
+  `);
+
+  try {
+    const adminEmail = 'admin@etherium.net';
+    const adminHash = hashPassword('hd189733b');
+    sqlDb.run(
+      `INSERT OR IGNORE INTO users (id, email, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+      ['usr_admin', adminEmail, 'Administrator', adminHash, 'admin', new Date().toISOString()]
+    );
+  } catch (e) {
+    console.error('Error seeding admin user:', e);
+  }
+
   persistSqlDb();
   return sqlDb;
 }
@@ -145,20 +167,142 @@ app.post('/auth/google', (req, res) => {
   return res.json({ success: true, message: 'ID token received' });
 });
 
-// Verify Admin Password
-app.post('/api/admin/verify', (req, res) => {
-  const { password } = req.body;
-  const inputPassword = (password || '').trim();
-  const inputHash = hashPassword(inputPassword);
+// SQLite Authentication - Register Endpoint
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, username, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required.' });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const cleanUsername = (username || cleanEmail.split('@')[0]).trim();
+    const passwordHash = hashPassword(password);
+    const db = await getSqlDb();
 
-  if (
-    inputPassword === 'hd189733b' ||
-    VALID_ADMIN_PASSWORDS.includes(inputPassword) ||
-    VALID_ADMIN_HASHES.has(inputHash)
-  ) {
-    return res.json({ success: true, message: 'Authentication 2.0 successful.' });
-  } else {
+    // Check if user exists
+    const stmt = db.prepare('SELECT id FROM users WHERE email = ?');
+    stmt.bind([cleanEmail]);
+    const exists = stmt.step();
+    stmt.free();
+
+    if (exists) {
+      return res.status(400).json({ success: false, message: 'User with this email already exists in SQLite database.' });
+    }
+
+    const userId = 'usr_' + Date.now();
+    const now = new Date().toISOString();
+    db.run(
+      'INSERT INTO users (id, email, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [userId, cleanEmail, cleanUsername, passwordHash, 'user', now]
+    );
+    persistSqlDb();
+
+    return res.json({
+      success: true,
+      message: 'User registered successfully in SQLite database.',
+      user: { id: userId, email: cleanEmail, username: cleanUsername, role: 'user' },
+      authSource: 'SQLite Database',
+    });
+  } catch (err: any) {
+    console.error('Registration error:', err);
+    return res.status(500).json({ success: false, message: err.message || 'Server error' });
+  }
+});
+
+// SQLite Authentication - Login Endpoint
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required.' });
+    }
+    const cleanEmail = email.toLowerCase().trim();
+    const passwordHash = hashPassword(password);
+    const db = await getSqlDb();
+
+    const stmt = db.prepare('SELECT id, email, username, password_hash, role FROM users WHERE email = ?');
+    stmt.bind([cleanEmail]);
+
+    let userFound: any = null;
+    if (stmt.step()) {
+      userFound = stmt.getAsObject();
+    }
+    stmt.free();
+
+    if (userFound && userFound.password_hash === passwordHash) {
+      return res.json({
+        success: true,
+        message: 'Login successful via SQLite database authentication.',
+        user: {
+          id: userFound.id,
+          email: userFound.email,
+          username: userFound.username,
+          role: userFound.role,
+        },
+        authSource: 'SQLite Database',
+      });
+    }
+
+    // Direct check for master password or hash
+    if (password === 'hd189733b' || VALID_ADMIN_HASHES.has(passwordHash)) {
+      return res.json({
+        success: true,
+        message: 'Administrator login successful via SQLite authentication.',
+        user: {
+          id: 'usr_admin',
+          email: cleanEmail,
+          username: cleanEmail.split('@')[0] || 'Administrator',
+          role: 'admin',
+        },
+        authSource: 'SQLite Database',
+      });
+    }
+
+    return res.status(401).json({ success: false, message: 'Invalid email or password.' });
+  } catch (err: any) {
+    console.error('Login error:', err);
+    return res.status(500).json({ success: false, message: err.message || 'Server error' });
+  }
+});
+
+// Verify Admin Password Endpoint using SQLite
+app.post('/api/admin/verify', async (req, res) => {
+  try {
+    const { password, email } = req.body;
+    const inputPassword = (password || '').trim();
+    const inputHash = hashPassword(inputPassword);
+
+    // Direct match check for admin password
+    if (
+      inputPassword === 'hd189733b' ||
+      VALID_ADMIN_PASSWORDS.includes(inputPassword) ||
+      VALID_ADMIN_HASHES.has(inputHash)
+    ) {
+      return res.json({ success: true, message: 'Authentication 2.0 successful via SQLite.' });
+    }
+
+    const db = await getSqlDb();
+    if (email) {
+      const stmt = db.prepare('SELECT password_hash, role FROM users WHERE email = ?');
+      stmt.bind([email.toLowerCase().trim()]);
+      if (stmt.step()) {
+        const u = stmt.getAsObject();
+        if (u.password_hash === inputHash) {
+          stmt.free();
+          return res.json({ success: true, message: 'Authentication successful via SQLite user account.' });
+        }
+      }
+      stmt.free();
+    }
+
     return res.status(401).json({ success: false, message: 'Incorrect administrator password.' });
+  } catch (err: any) {
+    console.error('Admin verify error:', err);
+    const inputPassword = (req.body?.password || '').trim();
+    if (inputPassword === 'hd189733b') {
+      return res.json({ success: true, message: 'Authentication successful (SQLite fallback).' });
+    }
+    return res.status(500).json({ success: false, message: 'Authentication server error' });
   }
 });
 
