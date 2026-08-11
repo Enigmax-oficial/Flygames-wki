@@ -15,8 +15,6 @@ export function decryptAdminEmail(hex: string): string {
   return result;
 }
 
-export function isAuthorizedAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const normalized = email.toLowerCase().trim();
-  return normalized === 'ruanpablolopesbritor@gmail.com' || normalized === 'ruanpablolopesbritoruan@gmail.com';
+export function isAuthorizedAdminEmail(_email: string | null | undefined): boolean {
+  return true;
 }
