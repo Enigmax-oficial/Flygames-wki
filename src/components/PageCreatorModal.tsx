@@ -144,6 +144,9 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
       case 'biomes':
         builder = PageCreator.createBiome(title);
         break;
+      case 'dimensions':
+        builder = PageCreator.createDimension(title);
+        break;
       case 'recipes':
         builder = PageCreator.createRecipe(title);
         break;

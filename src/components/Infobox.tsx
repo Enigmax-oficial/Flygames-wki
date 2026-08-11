@@ -42,8 +42,8 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
       </div>
 
       {/* Main Image / Icon Stage */}
-      <div className="p-4 aspect-square bg-[#1a1a1a] flex flex-col items-center justify-center relative border-b border-[#2a2a2a]">
-        <div className="w-24 h-24 sm:w-28 sm:h-28 bg-[#141414] border border-[#333] rounded flex items-center justify-center text-4xl sm:text-5xl shadow-[0_0_20px_rgba(16,185,129,0.15)] relative overflow-hidden p-2">
+      <div className="p-4 bg-[#1a1a1a] flex flex-col items-center justify-center relative border-b border-[#2a2a2a]">
+        <div className="w-36 h-36 sm:w-44 sm:h-44 bg-[#141414] border border-[#333] rounded flex items-center justify-center text-5xl sm:text-6xl shadow-[0_0_20px_rgba(16,185,129,0.15)] relative overflow-hidden p-3">
           {displayImage ? (
             <img
               src={displayImage}
@@ -51,7 +51,7 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
               className="w-full h-full object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
             />
           ) : (
-            <WikiIcon icon={page.icon} category={page.category} className="w-6 h-6 text-xl" />
+            <WikiIcon icon={page.icon} category={page.category} className="w-12 h-12 text-3xl" />
           )}
         </div>
         <div className="absolute bottom-2 right-2 text-[10px] font-mono text-[#555]">
@@ -89,13 +89,15 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
           <span className="text-white font-medium capitalize">{page.category}</span>
         </div>
 
-        <div className="flex justify-between border-b border-[#2a2a2a] pb-1.5">
-          <span className="text-[#666] flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-emerald-500" />
-            Addon Version
-          </span>
-          <span className="text-emerald-400 font-mono font-bold">{page.addonVersion}</span>
-        </div>
+        {['mobs', 'items', 'blocks', 'dimensions', 'recipes', 'biomes'].includes(page.category) && (
+          <div className="flex justify-between border-b border-[#2a2a2a] pb-1.5">
+            <span className="text-[#666] flex items-center gap-1">
+              <Sparkles className="w-3 h-3 text-emerald-500" />
+              Addon Version
+            </span>
+            <span className="text-emerald-400 font-mono font-bold">{page.addonVersion}</span>
+          </div>
+        )}
 
         {page.author && (
           <div className="flex justify-between border-b border-[#2a2a2a] pb-1.5">
@@ -243,6 +245,32 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
             </div>
           </div>
         )}
+      </div>
+
+      {/* Minecraft Addon Download Ad */}
+      <div className="p-4 bg-gradient-to-br from-[#111827] to-[#070a12] border-t border-[#2a2a2a] space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span className="text-[9px] uppercase font-bold text-sky-400 tracking-widest font-mono">Download Free Addon</span>
+        </div>
+        <div className="space-y-1">
+          <h4 className="font-extrabold text-xs text-white uppercase tracking-tight">Etherium v1.4.0 Addon</h4>
+          <p className="text-[10px] text-[#94a3b8] leading-normal">
+            Get the full custom .mcaddon bundle containing all mobs, dimensions, and blocks.
+          </p>
+        </div>
+        <a 
+          href="https://minecraft.net" 
+          target="_blank" 
+          referrerPolicy="no-referrer"
+          className="w-full py-2 px-3 bg-gradient-to-r from-sky-500 to-emerald-500 hover:from-sky-400 hover:to-emerald-400 text-black font-black uppercase text-center rounded text-xs transition-all shadow-md flex items-center justify-center gap-1.5 active:scale-95 cursor-pointer"
+        >
+          <span>📥 Download Addon (4.8MB)</span>
+        </a>
+        <div className="flex justify-between items-center text-[9px] text-[#475569] font-mono">
+          <span>Format: .mcaddon</span>
+          <span>Downloads: 45K+</span>
+        </div>
       </div>
     </div>
   );

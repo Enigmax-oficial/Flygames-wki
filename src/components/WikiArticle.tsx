@@ -24,6 +24,8 @@ import {
 
 interface WikiArticleProps {
   page: WikiPage;
+  pages: WikiPage[];
+  onSelectPage: (pageId: string) => void;
   onSelectCategory: (category: any) => void;
   onGoHome?: () => void;
   currentUser?: string | null;
@@ -32,7 +34,9 @@ interface WikiArticleProps {
 
 export const WikiArticle: React.FC<WikiArticleProps> = ({ 
   page, 
-  onSelectCategory, 
+  pages,
+  onSelectPage,
+  onSelectCategory,
   onGoHome,
   currentUser = null,
   currentUserEmail = null
@@ -40,6 +44,32 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
 
   const [activeTab, setActiveTab] = useState<'article' | 'crafting' | 'drops'>('article');
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Find up to 3 similar/suggested articles
+  const getSuggestedArticles = (): WikiPage[] => {
+    if (!pages || pages.length === 0) return [];
+    // 1. Filter out the current page
+    const pool = pages.filter((p) => p.id !== page.id);
+    
+    // 2. Score remaining pages based on similarity: same category gets +10 points, each shared tag gets +3 points
+    const scored = pool.map((p) => {
+      let score = 0;
+      if (p.category === page.category) score += 10;
+      
+      const sharedTags = (p.tags || []).filter((t) => (page.tags || []).includes(t));
+      score += sharedTags.length * 3;
+      
+      return { p, score };
+    });
+    
+    // 3. Sort by score descending and take the top 3
+    return scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+      .map((item) => item.p);
+  };
+
+  const suggestions = getSuggestedArticles();
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -448,6 +478,53 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           </div>
         )}
 
+        {/* Recommended Reads & Suggestions */}
+        {suggestions.length > 0 && (
+          <div className="mt-12 border-t border-[#1e293b] pt-8 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-sky-400" />
+                <span>Recommended Reading & Suggestions</span>
+              </h3>
+              <span className="text-xs text-[#64748b] font-mono">Related Articles</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {suggestions.map((sug) => (
+                <div
+                  key={sug.id}
+                  onClick={() => onSelectPage(sug.id)}
+                  className="group p-4 bg-[#111827] border border-[#1e293b] hover:border-sky-500/50 rounded-xl cursor-pointer transition-all hover:-translate-y-0.5 flex flex-col justify-between space-y-3 shadow-md"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-[10px] font-mono capitalize font-bold">
+                        {sug.category}
+                      </span>
+                      {['mobs', 'items', 'blocks', 'dimensions', 'recipes', 'biomes'].includes(sug.category) && sug.addonVersion && (
+                        <span className="text-[10px] text-[#64748b] font-mono">
+                          {sug.addonVersion}
+                        </span>
+                      )}
+                    </div>
+                    <h4 className="font-extrabold text-white text-sm group-hover:text-sky-400 transition-colors uppercase tracking-tight line-clamp-1">
+                      {sug.title}
+                    </h4>
+                    <p className="text-xs text-[#94a3b8] line-clamp-2 leading-relaxed">
+                      {sug.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-2 flex items-center text-xs font-bold text-sky-400 gap-1 mt-auto">
+                    <span>Read Article</span>
+                    <span className="group-hover:translate-x-1 transition-transform">→</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Comments and Q&A Section */}
         <div className="mt-8 border-t border-[#1e293b] pt-8">
           <WikiComments 
@@ -493,19 +570,17 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
       <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-[#1e293b] pb-5">
           <div className="flex items-start gap-4">
-            {(getItemImage(page.id) || (page.icon?.startsWith('data:') || page.icon?.startsWith('http') ? page.icon : null) || page.category !== 'biomes') && (
-              <div className="w-16 h-16 bg-[#0b0f19] border border-[#1e293b] rounded-2xl flex items-center justify-center text-4xl shrink-0 shadow-[0_0_15px_rgba(56,189,248,0.2)] overflow-hidden p-2">
-                {getItemImage(page.id) || (page.icon?.startsWith('data:') || page.icon?.startsWith('http') ? page.icon : null) ? (
-                  <img 
-                    src={getItemImage(page.id) || page.icon} 
-                    alt={page.title} 
-                    className="w-full h-full object-contain" 
-                  />
-                ) : (
-                  <WikiIcon icon={page.icon} category={page.category} className="w-8 h-8 text-sky-400" />
-                )}
-              </div>
-            )}
+            <div className="w-16 h-16 bg-[#0b0f19] border border-[#1e293b] rounded-2xl flex items-center justify-center text-4xl shrink-0 shadow-[0_0_15px_rgba(56,189,248,0.2)] overflow-hidden p-2">
+              {getItemImage(page.id) || (page.icon?.startsWith('data:') || page.icon?.startsWith('http') ? page.icon : null) ? (
+                <img 
+                  src={getItemImage(page.id) || page.icon} 
+                  alt={page.title} 
+                  className="w-full h-full object-contain" 
+                />
+              ) : (
+                <WikiIcon icon={page.icon} category={page.category} className="w-8 h-8 text-sky-400" />
+              )}
+            </div>
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -515,9 +590,11 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                 <span className="px-2.5 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-mono capitalize font-bold">
                   {page.category}
                 </span>
-                <span className="px-2 py-0.5 bg-[#0b0f19] text-[#94a3b8] border border-[#1e293b] rounded text-xs font-mono">
-                  {page.addonVersion}
-                </span>
+                {['mobs', 'items', 'blocks', 'dimensions', 'recipes', 'biomes'].includes(page.category) && (
+                  <span className="px-2 py-0.5 bg-[#0b0f19] text-[#94a3b8] border border-[#1e293b] rounded text-xs font-mono">
+                    {page.addonVersion}
+                  </span>
+                )}
                 <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-mono font-bold">
                   <Clock className="w-3.5 h-3.5 text-emerald-400" />
                   <span>{readingTime} min read</span>
@@ -671,6 +748,53 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         </div>
 
       </div>
+
+      {/* Recommended Reads & Suggestions */}
+      {suggestions.length > 0 && (
+        <div className="mt-12 border-t border-[#1e293b] pt-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-sky-400" />
+              <span>Recommended Reading & Suggestions</span>
+            </h3>
+            <span className="text-xs text-[#64748b] font-mono">Related Articles</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {suggestions.map((sug) => (
+              <div
+                key={sug.id}
+                onClick={() => onSelectPage(sug.id)}
+                className="group p-4 bg-[#111827] border border-[#1e293b] hover:border-sky-500/50 rounded-xl cursor-pointer transition-all hover:-translate-y-0.5 flex flex-col justify-between space-y-3 shadow-md"
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-[10px] font-mono capitalize font-bold">
+                      {sug.category}
+                    </span>
+                    {['mobs', 'items', 'blocks', 'dimensions', 'recipes', 'biomes'].includes(sug.category) && sug.addonVersion && (
+                      <span className="text-[10px] text-[#64748b] font-mono">
+                        {sug.addonVersion}
+                      </span>
+                    )}
+                  </div>
+                  <h4 className="font-extrabold text-white text-sm group-hover:text-sky-400 transition-colors uppercase tracking-tight line-clamp-1">
+                    {sug.title}
+                  </h4>
+                  <p className="text-xs text-[#94a3b8] line-clamp-2 leading-relaxed">
+                    {sug.description}
+                  </p>
+                </div>
+
+                <div className="pt-2 flex items-center text-xs font-bold text-sky-400 gap-1 mt-auto">
+                  <span>Read Article</span>
+                  <span className="group-hover:translate-x-1 transition-transform">→</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Comments and Q&A Section */}
       <div className="mt-8 border-t border-[#1e293b] pt-8">

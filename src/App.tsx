@@ -302,6 +302,8 @@ export default function App() {
           ) : (
             <WikiArticle
               page={activePage}
+              pages={pages}
+              onSelectPage={(id) => navigateToPage(id)}
               onSelectCategory={(cat) => navigateToCategory(cat)}
               onGoHome={() => navigateToPage('home')}
               currentUser={user}

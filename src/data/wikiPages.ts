@@ -19,6 +19,7 @@ export const INITIAL_WIKI_PAGES: WikiPage[] = Object.entries(jsonFiles).map(([fi
   const singularType = 
     derivedCategory === 'mobs' ? 'mob' :
     derivedCategory === 'biomes' ? 'biome' :
+    derivedCategory === 'dimensions' ? 'dimension' :
     derivedCategory === 'items' ? 'item' :
     derivedCategory === 'blocks' ? 'block' :
     derivedCategory === 'recipes' ? 'recipe' : 'guide';

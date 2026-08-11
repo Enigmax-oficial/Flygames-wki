@@ -192,7 +192,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  {(getPageCoverImage(page) || page.category !== 'biomes') && (
+                  {(getPageCoverImage(page) || (page.category !== 'biomes' && page.category !== 'dimensions')) && (
                     getPageCoverImage(page) ? (
                       <div className="w-5 h-5 rounded bg-[#0b0f19] border border-[#1e293b] flex items-center justify-center shrink-0 overflow-hidden p-0.5">
                         <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />

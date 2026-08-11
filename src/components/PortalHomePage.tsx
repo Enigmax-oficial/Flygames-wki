@@ -345,7 +345,7 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
                       className="hover:bg-[#1e293b]/50 transition-colors cursor-pointer group"
                     >
                       <td className="py-3.5 px-5 font-bold text-white flex items-center gap-3">
-                        {(getPageCoverImage(page) || page.category !== 'biomes') && (
+                        {(getPageCoverImage(page) || (page.category !== 'biomes' && page.category !== 'dimensions')) && (
                           getPageCoverImage(page) ? (
                             <div className="w-8 h-8 rounded-lg bg-[#0b0f19] border border-[#1e293b] flex items-center justify-center shrink-0 overflow-hidden p-1 shadow">
                               <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
@@ -373,7 +373,9 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
                             <span>{page.mobStats.health} HP</span>
                           </span>
                         ) : (
-                          <span className="text-[#94a3b8]">{page.badge || page.addonVersion || 'v1.4.0'}</span>
+                          <span className="text-[#94a3b8]">
+                            {page.badge || (['mobs', 'items', 'blocks', 'dimensions', 'recipes', 'biomes'].includes(page.category) ? page.addonVersion : '—')}
+                          </span>
                         )}
                       </td>
                       <td className="py-3.5 px-5">

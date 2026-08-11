@@ -55,6 +55,14 @@ export const PRESET_CATEGORIES: DynamicCategory[] = [
     bg: 'from-purple-950/30 to-[#111827]',
   },
   {
+    id: 'dimensions',
+    label: 'Dimensions',
+    desc: 'Mystical alternate worlds, celestial portals, and dangerous custom dimensions.',
+    icon: 'dimensions',
+    color: 'border-pink-500/30',
+    bg: 'from-pink-950/30 to-[#111827]',
+  },
+  {
     id: 'guides',
     label: 'Guides & Manuals',
     desc: 'Addon installation steps, combat tactics & mechanics.',

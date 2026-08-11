@@ -29,6 +29,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   blocks: Box,
   recipes: ScrollText,
   biomes: Trees,
+  dimensions: Compass,
   guides: BookOpen,
   folder: Folder,
   file: FileText,
@@ -69,10 +70,6 @@ export interface WikiIconProps {
 }
 
 export const WikiIcon = ({ icon, className = "w-4 h-4", customImages, category }: WikiIconProps) => {
-  if (category === 'biomes' || icon === 'biomes') {
-    return null;
-  }
-
   if (!icon) {
     const FallbackIcon = FileText;
     return <FallbackIcon className={className} />;

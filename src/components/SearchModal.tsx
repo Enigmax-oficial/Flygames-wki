@@ -81,7 +81,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
         {/* Category Filters */}
         <div className="px-4 py-2.5 bg-[#141414] border-b border-[#2a2a2a] flex items-center gap-2 overflow-x-auto text-xs">
           <span className="text-[#666] font-bold uppercase text-[10px] tracking-wider shrink-0">Filter:</span>
-          {(['all', 'items', 'mobs', 'blocks', 'recipes', 'biomes', 'guides'] as const).map((cat, idx) => (
+          {(['all', 'items', 'mobs', 'blocks', 'recipes', 'biomes', 'dimensions', 'guides'] as const).map((cat, idx) => (
             <button
               key={`${cat}-${idx}`}
               onClick={() => setSelectedCategoryFilter(cat)}
@@ -114,7 +114,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 className="p-3 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] hover:border-emerald-500/50 rounded cursor-pointer transition-all group flex items-center justify-between gap-3"
               >
                 <div className="flex items-start gap-3 truncate">
-                  {(getPageCoverImage(page) || page.category !== 'biomes') && (
+                  {(getPageCoverImage(page) || (page.category !== 'biomes' && page.category !== 'dimensions')) && (
                     <div className="w-10 h-10 bg-[#0c0c0c] border border-[#333] rounded flex items-center justify-center text-xl shrink-0 overflow-hidden p-1">
                       {getPageCoverImage(page) ? (
                         <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />

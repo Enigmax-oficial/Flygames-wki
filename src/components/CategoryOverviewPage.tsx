@@ -15,7 +15,8 @@ import {
   Heart,
   Shield,
   Layers,
-  Tag
+  Tag,
+  Compass
 } from 'lucide-react';
 
 interface CategoryOverviewPageProps {
@@ -61,6 +62,12 @@ const CATEGORY_META: Record<string, { title: string; subtitle: string; icon: Rea
     subtitle: 'Floating islands, void chasms, and enchanted celestial forests.',
     icon: <Trees className="w-6 h-6 text-purple-400" />,
     color: 'from-purple-950/50 via-[#111827] to-[#0b0f19]',
+  },
+  dimensions: {
+    title: 'Dimensions',
+    subtitle: 'Mystical alternate worlds, celestial portals, and dangerous custom dimensions.',
+    icon: <Compass className="w-6 h-6 text-pink-400" />,
+    color: 'from-pink-950/50 via-[#111827] to-[#0b0f19]',
   },
   guides: {
     title: 'Guides & Instructions',
@@ -159,7 +166,7 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
 
           {/* Category Switchers */}
           <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto text-xs shrink-0">
-            {(['all', 'items', 'mobs', 'blocks', 'recipes', 'biomes', 'guides'] as const).map((cat, idx) => (
+            {(['all', 'items', 'mobs', 'blocks', 'recipes', 'biomes', 'dimensions', 'guides'] as const).map((cat, idx) => (
               <button
                 key={`${cat}-${idx}`}
                 onClick={() => onSelectCategory(cat)}
@@ -242,7 +249,7 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
 
                 {/* Main Visual Header */}
                 <div className="flex items-start gap-3 pt-1">
-                  {(getPageCoverImage(page) || page.category !== 'biomes') && (
+                  {(getPageCoverImage(page) || (page.category !== 'biomes' && page.category !== 'dimensions')) && (
                     <div className="w-14 h-14 bg-[#0b0f19] border border-[#1e293b] rounded-xl flex items-center justify-center text-3xl shrink-0 group-hover:scale-105 transition-transform shadow-inner overflow-hidden p-1.5">
                       {getPageCoverImage(page) ? (
                         <img 
