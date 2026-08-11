@@ -12,12 +12,15 @@ interface CraftingGridProps {
 export const CraftingGrid: React.FC<CraftingGridProps> = ({ recipe, onItemClick }) => {
   const craftingTableImg = getItemImage('minecraft:crafting_table');
 
-  if (recipe.type === '3x3') {
-    const grid = recipe.grid || [
-      [null, null, null],
-      [null, null, null],
-      [null, null, null],
-    ];
+  if (recipe.type === 'crafting_3x3' || (recipe.type as string) === '3x3') {
+    const rawGrid = recipe.grid || [null, null, null, null, null, null, null, null, null];
+    const gridRows: Array<Array<{ id: string; name: string; icon?: string } | null>> = Array.isArray(rawGrid[0])
+      ? (rawGrid as any)
+      : [
+          rawGrid.slice(0, 3).map(item => (typeof item === 'string' ? { id: item, name: item } : item)),
+          rawGrid.slice(3, 6).map(item => (typeof item === 'string' ? { id: item, name: item } : item)),
+          rawGrid.slice(6, 9).map(item => (typeof item === 'string' ? { id: item, name: item } : item)),
+        ];
 
     const renderOutputIcon = () => {
       const img = getItemImage(recipe.output.id) || (recipe.output.icon?.startsWith('data:') || recipe.output.icon?.startsWith('http') ? recipe.output.icon : null);
@@ -54,7 +57,7 @@ export const CraftingGrid: React.FC<CraftingGridProps> = ({ recipe, onItemClick 
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
           {/* 3x3 Grid */}
           <div className="grid grid-cols-3 gap-1.5 bg-[#120d09] p-2 rounded-lg border border-[#3e2713] shadow-inner">
-            {grid.map((row, rIdx) =>
+            {gridRows.map((row, rIdx) =>
               row.map((cellItem, cIdx) => {
                 const itemImg = cellItem ? getItemImage(cellItem.id) : null;
                 return (
@@ -127,7 +130,7 @@ export const CraftingGrid: React.FC<CraftingGridProps> = ({ recipe, onItemClick 
   }
 
   // Smithing / Altar / Furnace
-  if (recipe.type === 'smithing' || recipe.type === 'altar') {
+  if (recipe.type === 'forge' || recipe.type === 'brewing' || recipe.type === 'altar' || (recipe.type as string) === 'smithing') {
     return (
       <div className="bg-[#181124] border-2 border-purple-800/60 rounded-xl p-4 text-[#e0e0e0] inline-block font-sans shadow-2xl">
         <div className="flex items-center gap-2 mb-3 pb-2 border-b border-purple-900/50 text-xs font-bold text-purple-300">

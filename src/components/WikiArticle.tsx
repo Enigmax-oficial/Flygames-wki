@@ -30,9 +30,12 @@ import { WikiApi } from '../lib/wikiApi';
 
 interface WikiArticleProps {
   page: WikiPage;
+  pages?: WikiPage[];
   onSelectCategory: (category: string) => void;
   onSelectPage: (id: string) => void;
   onGoHome?: () => void;
+  currentUser?: string | null;
+  currentUserEmail?: string | null;
 }
 
 interface TocItem {
@@ -47,6 +50,8 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
   onSelectCategory,
   onSelectPage,
   onGoHome,
+  currentUser,
+  currentUserEmail,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'crafting' | 'drops'>('overview');
@@ -302,498 +307,77 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
   // Clean badge string by removing any "TEMPLATE" suffix
   const cleanBadge = page.badge ? page.badge.replace(/\s*TEMPLATE/gi, '').trim() : null;
 
-  if (isRichPage) {
-    return (
-      <article className="max-w-4xl mx-auto text-[#cbd5e1] pb-16 font-sans space-y-6">
-        {/* Top Breadcrumb Path & Navigation Back Button */}
-        <div className="flex items-center justify-between gap-3 text-xs font-mono border-b border-[#1e293b] pb-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onGoHome ? onGoHome() : onSelectCategory('all')}
-              className="inline-flex items-center gap-1.5 font-bold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
-            >
-              <Home className="w-3.5 h-3.5 text-sky-400" />
-              <span>Portal</span>
-            </button>
-            <span className="text-[#475569]">/</span>
-            <span className="text-[#94a3b8] capitalize">{page.category}</span>
-            <span className="text-[#475569]">/</span>
-            <span className="text-white font-bold">{page.id}</span>
-          </div>
-
-          <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-mono font-bold">
-            <Clock className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{readingTime} min read</span>
-          </span>
-        </div>
-
-        {/* 1. Header Title & Badge (NO IMAGE BEFORE TITLE) */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight uppercase">
-              {page.title}
-            </h1>
-            {cleanBadge && (
-              <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md border shadow-sm ${
-                page.badgeColor === 'emerald'
-                  ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30'
-                  : page.badgeColor === 'amber'
-                  ? 'bg-amber-950/80 text-amber-400 border-amber-500/30'
-                  : 'bg-purple-950/80 text-purple-300 border-purple-500/30'
-              }`}>
-                {cleanBadge}
-              </span>
-            )}
-          </div>
-
+  // Render clean layout for all pages
+  return (
+    <article className="max-w-4xl mx-auto text-[#cbd5e1] pb-16 font-sans space-y-6">
+      {/* Top Breadcrumb Path & Navigation Back Button */}
+      <div className="flex items-center justify-between gap-3 text-xs font-mono border-b border-[#1e293b] pb-3">
+        <div className="flex items-center gap-2">
           <button
-            onClick={handleShare}
-            className="px-3.5 py-1.5 bg-[#1e293b]/70 hover:bg-[#1e293b] text-[#cbd5e1] border border-[#334155] rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+            onClick={() => onGoHome ? onGoHome() : onSelectCategory('all')}
+            className="inline-flex items-center gap-1.5 font-bold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
           >
-            {copiedLink ? <Check className="w-3.5 h-3.5 text-sky-400" /> : <Share2 className="w-3.5 h-3.5 text-sky-400" />}
-            <span>{copiedLink ? 'Link Copied' : 'Share'}</span>
+            <Home className="w-3.5 h-3.5 text-sky-400" />
+            <span>Portal</span>
           </button>
+          <span className="text-[#475569]">/</span>
+          <span className="text-[#94a3b8] capitalize">{page.category}</span>
+          <span className="text-[#475569]">/</span>
+          <span className="text-white font-bold">{page.id}</span>
         </div>
 
-        {/* Description Banner */}
+        <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-mono font-bold">
+          <Clock className="w-3.5 h-3.5 text-emerald-400" />
+          <span>{readingTime} min read</span>
+        </span>
+      </div>
+
+      {/* Header Title & Badge */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight uppercase">
+            {page.title}
+          </h1>
+          <span className="px-2.5 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-mono capitalize font-bold">
+            {page.category}
+          </span>
+          {cleanBadge && (
+            <span className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-md border shadow-sm ${
+              page.badgeColor === 'emerald'
+                ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/30'
+                : page.badgeColor === 'amber'
+                ? 'bg-amber-950/80 text-amber-400 border-amber-500/30'
+                : 'bg-purple-950/80 text-purple-300 border-purple-500/30'
+            }`}>
+              {cleanBadge}
+            </span>
+          )}
+        </div>
+
+        <button
+          onClick={handleShare}
+          className="px-3.5 py-1.5 bg-[#1e293b]/70 hover:bg-[#1e293b] text-[#cbd5e1] border border-[#334155] rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+        >
+          {copiedLink ? <Check className="w-3.5 h-3.5 text-sky-400" /> : <Share2 className="w-3.5 h-3.5 text-sky-400" />}
+          <span>{copiedLink ? 'Link Copied' : 'Share'}</span>
+        </button>
+      </div>
+
+      {/* Description Banner */}
+      {page.description && (
         <p className="text-sm text-[#94a3b8] leading-relaxed bg-[#111827]/60 border border-[#1e293b] p-4 rounded-xl">
           {page.description}
         </p>
+      )}
 
-        {/* 2. Image Gallery & 3D Showcase */}
-        {galleryItems.length > 0 && (
-          <div id="toc-gallery" className="scroll-mt-24">
-            <WikiImageGallery items={galleryItems} pageTitle={page.title} />
-          </div>
-        )}
-
-        {/* 3. Table of Contents (Placed BELOW Image Gallery) */}
-        {tocItems.length >= 2 && (
-          <nav className="bg-[#111827]/90 border border-[#1e293b] rounded-2xl p-4 sm:p-5 shadow-xl my-4">
-            <div className="flex items-center justify-between border-b border-[#1e293b] pb-3 mb-3">
-              <div className="flex items-center gap-2 text-sky-400 font-extrabold text-xs sm:text-sm uppercase tracking-wider">
-                <List className="w-4 h-4 text-sky-400" />
-                <span>Table of Contents</span>
-                <span className="text-[10px] text-[#64748b] font-mono font-normal">({tocItems.length} topics)</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTocCollapsed(!isTocCollapsed)}
-                className="text-xs font-mono font-semibold text-[#94a3b8] hover:text-sky-400 transition-colors flex items-center gap-1 bg-[#1e293b]/60 hover:bg-[#1e293b] px-2.5 py-1 rounded-lg border border-[#334155]/50 cursor-pointer"
-              >
-                <span>{isTocCollapsed ? '[ Show ]' : '[ Hide ]'}</span>
-                {isTocCollapsed ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-
-            {!isTocCollapsed && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-xs font-mono pt-1">
-                {tocItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleScrollTo(item.id)}
-                    className={`text-left text-[#cbd5e1] hover:text-sky-400 transition-colors flex items-center gap-2 py-1 px-2 rounded-lg hover:bg-sky-500/10 cursor-pointer ${
-                      item.level === 2 ? 'ml-5 text-[11px] text-[#94a3b8]' : 'font-semibold'
-                    }`}
-                  >
-                    <span className="text-sky-400/80 text-[10px] font-bold w-6 shrink-0">
-                      {item.numberStr}
-                    </span>
-                    <span className="truncate">{item.title}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </nav>
-        )}
-
-        {/* ITEM ATTRIBUTES & PERFORMANCE GRID */}
-        {page.itemStats && (
-          <section id="toc-attributes" className="space-y-3 scroll-mt-24">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>ITEM ATTRIBUTES & PERFORMANCE</span>
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {page.itemStats.rarity && (
-                <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
-                  <span className="text-[11px] font-semibold text-[#64748b] uppercase">Rarity Class</span>
-                  <span className={`mt-1 font-mono font-bold text-sm ${
-                    page.itemStats.rarity === 'Legendary' ? 'text-amber-400' :
-                    page.itemStats.rarity === 'Epic' ? 'text-purple-400' :
-                    page.itemStats.rarity === 'Rare' ? 'text-blue-400' : 'text-emerald-400'
-                  }`}>
-                    {page.itemStats.rarity}
-                  </span>
-                </div>
-              )}
-
-              {page.itemStats.damage && (
-                <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
-                  <span className="text-[11px] font-semibold text-[#64748b] uppercase">Base Attack</span>
-                  <span className="mt-1 font-mono font-bold text-sm text-rose-400 flex items-center gap-1">
-                    <Sword className="w-3.5 h-3.5" />
-                    {page.itemStats.damage}
-                  </span>
-                </div>
-              )}
-
-              {page.itemStats.durability && (
-                <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
-                  <span className="text-[11px] font-semibold text-[#64748b] uppercase">Max Durability</span>
-                  <span className="mt-1 font-mono font-bold text-sm text-sky-400 flex items-center gap-1">
-                    <Shield className="w-3.5 h-3.5" />
-                    {page.itemStats.durability}
-                  </span>
-                </div>
-              )}
-
-              {page.itemStats.enchantability && (
-                <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
-                  <span className="text-[11px] font-semibold text-[#64748b] uppercase">Enchanting Rating</span>
-                  <span className="mt-1 font-mono font-bold text-sm text-purple-400 flex items-center gap-1">
-                    <Wand2 className="w-3.5 h-3.5" />
-                    {page.itemStats.enchantability}
-                  </span>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* KEY MECHANICS & ABILITIES */}
-        {(page.mobStats?.behavior || page.customProperties?.['Special Attack'] || page.customProperties?.['Effect']) && (
-          <section id="toc-mechanics" className="space-y-3 scroll-mt-24">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
-              <Zap className="w-4 h-4 text-sky-400" />
-              <span>KEY MECHANICS & ABILITIES</span>
-            </h2>
-            <div className="bg-[#111827] border border-[#1e293b] p-5 rounded-2xl space-y-3 shadow-md">
-              {page.customProperties?.['Special Attack'] && (
-                <div className="flex items-start gap-3 border-b border-[#1e293b] pb-3">
-                  <Crosshair className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-bold text-white uppercase font-mono">Special Attack</h3>
-                    <p className="text-xs text-[#cbd5e1] mt-0.5 leading-relaxed">{page.customProperties['Special Attack']}</p>
-                  </div>
-                </div>
-              )}
-
-              {page.customProperties?.['Effect'] && (
-                <div className="flex items-start gap-3">
-                  <Sparkles className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                  <div>
-                    <h3 className="text-sm font-bold text-white uppercase font-mono">Passive & Active Effects</h3>
-                    <p className="text-xs text-[#cbd5e1] mt-0.5 leading-relaxed">{page.customProperties['Effect']}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
-        {/* CRAFTING RECIPE FORMULA */}
-        {page.recipes && page.recipes.length > 0 && (
-          <section id="toc-crafting" className="space-y-3 scroll-mt-24">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-              <span>FORGE & CRAFTING FORMULA</span>
-            </h2>
-            <div className="space-y-3">
-              {page.recipes.map((rec, rIdx) => (
-                <div key={rIdx} className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 shadow-md">
-                  <h3 className="font-bold text-sky-400 text-sm font-mono mb-2 flex items-center gap-2">
-                    <Box className="w-4 h-4 text-sky-400" />
-                    <span>{rec.type || 'Crafting Table Recipe'}</span>
-                  </h3>
-                  <div className="text-xs font-mono text-[#cbd5e1] space-y-1 bg-[#0b0f19] p-3 rounded-xl border border-[#1e293b]">
-                    {rec.grid?.map((row, rowIdx) => (
-                      <div key={rowIdx} className="flex gap-2">
-                        {row.map((cell, cIdx) => (
-                          <span key={cIdx} className="px-2 py-1 bg-[#111827] border border-[#1e293b] rounded font-bold text-center min-w-[32px]">
-                            {cell || 'Empty'}
-                          </span>
-                        ))}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* STATS BY DIFFICULTY */}
-        {page.mobStats && (
-          <section id="toc-difficulty" className="space-y-2 scroll-mt-24">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
-              STATS BY DIFFICULTY
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-2xl space-y-1 shadow-md">
-                <span className="text-[11px] font-mono uppercase text-emerald-400 font-bold">Easy Mode</span>
-                <p className="text-xs text-[#cbd5e1] font-mono">Health: {Math.round(page.mobStats.health * 0.8)} HP</p>
-                <p className="text-xs text-[#cbd5e1] font-mono">Attack: {page.mobStats.attackDamage || 'Normal'}</p>
-              </div>
-
-              <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-2xl space-y-1 shadow-md">
-                <span className="text-[11px] font-mono uppercase text-sky-400 font-bold">Normal Mode</span>
-                <p className="text-xs text-[#cbd5e1] font-mono">Health: {page.mobStats.health} HP</p>
-                <p className="text-xs text-[#cbd5e1] font-mono">Attack: {page.mobStats.attackDamage || 'Normal'}</p>
-              </div>
-
-              <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-2xl space-y-1 shadow-md">
-                <span className="text-[11px] font-mono uppercase text-rose-400 font-bold">Hard Mode</span>
-                <p className="text-xs text-[#cbd5e1] font-mono">Health: {Math.round(page.mobStats.health * 1.3)} HP</p>
-                <p className="text-xs text-[#cbd5e1] font-mono">Attack: Boosted +30%</p>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {/* DROPS & OBTAIN TABLE */}
-        {page.mobStats?.drops && page.mobStats.drops.length > 0 && (
-          <section id="toc-drops" className="space-y-3 scroll-mt-24">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
-              <Layers className="w-4 h-4 text-rose-400" />
-              <span>LOOT DROPS & ACQUISITION</span>
-            </h2>
-            <div className="bg-[#111827] border border-[#1e293b] rounded-2xl overflow-hidden shadow-md">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-[#0b0f19] border-b border-[#1e293b] text-[#94a3b8]">
-                  <tr>
-                    <th className="p-3">Item Drop</th>
-                    <th className="p-3">Drop Rate</th>
-                    <th className="p-3">Looting Bonus</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1e293b]">
-                  {page.mobStats.drops.map((drop, idx) => (
-                    <tr key={idx} className="hover:bg-[#1e293b]/50 transition-colors">
-                      <td className="p-3 font-bold text-white flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                        <span>{drop.item}</span>
-                      </td>
-                      <td className="p-3 text-sky-400">{drop.chance}</td>
-                      <td className="p-3 text-[#94a3b8]">{drop.lootingBonus || 'None'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {/* SECTIONS */}
-        {page.sections && page.sections.length > 0 && (
-          <div className="space-y-6">
-            {page.sections.map((section, idx) => (
-              <section
-                key={idx}
-                id={`toc-section-${idx}`}
-                className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3 scroll-mt-24"
-              >
-                <h2 className="text-xl font-bold text-white border-b border-[#1e293b] pb-2 flex items-center gap-2 uppercase tracking-tight">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></span>
-                  <span>{section.title}</span>
-                </h2>
-                <div className="text-[#cbd5e1] text-sm sm:text-base leading-relaxed space-y-2">
-                  {renderFormattedContent(section.content, idx)}
-                </div>
-              </section>
-            ))}
-          </div>
-        )}
-
-        {/* CUSTOM PROPERTIES / ADDITIONAL FUNCTIONS */}
-        {page.customProperties && Object.keys(page.customProperties).filter(k => k !== '3D Model Key').length > 0 && (
-          <section id="toc-additional-info" className="space-y-3 scroll-mt-24">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
-              <Tag className="w-4 h-4 text-emerald-400" />
-              <span>ADDITIONAL INFORMATION</span>
-            </h2>
-            <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 shadow-md text-xs font-mono">
-              {Object.entries(page.customProperties)
-                .filter(([key]) => key !== '3D Model Key')
-                .map(([key, value]) => (
-                  <div key={key} className="space-y-1">
-                    <span className="text-[#64748b] uppercase font-bold">{key}</span>
-                    <p className="text-white font-medium">{String(value)}</p>
-                  </div>
-                ))}
-            </div>
-          </section>
-        )}
-
-        {/* Recommended Reads & Suggestions */}
-        {suggestions.length > 0 && (
-          <div id="toc-recommendations" className="mt-12 border-t border-[#1e293b] pt-8 space-y-4 scroll-mt-24">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-sky-400" />
-                <span>RECOMMENDED WIKI ARTICLES</span>
-              </h3>
-              <span className="text-[11px] font-mono text-[#64748b]">Related to {page.category}</span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {suggestions.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => onSelectPage(s.id)}
-                  className="p-4 bg-[#111827] hover:bg-[#1e293b] border border-[#1e293b] hover:border-sky-500/30 rounded-2xl text-left transition-all group flex items-start gap-3 cursor-pointer shadow-sm"
-                >
-                  <WikiIcon icon={s.icon} category={s.category} className="w-6 h-6 text-sky-400 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-white text-sm group-hover:text-sky-400 transition-colors truncate">
-                      {s.title}
-                    </h4>
-                    <p className="text-xs text-[#94a3b8] line-clamp-1 mt-0.5">
-                      {s.description}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Comments and Q&A Section */}
-        <div id="toc-comments" className="mt-8 border-t border-[#1e293b] pt-8 scroll-mt-24">
-          <WikiComments 
-            pageId={page.id} 
-            pageTitle={page.title} 
-          />
-        </div>
-
-        {/* Bottom Identifier Chip */}
-        <div className="pt-6 border-t border-[#1e293b] text-xs font-mono text-[#64748b]">
-          Identifier Path: <span className="text-[#94a3b8] font-semibold">/{page.category}/{page.id}</span>
-        </div>
-      </article>
-    );
-  }
-
-  // Fallback Standard Wiki Article Layout
-  return (
-    <article className="max-w-5xl mx-auto space-y-6 text-[#e2e8f0] pb-12 font-sans">
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-2 text-xs text-[#64748b] font-mono border-b border-[#1e293b] pb-3">
-        <button
-          onClick={() => onGoHome ? onGoHome() : onSelectCategory('all')}
-          className="hover:text-sky-400 font-bold transition-colors flex items-center gap-1 cursor-pointer"
-        >
-          <Home className="w-3.5 h-3.5 text-sky-400" />
-          <span>Portal</span>
-        </button>
-        <span>/</span>
-        <button
-          onClick={() => onSelectCategory(page.category)}
-          className="hover:text-sky-400 capitalize transition-colors cursor-pointer"
-        >
-          {page.category}
-        </button>
-        <span>/</span>
-        <span className="text-sky-400 font-bold truncate">{page.id}</span>
-      </nav>
-
-      {/* Article Header & Main Card (NO IMAGE BEFORE PAGE TITLE) */}
-      <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-[#1e293b] pb-5">
-          <div className="flex flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase">
-                {page.title}
-              </h1>
-              <span className="px-2.5 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-mono capitalize font-bold">
-                {page.category}
-              </span>
-              {cleanBadge && (
-                <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-mono uppercase font-bold">
-                  {cleanBadge}
-                </span>
-              )}
-              {['mobs', 'items', 'blocks', 'dimensions', 'recipes', 'biomes'].includes(page.category) && (
-                <span className="px-2 py-0.5 bg-[#0b0f19] text-[#94a3b8] border border-[#1e293b] rounded text-xs font-mono">
-                  {page.addonVersion}
-                </span>
-              )}
-              <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-mono font-bold">
-                <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{readingTime} min read</span>
-              </span>
-            </div>
-
-            <p className="text-xs sm:text-sm text-[#94a3b8] mt-2 max-w-2xl leading-relaxed">
-              {page.description}
-            </p>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="flex sm:flex-col gap-2 shrink-0">
-            <button
-              onClick={handleShare}
-              className="px-3.5 py-2 bg-[#1e293b]/80 hover:bg-[#1e293b] text-[#cbd5e1] border border-[#334155] rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-sm cursor-pointer"
-            >
-              {copiedLink ? <Check className="w-3.5 h-3.5 text-sky-400" /> : <Share2 className="w-3.5 h-3.5 text-sky-400" />}
-              <span>{copiedLink ? 'Link Copied' : 'Share'}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* View Switcher Tabs if page has recipes or drops */}
-        <div className="flex items-center gap-2 border-b border-[#1e293b] pb-2 text-xs font-mono">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeTab === 'overview'
-                ? 'bg-sky-500/10 text-sky-400 border-t-2 border-sky-400 border-x border-[#1e293b]'
-                : 'text-[#94a3b8] hover:text-white'
-            }`}
-          >
-            <Info className="w-4 h-4 text-sky-400" />
-            <span>Overview & Details</span>
-          </button>
-
-          {page.recipes && page.recipes.length > 0 && (
-            <button
-              onClick={() => setActiveTab('crafting')}
-              className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeTab === 'crafting'
-                  ? 'bg-sky-500/10 text-sky-400 border-t-2 border-sky-400 border-x border-[#1e293b]'
-                  : 'text-[#94a3b8] hover:text-white'
-              }`}
-            >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              <span>Crafting ({page.recipes.length})</span>
-            </button>
-          )}
-
-          {page.mobStats?.drops && page.mobStats.drops.length > 0 && (
-            <button
-              onClick={() => setActiveTab('drops')}
-              className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                activeTab === 'drops'
-                  ? 'bg-sky-500/10 text-sky-400 border-t-2 border-sky-400 border-x border-[#1e293b]'
-                  : 'text-[#94a3b8] hover:text-white'
-              }`}
-            >
-              <Layers className="w-4 h-4 text-rose-400" />
-              <span>Loot & Drops</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Media Gallery & 3D Showcase */}
+      {/* Image Gallery & 3D Showcase */}
       {galleryItems.length > 0 && (
         <div id="toc-gallery" className="scroll-mt-24">
           <WikiImageGallery items={galleryItems} pageTitle={page.title} />
         </div>
       )}
 
-      {/* Table of Contents for Fallback Layout (Placed BELOW Image Gallery) */}
+      {/* Table of Contents (Placed BELOW Image Gallery) */}
       {tocItems.length >= 2 && (
         <nav className="bg-[#111827]/90 border border-[#1e293b] rounded-2xl p-4 sm:p-5 shadow-xl my-4">
           <div className="flex items-center justify-between border-b border-[#1e293b] pb-3 mb-3">
@@ -834,80 +418,232 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         </nav>
       )}
 
-      {/* Main Content */}
-      <div className="space-y-6">
-        {activeTab === 'overview' && (
-          <div className="space-y-6">
-            {/* Sections */}
-            {page.sections?.map((section, idx) => (
-              <section
-                key={idx}
-                id={`toc-section-${idx}`}
-                className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3 scroll-mt-24"
-              >
-                <h2 className="text-xl font-bold text-white border-b border-[#1e293b] pb-2 flex items-center gap-2 uppercase tracking-tight">
-                  <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></span>
-                  <span>{section.title}</span>
-                </h2>
-                <div className="text-[#cbd5e1] text-sm sm:text-base leading-relaxed space-y-2">
-                  {renderFormattedContent(section.content, idx)}
-                </div>
-              </section>
-            ))}
+      {/* ITEM ATTRIBUTES & PERFORMANCE GRID */}
+      {page.itemStats && (
+        <section id="toc-attributes" className="space-y-3 scroll-mt-24">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span>ITEM ATTRIBUTES & PERFORMANCE</span>
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {page.itemStats.rarity && (
+              <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
+                <span className="text-[11px] font-semibold text-[#64748b] uppercase">Rarity Class</span>
+                <span className={`mt-1 font-mono font-bold text-sm ${
+                  page.itemStats.rarity === 'Legendary' ? 'text-amber-400' :
+                  page.itemStats.rarity === 'Epic' ? 'text-purple-400' :
+                  page.itemStats.rarity === 'Rare' ? 'text-blue-400' : 'text-emerald-400'
+                }`}>
+                  {page.itemStats.rarity}
+                </span>
+              </div>
+            )}
 
-            {/* CUSTOM PROPERTIES */}
-            {page.customProperties && Object.keys(page.customProperties).filter(k => k !== '3D Model Key').length > 0 && (
-              <section id="toc-additional-info" className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3 scroll-mt-24">
-                <h2 className="text-xl font-bold text-white border-b border-[#1e293b] pb-2 flex items-center gap-2 uppercase tracking-tight">
-                  <Tag className="w-4 h-4 text-emerald-400" />
-                  <span>Additional Information</span>
-                </h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-mono">
-                  {Object.entries(page.customProperties)
-                    .filter(([key]) => key !== '3D Model Key')
-                    .map(([key, value]) => (
-                      <div key={key} className="space-y-1">
-                        <span className="text-[#64748b] uppercase font-bold">{key}</span>
-                        <p className="text-white font-medium">{String(value)}</p>
-                      </div>
-                    ))}
-                </div>
-              </section>
+            {page.itemStats.damage && (
+              <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
+                <span className="text-[11px] font-semibold text-[#64748b] uppercase">Base Attack</span>
+                <span className="mt-1 font-mono font-bold text-sm text-rose-400 flex items-center gap-1">
+                  <Sword className="w-3.5 h-3.5" />
+                  {page.itemStats.damage}
+                </span>
+              </div>
+            )}
+
+            {page.itemStats.durability && (
+              <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
+                <span className="text-[11px] font-semibold text-[#64748b] uppercase">Durability</span>
+                <span className="mt-1 font-mono font-bold text-sm text-sky-400 flex items-center gap-1">
+                  <Shield className="w-3.5 h-3.5" />
+                  {page.itemStats.durability}
+                </span>
+              </div>
+            )}
+
+            {page.itemStats.enchantability && (
+              <div className="bg-[#111827] border border-[#1e293b] p-3.5 rounded-2xl flex flex-col justify-between shadow-md">
+                <span className="text-[11px] font-semibold text-[#64748b] uppercase">Enchanting Rating</span>
+                <span className="mt-1 font-mono font-bold text-sm text-purple-400 flex items-center gap-1">
+                  <Wand2 className="w-3.5 h-3.5" />
+                  {page.itemStats.enchantability}
+                </span>
+              </div>
             )}
           </div>
-        )}
+        </section>
+      )}
 
-        {activeTab === 'crafting' && page.recipes && (
-          <div id="toc-crafting" className="space-y-4 scroll-mt-24">
-            {page.recipes.map((rec, i) => (
-              <div key={i} className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-3">
-                <h3 className="font-bold text-sky-400 text-sm font-mono">
-                  {rec.type || 'Crafting Formula'}
+      {/* KEY MECHANICS & ABILITIES */}
+      {(page.mobStats?.behavior || page.customProperties?.['Special Attack'] || page.customProperties?.['Effect']) && (
+        <section id="toc-mechanics" className="space-y-3 scroll-mt-24">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+            <Zap className="w-4 h-4 text-sky-400" />
+            <span>KEY MECHANICS & ABILITIES</span>
+          </h2>
+          <div className="bg-[#111827] border border-[#1e293b] p-5 rounded-2xl space-y-3 shadow-md">
+            {page.mobStats?.behavior && (
+              <p className="text-xs text-[#cbd5e1] leading-relaxed border-b border-[#1e293b] pb-3">
+                {page.mobStats.behavior}
+              </p>
+            )}
+
+            {page.customProperties?.['Special Attack'] && (
+              <div className="flex items-start gap-3 border-b border-[#1e293b] pb-3">
+                <Crosshair className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase font-mono">Special Attack</h3>
+                  <p className="text-xs text-[#cbd5e1] mt-0.5 leading-relaxed">{page.customProperties['Special Attack']}</p>
+                </div>
+              </div>
+            )}
+
+            {page.customProperties?.['Effect'] && (
+              <div className="flex items-start gap-3">
+                <Sparkles className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-bold text-white uppercase font-mono">Passive & Active Effects</h3>
+                  <p className="text-xs text-[#cbd5e1] mt-0.5 leading-relaxed">{page.customProperties['Effect']}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* CRAFTING RECIPE FORMULA */}
+      {page.recipes && page.recipes.length > 0 && (
+        <section id="toc-crafting" className="space-y-3 scroll-mt-24">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <span>FORGE & CRAFTING FORMULA</span>
+          </h2>
+          <div className="space-y-3">
+            {page.recipes.map((rec, rIdx) => (
+              <div key={rIdx} className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 shadow-md">
+                <h3 className="font-bold text-sky-400 text-sm font-mono mb-2 flex items-center gap-2">
+                  <Box className="w-4 h-4 text-sky-400" />
+                  <span>{rec.type || 'Crafting Table Recipe'}</span>
                 </h3>
-                <div className="text-xs font-mono text-[#cbd5e1]">
-                  {JSON.stringify(rec.grid)}
+                <div className="text-xs font-mono text-[#cbd5e1] space-y-1 bg-[#0b0f19] p-3 rounded-xl border border-[#1e293b]">
+                  {Array.isArray(rec.grid) &&
+                    Array.from({ length: Math.ceil(rec.grid.length / 3) }, (_, rIdx) =>
+                      rec.grid!.slice(rIdx * 3, rIdx * 3 + 3)
+                    ).map((row: (string | null)[], rowIdx: number) => (
+                      <div key={rowIdx} className="flex gap-2">
+                        {row.map((cell: string | null, cIdx: number) => (
+                          <span key={cIdx} className="px-2 py-1 bg-[#111827] border border-[#1e293b] rounded font-bold text-center min-w-[32px]">
+                            {cell || 'Empty'}
+                          </span>
+                        ))}
+                      </div>
+                    ))}
                 </div>
               </div>
             ))}
           </div>
-        )}
+        </section>
+      )}
 
-        {activeTab === 'drops' && page.mobStats?.drops && (
-          <div id="toc-drops" className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-3 scroll-mt-24">
-            <h3 className="font-bold text-rose-400 text-xs uppercase font-mono tracking-wider">
-              Entity Drops & Loot Table
-            </h3>
-            <div className="divide-y divide-[#1e293b]">
-              {page.mobStats.drops.map((d, i) => (
-                <div key={i} className="py-2 flex items-center justify-between text-xs font-mono">
-                  <span className="text-white font-bold">{d.item}</span>
-                  <span className="text-sky-400">{d.chance}</span>
-                </div>
-              ))}
+      {/* STATS BY DIFFICULTY */}
+      {page.mobStats && (
+        <section id="toc-difficulty" className="space-y-2 scroll-mt-24">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">
+            STATS BY DIFFICULTY
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-2xl space-y-1 shadow-md">
+              <span className="text-[11px] font-mono uppercase text-emerald-400 font-bold">Easy Mode</span>
+              <p className="text-xs text-[#cbd5e1] font-mono">Health: {Math.round(page.mobStats.health * 0.8)} HP</p>
+              <p className="text-xs text-[#cbd5e1] font-mono">Attack: {page.mobStats.attackDamage || 'Normal'}</p>
+            </div>
+
+            <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-2xl space-y-1 shadow-md">
+              <span className="text-[11px] font-mono uppercase text-sky-400 font-bold">Normal Mode</span>
+              <p className="text-xs text-[#cbd5e1] font-mono">Health: {page.mobStats.health} HP</p>
+              <p className="text-xs text-[#cbd5e1] font-mono">Attack: {page.mobStats.attackDamage || 'Normal'}</p>
+            </div>
+
+            <div className="bg-[#111827] border border-[#1e293b] p-4 rounded-2xl space-y-1 shadow-md">
+              <span className="text-[11px] font-mono uppercase text-rose-400 font-bold">Hard Mode</span>
+              <p className="text-xs text-[#cbd5e1] font-mono">Health: {Math.round(page.mobStats.health * 1.3)} HP</p>
+              <p className="text-xs text-[#cbd5e1] font-mono">Attack: Boosted +30%</p>
             </div>
           </div>
-        )}
-      </div>
+        </section>
+      )}
+
+      {/* DROPS & OBTAIN TABLE */}
+      {page.mobStats?.drops && page.mobStats.drops.length > 0 && (
+        <section id="toc-drops" className="space-y-3 scroll-mt-24">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+            <Layers className="w-4 h-4 text-rose-400" />
+            <span>LOOT DROPS & ACQUISITION</span>
+          </h2>
+          <div className="bg-[#111827] border border-[#1e293b] rounded-2xl overflow-hidden shadow-md">
+            <table className="w-full text-left text-xs font-mono">
+              <thead className="bg-[#0b0f19] border-b border-[#1e293b] text-[#94a3b8]">
+                <tr>
+                  <th className="p-3">Item Drop</th>
+                  <th className="p-3">Drop Rate</th>
+                  <th className="p-3">Looting Bonus</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#1e293b]">
+                {page.mobStats.drops.map((drop, idx) => (
+                  <tr key={idx} className="hover:bg-[#1e293b]/50 transition-colors">
+                    <td className="p-3 font-bold text-white flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{drop.item}</span>
+                    </td>
+                    <td className="p-3 text-sky-400">{drop.chance}</td>
+                    <td className="p-3 text-[#94a3b8]">{drop.lootingBonus || 'None'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Content Sections */}
+      {page.sections && page.sections.length > 0 && (
+        <div className="space-y-6">
+          {page.sections.map((section, idx) => (
+            <section
+              key={idx}
+              id={`toc-section-${idx}`}
+              className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-md space-y-3 scroll-mt-24"
+            >
+              <h2 className="text-xl font-bold text-white border-b border-[#1e293b] pb-2 flex items-center gap-2 uppercase tracking-tight">
+                <span className="w-2.5 h-2.5 rounded-full bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></span>
+                <span>{section.title}</span>
+              </h2>
+              <div className="text-[#cbd5e1] text-sm sm:text-base leading-relaxed space-y-2">
+                {renderFormattedContent(section.content, idx)}
+              </div>
+            </section>
+          ))}
+        </div>
+      )}
+
+      {/* CUSTOM PROPERTIES / ADDITIONAL FUNCTIONS */}
+      {page.customProperties && Object.keys(page.customProperties).filter(k => k !== '3D Model Key').length > 0 && (
+        <section id="toc-additional-info" className="space-y-3 scroll-mt-24">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-[#94a3b8] flex items-center gap-2">
+            <Tag className="w-4 h-4 text-emerald-400" />
+            <span>ADDITIONAL INFORMATION</span>
+          </h2>
+          <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-4 shadow-md text-xs font-mono">
+            {Object.entries(page.customProperties)
+              .filter(([key]) => key !== '3D Model Key')
+              .map(([key, value]) => (
+                <div key={key} className="space-y-1">
+                  <span className="text-[#64748b] uppercase font-bold">{key}</span>
+                  <p className="text-white font-medium">{String(value)}</p>
+                </div>
+              ))}
+          </div>
+        </section>
+      )}
 
       {/* Recommended Reads & Suggestions */}
       {suggestions.length > 0 && (
@@ -947,6 +683,8 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         <WikiComments 
           pageId={page.id} 
           pageTitle={page.title} 
+          currentUser={currentUser || null}
+          currentUserEmail={currentUserEmail || null}
         />
       </div>
 

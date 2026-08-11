@@ -191,7 +191,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
     // Item Stats
     if (category === 'items' || rarity) {
       builder.setItemStats({
-        rarity,
+        rarity: (rarity as 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary') || 'Common',
         attackDamage: parseInt(attackDamage) || 10,
         durability: parseInt(durability) || 1500,
         stackSize: parseInt(stackSize) || 1

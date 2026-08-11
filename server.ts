@@ -5,11 +5,15 @@ import crypto from 'crypto';
 import fs from 'fs';
 import initSqlJs, { Database } from 'sql.js';
 import { isAuthorizedAdminEmail } from './src/lib/adminAuth';
+import { createPageRouter } from './src/admin/pageController';
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
+
+// Mount Admin Pages REST API (/admin/pages)
+app.use('/admin', createPageRouter());
 
 // SQLite SQL Database initialization via sql.js
 let sqlDb: Database | null = null;

@@ -216,22 +216,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [dropsTable, setDropsTable] = useState<{item: string, amount: string, chance: string, icon: string}[]>([]);
 
   const addDifficultyStat = () => setDifficultyStats([...difficultyStats, { difficulty: 'Normal', health: '20', attack: '3', icon: '🛡️' }]);
-  const updateDifficultyStat = (index, field, val) => {
+  const updateDifficultyStat = (index: number, field: string, val: string) => {
     const list = [...difficultyStats];
-    list[index][field] = val;
+    (list[index] as Record<string, string>)[field] = val;
     setDifficultyStats(list);
   };
-  const removeDifficultyStat = (index) => {
+  const removeDifficultyStat = (index: number) => {
     setDifficultyStats(difficultyStats.filter((_, i) => i !== index));
   };
 
   const addDrop = () => setDropsTable([...dropsTable, { item: 'Rotten Flesh', amount: '1-2', chance: '100%', icon: '🍖' }]);
-  const updateDrop = (index, field, val) => {
+  const updateDrop = (index: number, field: string, val: string) => {
     const list = [...dropsTable];
-    list[index][field] = val;
+    (list[index] as Record<string, string>)[field] = val;
     setDropsTable(list);
   };
-  const removeDrop = (index) => {
+  const removeDrop = (index: number) => {
     setDropsTable(dropsTable.filter((_, i) => i !== index));
   };
 

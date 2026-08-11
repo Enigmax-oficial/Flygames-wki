@@ -63,7 +63,7 @@ export default function App() {
   });
 
   const toggleDesktopSidebar = () => {
-    setIsDesktopSidebarOpen((prev) => {
+    setIsDesktopSidebarOpen((prev: boolean) => {
       const next = !prev;
       try {
         localStorage.setItem('etherium_desktop_sidebar_open', JSON.stringify(next));

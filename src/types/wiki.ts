@@ -35,9 +35,11 @@ export interface ItemStats {
   rarity: 'Common' | 'Uncommon' | 'Rare' | 'Epic' | 'Legendary';
   durability?: number;
   attackDamage?: number;
+  damage?: number | string;
   attackSpeed?: number;
   stackSize?: number;
   enchantable?: boolean;
+  enchantability?: number | boolean | string;
 }
 
 export interface BlockStats {
@@ -80,7 +82,7 @@ export interface WikiPage {
   renderImageUrl?: string; // 3D Mob/Item Render Image
   bannerImageUrl?: string; // In-Game Banner/Screenshot
   behaviorBullets?: string[]; // Bulleted behavior list
-  behaviorMeta?: { biomes?: string; groupSize?: string; spawnRate?: string; [key: string]: string | undefined };
+  behaviorMeta?: Record<string, string>;
   difficultyStats?: Array<{ difficulty: string; health: string; attack: string; icon?: string; color?: string }>;
   movementSpeed?: string;
   dropsTable?: Array<{ item: string; pageId?: string; amount: string; chance: string; icon?: string }>;
