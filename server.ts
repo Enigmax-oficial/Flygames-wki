@@ -437,6 +437,17 @@ async function startServer() {
   // Pre-initialize SQL DB
   await getSqlDb();
 
+  // Serve static files from the public folder first using Express's robust range-request static server
+  const publicPath = path.join(process.cwd(), 'public');
+  app.use(express.static(publicPath, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.sqlite')) {
+        res.setHeader('Accept-Ranges', 'bytes');
+        res.setHeader('Content-Type', 'application/x-sqlite3');
+      }
+    }
+  }));
+
   // Vite middleware setup for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

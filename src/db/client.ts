@@ -37,14 +37,18 @@ export async function getWorker() {
       throw new Error('HTTP Range Requests unsupported. Server must respond with 206 Partial Content for Range headers.');
     }
 
-    console.log('⚡ Initializing sql.js-httpvfs worker with /data.config.json');
+    console.log('⚡ Initializing sql.js-httpvfs worker with inline configuration...');
     
-    // Create the worker pointing to data.config.json and the static files in public/
+    // Create the worker with inline config to bypass extra config fetching
     const worker = await createDbWorker(
       [
         {
-          from: 'jsonconfig',
-          configUrl: '/data.config.json',
+          from: 'inline',
+          config: {
+            serverMode: 'full',
+            url: '/data.sqlite',
+            requestChunkSize: 4096,
+          },
         },
       ],
       '/sqlite.worker.js',

@@ -118,11 +118,11 @@ async function buildDatabase() {
 
   // Auto-generate config.json describing database URL, page size, chunk size
   const config = {
-    serverMode: 'vfs-http-range',
-    databaseUrl: '/db/dataset.sqlite',
+    serverMode: 'full',
+    url: '/db/dataset.sqlite',
     pageSize: 4096,
     requestChunkSize: 4096,
-    totalSize: buffer.byteLength,
+    databaseLengthBytes: buffer.byteLength,
     recordCount: seedData.length,
     tables: ['daily_records'],
     indexes: ['idx_daily_records_date', 'idx_daily_records_category', 'idx_daily_records_date_category'],
@@ -136,7 +136,7 @@ async function buildDatabase() {
   // Generate data.config.json pointing to /data.sqlite
   const dataConfig = {
     ...config,
-    databaseUrl: '/data.sqlite',
+    url: '/data.sqlite',
   };
   const dataConfigPath = path.join(process.cwd(), 'public', 'data.config.json');
   fs.writeFileSync(dataConfigPath, JSON.stringify(dataConfig, null, 2), 'utf-8');

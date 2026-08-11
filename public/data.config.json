@@ -1,9 +1,9 @@
 {
-  "serverMode": "vfs-http-range",
-  "databaseUrl": "/data.sqlite",
+  "serverMode": "full",
+  "url": "/data.sqlite",
   "pageSize": 4096,
   "requestChunkSize": 4096,
-  "totalSize": 602112,
+  "databaseLengthBytes": 602112,
   "recordCount": 2000,
   "tables": [
     "daily_records"
@@ -13,5 +13,5 @@
     "idx_daily_records_category",
     "idx_daily_records_date_category"
   ],
-  "generatedAt": "2026-08-11T23:18:44.608Z"
+  "generatedAt": "2026-08-11T23:27:03.481Z"
 }
