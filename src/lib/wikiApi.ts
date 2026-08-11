@@ -201,27 +201,44 @@ export class WikiApi {
 
   // Page Methods
   static getPages(): WikiPage[] {
+    let deletedIds: string[] = [];
+    try {
+      const del = localStorage.getItem('aetheria_deleted_page_ids');
+      if (del) deletedIds = JSON.parse(del);
+    } catch {}
+
+    // If a page exists in INITIAL_WIKI_PAGES (the JSON files), ensure it's not blocked by old delete state
+    const initialIds = new Set(INITIAL_WIKI_PAGES.map(p => p.id));
+    const activeDeletedIds = deletedIds.filter(id => !initialIds.has(id));
+    if (activeDeletedIds.length !== deletedIds.length) {
+      try {
+        localStorage.setItem('aetheria_deleted_page_ids', JSON.stringify(activeDeletedIds));
+      } catch {}
+      deletedIds = activeDeletedIds;
+    }
+
+    const activeInitialPages = INITIAL_WIKI_PAGES.filter(p => !deletedIds.includes(p.id));
+
     try {
       const saved = localStorage.getItem('aetheria_wiki_pages');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleaned = parsed.filter(p => p.id !== 'vite-nodejs-setup' && p.id !== 'category-items' && p.id !== 'category-mobs');
-          const existingIds = new Set(cleaned.map(p => p.id));
-          const missing = INITIAL_WIKI_PAGES.filter(p => !existingIds.has(p.id));
-          const all = [...missing, ...cleaned];
-          const unique = new Map();
-          for (const item of all) { if (!unique.has(item.id)) unique.set(item.id, item); }
-          return Array.from(unique.values());
+        if (Array.isArray(parsed)) {
+          const customPages = parsed.filter(p => p.isCustom || p.tags?.includes('Custom') || !INITIAL_WIKI_PAGES.some(ip => ip.id === p.id));
+          const validCustomPages = customPages.filter(p => !deletedIds.includes(p.id));
+          
+          const uniqueMap = new Map<string, WikiPage>();
+          for (const p of activeInitialPages) uniqueMap.set(p.id, p);
+          for (const p of validCustomPages) uniqueMap.set(p.id, p);
+          return Array.from(uniqueMap.values());
         }
       }
     } catch {}
-    return INITIAL_WIKI_PAGES;
+    return activeInitialPages;
   }
 
   static createPage(page: WikiPage): WikiPage {
     const pages = this.getPages();
-    // Filter duplicates
     const filteredPages = pages.filter(p => p.id !== page.id);
     const updated = [page, ...filteredPages];
     localStorage.setItem('aetheria_wiki_pages', JSON.stringify(updated));
@@ -234,6 +251,15 @@ export class WikiApi {
     const pages = this.getPages();
     const exists = pages.some(p => p.id === pageId);
     if (!exists) return false;
+
+    try {
+      const del = localStorage.getItem('aetheria_deleted_page_ids');
+      const deletedIds = del ? JSON.parse(del) : [];
+      if (!deletedIds.includes(pageId)) {
+        deletedIds.push(pageId);
+        localStorage.setItem('aetheria_deleted_page_ids', JSON.stringify(deletedIds));
+      }
+    } catch {}
 
     const filtered = pages.filter(p => p.id !== pageId);
     localStorage.setItem('aetheria_wiki_pages', JSON.stringify(filtered));

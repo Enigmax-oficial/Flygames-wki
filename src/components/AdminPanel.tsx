@@ -1264,35 +1264,40 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </div>
             </div>
 
-            {/* Custom List with delete capability */}
+            {/* All Wiki Pages & Add-ons List with Delete Capability */}
             <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-4 shadow-xl">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Layers className="w-4 h-4 text-sky-400" />
-                <span>Recent Dynamic Publications</span>
+              <h3 className="text-sm font-bold text-white flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-sky-400" />
+                  <span>All Wiki Pages & Add-ons</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-400 bg-[#0b0f19] px-2 py-0.5 rounded border border-[#1e293b]">
+                  {pages.length} Active
+                </span>
               </h3>
 
-              <div className="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
-                {pages.filter(p => p.tags.includes('Custom')).length === 0 ? (
+              <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                {pages.length === 0 ? (
                   <div className="text-center py-6 text-xs text-slate-500">
-                    No custom items created yet. Formulate one using the form on the left!
+                    No active wiki pages found.
                   </div>
                 ) : (
-                  pages.filter(p => p.tags.includes('Custom')).map((cp) => (
+                  pages.map((cp) => (
                     <div
                       key={cp.id}
-                      className="p-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl flex items-center justify-between gap-3 group relative"
+                      className="p-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl flex items-center justify-between gap-3 group relative hover:border-slate-700 transition-colors"
                     >
                       <div 
                         onClick={() => onSelectPage(cp.id)}
                         className="flex items-center gap-2.5 min-w-0 cursor-pointer flex-1"
                       >
-                        <WikiIcon icon={cp.icon} className="w-5 h-5 text-lg" />
+                        <WikiIcon icon={cp.icon} category={cp.category} className="w-5 h-5 text-lg shrink-0" />
                         <div className="min-w-0">
                           <h4 className="text-xs font-bold text-slate-200 group-hover:text-sky-300 transition-colors truncate">
                             {cp.title}
                           </h4>
                           <span className="text-[9px] text-[#64748b] font-mono block mt-0.5 truncate">
-                            {cp.namespace}
+                            {cp.namespace || `aetheria:${cp.category}/${cp.id}`}
                           </span>
                         </div>
                       </div>
@@ -1312,12 +1317,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
                         <button
                           onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete the wiki page '${cp.title}'?`)) {
+                            if (window.confirm(`Are you sure you want to delete the wiki page '${cp.title}'? This will remove it from the wiki and homepage.`)) {
                               WikiApi.deletePage(cp.id);
                             }
                           }}
                           className="p-1.5 bg-[#1a1a2e] hover:bg-rose-950/40 border border-slate-800 hover:border-rose-500/30 text-[#64748b] hover:text-rose-400 rounded transition cursor-pointer"
-                          title="Delete dynamic page"
+                          title="Delete page"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

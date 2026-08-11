@@ -393,11 +393,17 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
                   <thead>
                     <tr className="border-b border-[#1e293b] text-[#94a3b8] font-medium bg-[#0b0f19]/60">
                       <th className="py-3 px-5 font-semibold">Difficulty</th>
-                      <th className="py-3 px-5 font-semibold flex items-center gap-1">
-                        <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" /> Health
+                      <th className="py-3 px-5 font-semibold">
+                        <div className="flex items-center gap-1.5">
+                          <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
+                          <span>Health</span>
+                        </div>
                       </th>
-                      <th className="py-3 px-5 font-semibold flex items-center gap-1.5">
-                        <img src={getItemImage('sword')!} alt="Attack" className="w-4 h-4 object-contain inline-block" /> Attack
+                      <th className="py-3 px-5 font-semibold">
+                        <div className="flex items-center gap-1.5">
+                          <img src={getItemImage('sword')!} alt="Attack" className="w-4 h-4 object-contain inline-block" />
+                          <span>Attack</span>
+                        </div>
                       </th>
                     </tr>
                   </thead>

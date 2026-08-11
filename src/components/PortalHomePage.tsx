@@ -318,83 +318,150 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
           })}
         </div>
 
-        {/* Index Table */}
-        <div className="bg-[#111827] border border-[#1e293b] rounded-2xl overflow-hidden shadow-xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-[#1e293b] text-[#94a3b8] font-semibold bg-[#0b0f19]/80 text-xs uppercase tracking-wider">
-                  <th className="py-3.5 px-5">Name</th>
-                  <th className="py-3.5 px-5">Category</th>
-                  <th className="py-3.5 px-5">Key Attributes</th>
-                  <th className="py-3.5 px-5">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1e293b]">
-                {filteredTablePages.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="py-8 text-center text-sm text-[#64748b]">
-                      No wiki articles match your filter.
-                    </td>
+        {/* Index Table & Mobile Card List */}
+        <div>
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-[#111827] border border-[#1e293b] rounded-2xl overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[#1e293b] text-[#94a3b8] font-semibold bg-[#0b0f19]/80 text-xs uppercase tracking-wider">
+                    <th className="py-3.5 px-5">Name</th>
+                    <th className="py-3.5 px-5">Category</th>
+                    <th className="py-3.5 px-5">Key Attributes</th>
+                    <th className="py-3.5 px-5">Action</th>
                   </tr>
-                ) : (
-                  filteredTablePages.map((page) => (
-                    <tr 
-                      key={page.id}
-                      onClick={() => onSelectPage(page.id)}
-                      className="hover:bg-[#1e293b]/50 transition-colors cursor-pointer group"
-                    >
-                      <td className="py-3.5 px-5 font-bold text-white flex items-center gap-3">
-                        {(getPageCoverImage(page) || (page.category !== 'biomes' && page.category !== 'dimensions')) && (
-                          getPageCoverImage(page) ? (
-                            <div className="w-8 h-8 rounded-lg bg-[#0b0f19] border border-[#1e293b] flex items-center justify-center shrink-0 overflow-hidden p-1 shadow">
-                              <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
-                            </div>
-                          ) : (
-                            <WikiIcon icon={page.icon} category={page.category} className="w-8 h-8 text-lg" />
-                          )
-                        )}
-                        <span className="group-hover:text-sky-300 transition-colors">{page.title}</span>
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <span className="px-2.5 py-0.5 bg-[#0b0f19] border border-[#1e293b] rounded text-xs font-bold uppercase text-[#cbd5e1]">
-                          {page.category}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-5 font-mono text-xs text-[#cbd5e1]">
-                        {page.itemStats?.attackDamage !== undefined ? (
-                          <span className="text-amber-300 font-bold flex items-center gap-1">
-                            <img src={getItemImage('sword')!} alt="Attack" className="w-3.5 h-3.5 object-contain inline-block" />
-                            <span>{page.itemStats.attackDamage} DMG</span>
-                          </span>
-                        ) : page.mobStats?.health ? (
-                          <span className="text-rose-400 font-bold flex items-center gap-1">
-                            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline-block" />
-                            <span>{page.mobStats.health} HP</span>
-                          </span>
-                        ) : (
-                          <span className="text-[#94a3b8]">
-                            {page.badge || (['mobs', 'items', 'blocks', 'dimensions', 'recipes', 'biomes'].includes(page.category) ? page.addonVersion : '—')}
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-5">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSelectPage(page.id);
-                          }}
-                          className="text-xs font-bold text-sky-400 group-hover:underline inline-flex items-center gap-1 cursor-pointer"
-                        >
-                          <span>Open Page</span>
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </button>
+                </thead>
+                <tbody className="divide-y divide-[#1e293b]">
+                  {filteredTablePages.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="py-8 text-center text-sm text-[#64748b]">
+                        No wiki articles match your filter.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredTablePages.map((page) => (
+                      <tr 
+                        key={page.id}
+                        onClick={() => onSelectPage(page.id)}
+                        className="hover:bg-[#1e293b]/50 transition-colors cursor-pointer group"
+                      >
+                        <td className="py-3.5 px-5 font-bold text-white flex items-center gap-3">
+                          {(getPageCoverImage(page) || (page.category !== 'biomes' && page.category !== 'dimensions')) && (
+                            getPageCoverImage(page) ? (
+                              <div className="w-8 h-8 rounded-lg bg-[#0b0f19] border border-[#1e293b] flex items-center justify-center shrink-0 overflow-hidden p-1 shadow">
+                                <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
+                              </div>
+                            ) : (
+                              <WikiIcon icon={page.icon} category={page.category} className="w-8 h-8 text-lg" />
+                            )
+                          )}
+                          <span className="group-hover:text-sky-300 transition-colors">{page.title}</span>
+                        </td>
+                        <td className="py-3.5 px-5">
+                          <span className="px-2.5 py-0.5 bg-[#0b0f19] border border-[#1e293b] rounded text-xs font-bold uppercase text-[#cbd5e1]">
+                            {page.category}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-5 font-mono text-xs text-[#cbd5e1]">
+                          {page.itemStats?.attackDamage !== undefined ? (
+                            <span className="text-amber-300 font-bold flex items-center gap-1">
+                              <img src={getItemImage('sword')!} alt="Attack" className="w-3.5 h-3.5 object-contain inline-block" />
+                              <span>{page.itemStats.attackDamage} DMG</span>
+                            </span>
+                          ) : page.mobStats?.health ? (
+                            <span className="text-rose-400 font-bold flex items-center gap-1">
+                              <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 inline-block" />
+                              <span>{page.mobStats.health} HP</span>
+                            </span>
+                          ) : (
+                            <span className="text-[#94a3b8]">
+                              {page.badge || (['mobs', 'items', 'blocks', 'dimensions', 'recipes', 'biomes'].includes(page.category) ? page.addonVersion : '—')}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3.5 px-5">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSelectPage(page.id);
+                            }}
+                            className="text-xs font-bold text-sky-400 group-hover:underline inline-flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>Open Page</span>
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Mobile Optimized Card List View */}
+          <div className="block md:hidden space-y-3">
+            {filteredTablePages.length === 0 ? (
+              <div className="p-6 bg-[#111827] border border-[#1e293b] rounded-xl text-center text-sm text-[#64748b]">
+                No wiki articles match your filter.
+              </div>
+            ) : (
+              filteredTablePages.map((page) => (
+                <div
+                  key={page.id}
+                  onClick={() => onSelectPage(page.id)}
+                  className="p-4 bg-[#111827] border border-[#1e293b] rounded-xl space-y-3 active:scale-[0.99] transition-transform cursor-pointer shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {(getPageCoverImage(page) || (page.category !== 'biomes' && page.category !== 'dimensions')) && (
+                        getPageCoverImage(page) ? (
+                          <div className="w-10 h-10 rounded-lg bg-[#0b0f19] border border-[#1e293b] flex items-center justify-center shrink-0 overflow-hidden p-1 shadow">
+                            <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
+                          </div>
+                        ) : (
+                          <WikiIcon icon={page.icon} category={page.category} className="w-10 h-10 text-xl" />
+                        )
+                      )}
+                      <div>
+                        <h4 className="font-extrabold text-white text-sm tracking-tight">{page.title}</h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-[10px] font-mono uppercase font-bold">
+                            {page.category}
+                          </span>
+                          {['mobs', 'items', 'blocks', 'dimensions', 'recipes', 'biomes'].includes(page.category) && page.addonVersion && (
+                            <span className="text-[10px] text-[#64748b] font-mono">
+                              {page.addonVersion}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[#94a3b8] line-clamp-2 leading-relaxed">
+                    {page.description}
+                  </p>
+
+                  <div className="pt-2 border-t border-[#1e293b] flex items-center justify-between text-xs">
+                    <span className="font-mono text-[#cbd5e1]">
+                      {page.itemStats?.attackDamage !== undefined ? (
+                        <span className="text-amber-300 font-bold">{page.itemStats.attackDamage} DMG</span>
+                      ) : page.mobStats?.health ? (
+                        <span className="text-rose-400 font-bold">{page.mobStats.health} HP</span>
+                      ) : (
+                        page.badge || 'Addon Wiki'
+                      )}
+                    </span>
+                    <span className="font-bold text-sky-400 flex items-center gap-1">
+                      <span>View Article</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </section>
