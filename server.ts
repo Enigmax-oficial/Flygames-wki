@@ -36,9 +36,16 @@ async function getSqlDb(): Promise<Database> {
       category TEXT NOT NULL,
       title TEXT NOT NULL,
       data TEXT NOT NULL,
+      creator_email TEXT,
       updated_at TEXT
     );
   `);
+
+  try {
+    sqlDb.run(`ALTER TABLE wiki_pages ADD COLUMN creator_email TEXT;`);
+  } catch {
+    // Column already exists
+  }
 
   sqlDb.run(`
     CREATE TABLE IF NOT EXISTS wiki_categories (
@@ -333,20 +340,40 @@ app.post(['/api/pages', '/api/sql/pages'], async (req, res) => {
     if (!page || !page.id) {
       return res.status(400).json({ success: false, message: 'Invalid page object' });
     }
+
+    const creatorEmail = (
+      page.creatorEmail ||
+      page.creator_email ||
+      page.authorEmail ||
+      req.headers['x-user-email'] ||
+      req.body.userEmail ||
+      'ruanpablolopesbritor@gmail.com'
+    ).toString().trim();
+
+    page.creatorEmail = creatorEmail;
+
     const db = await getSqlDb();
     const now = new Date().toISOString();
     const pageDataStr = JSON.stringify(page);
 
     db.run(
-      'INSERT OR REPLACE INTO wiki_pages (id, category, title, data, updated_at) VALUES (?, ?, ?, ?, ?)',
-      [page.id, page.category || 'uncategorized', page.title || page.id, pageDataStr, now]
+      'INSERT OR REPLACE INTO wiki_pages (id, category, title, data, creator_email, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        page.id,
+        page.category || 'uncategorized',
+        page.title || page.id,
+        pageDataStr,
+        creatorEmail,
+        now
+      ]
     );
     persistSqlDb();
 
     return res.json({
       success: true,
-      message: 'Page created and stored directly in SQL Database',
+      message: 'Page created and saved directly in SQLite database with creator email address',
       page,
+      creatorEmail,
       storedIn: 'SQL Database (SQLite)',
     });
   } catch (err: any) {

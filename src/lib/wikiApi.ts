@@ -260,8 +260,11 @@ export class WikiApi {
     return this.getPages();
   }
 
-  static createPage(page: WikiPage): WikiPage {
+  static createPage(page: WikiPage, userEmail?: string): WikiPage {
     const pages = this.getPages();
+    const emailToSave = userEmail || page.creatorEmail || localStorage.getItem('etherium_user_email') || 'ruanpablolopesbritor@gmail.com';
+    page.creatorEmail = emailToSave;
+
     const filteredPages = pages.filter(p => p.id !== page.id);
     const updated = [page, ...filteredPages];
     localStorage.setItem('aetheria_wiki_pages', JSON.stringify(updated));
@@ -271,11 +274,14 @@ export class WikiApi {
     // Directly save to SQL Database backend
     fetch("/api/pages", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        "X-User-Email": emailToSave
+      },
       body: JSON.stringify(page)
     }).then(res => res.json())
       .then(data => {
-        console.log("Page saved to SQL Database:", data);
+        console.log("Page saved to SQL Database with creator email:", data);
         window.dispatchEvent(new Event('wiki_data_updated'));
       })
       .catch(err => console.error("Failed to save page to SQL Database", err));

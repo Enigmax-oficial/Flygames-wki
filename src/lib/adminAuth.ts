@@ -15,6 +15,12 @@ export function decryptAdminEmail(hex: string): string {
   return result;
 }
 
-export function isAuthorizedAdminEmail(_email: string | null | undefined): boolean {
-  return true;
+export function isAuthorizedAdminEmail(email: string | null | undefined): boolean {
+  if (!email || typeof email !== 'string') return false;
+  const clean = email.toLowerCase().trim();
+  return (
+    clean === 'ruanpablolopesbritor@gmail.com' ||
+    clean === 'ruanpablolopesbritoruan@gmail.com' ||
+    clean === 'admin@etherium.net'
+  );
 }

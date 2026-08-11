@@ -75,6 +75,7 @@ export interface WikiPage {
   tags: string[];
   lastUpdated: string;
   author?: string;
+  creatorEmail?: string;
   
   // Rich Visual Showcase & Layout Fields (5framestudios styled)
   badge?: string; // e.g. "BOSS", "MOB", "WEAPON"

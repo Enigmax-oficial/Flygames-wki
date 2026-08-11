@@ -334,7 +334,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         alert('Invalid JSON: must contain at least id and title.');
         return;
       }
-      WikiApi.createPage(parsed);
+      WikiApi.createPage(parsed, userEmail || undefined);
       setCreatedPageId(parsed.id);
       setIsSuccess(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -490,7 +490,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     };
 
     // Save using the Dynamic API layer
-    WikiApi.createPage(newPage);
+    WikiApi.createPage(newPage, userEmail || undefined);
     onPageCreated(newPage);
     setCreatedPageId(slug);
     setIsSuccess(true);

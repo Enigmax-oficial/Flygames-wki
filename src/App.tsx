@@ -49,7 +49,7 @@ export default function App() {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   const handlePageCreated = (newPage: WikiPage) => {
-    WikiApi.createPage(newPage);
+    WikiApi.createPage(newPage, userEmail || undefined);
     setPages((prev) => [newPage, ...prev]);
     navigateToPage(newPage.id);
   };
