@@ -65,9 +65,14 @@ export interface WikiIconProps {
   icon: string | undefined;
   className?: string;
   customImages?: Record<string, string>;
+  category?: string;
 }
 
-export const WikiIcon = ({ icon, className = "w-4 h-4", customImages }: WikiIconProps) => {
+export const WikiIcon = ({ icon, className = "w-4 h-4", customImages, category }: WikiIconProps) => {
+  if (category === 'biomes' || icon === 'biomes') {
+    return null;
+  }
+
   if (!icon) {
     const FallbackIcon = FileText;
     return <FallbackIcon className={className} />;
@@ -78,18 +83,18 @@ export const WikiIcon = ({ icon, className = "w-4 h-4", customImages }: WikiIcon
     return <img src={icon} alt="icon" className={`${className} object-contain`} />;
   }
 
-  // Check if it resolves to an item image asset in itemAssets.ts or custom stored images
-  const assetImage = getItemImage(icon, customImages);
-  if (assetImage) {
-    return <img src={assetImage} alt={icon} className={`${className} object-contain`} />;
-  }
-
-  // Check Lucide icon mapping
+  // Check Lucide icon mapping first, to prefer vector icons for categories
   const cleanKey = icon.toLowerCase().trim();
   const IconComponent = ICON_MAP[cleanKey] || ICON_MAP[icon];
 
   if (IconComponent) {
     return <IconComponent className={className} />;
+  }
+
+  // Check if it resolves to an item image asset in itemAssets.ts or custom stored images
+  const assetImage = getItemImage(icon, customImages);
+  if (assetImage) {
+    return <img src={assetImage} alt={icon} className={`${className} object-contain`} />;
   }
 
   // Fallback to FileText icon if icon is unknown string

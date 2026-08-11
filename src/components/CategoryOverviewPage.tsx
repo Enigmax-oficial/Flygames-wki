@@ -242,17 +242,19 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
 
                 {/* Main Visual Header */}
                 <div className="flex items-start gap-3 pt-1">
-                  <div className="w-14 h-14 bg-[#0b0f19] border border-[#1e293b] rounded-xl flex items-center justify-center text-3xl shrink-0 group-hover:scale-105 transition-transform shadow-inner overflow-hidden p-1.5">
-                    {getPageCoverImage(page) ? (
-                      <img 
-                        src={getPageCoverImage(page)!} 
-                        alt={page.title} 
-                        className="w-full h-full object-contain" 
-                      />
-                    ) : (
-                      <WikiIcon icon={page.icon} className="w-7 h-7 text-sky-400" />
-                    )}
-                  </div>
+                  {(getPageCoverImage(page) || page.category !== 'biomes') && (
+                    <div className="w-14 h-14 bg-[#0b0f19] border border-[#1e293b] rounded-xl flex items-center justify-center text-3xl shrink-0 group-hover:scale-105 transition-transform shadow-inner overflow-hidden p-1.5">
+                      {getPageCoverImage(page) ? (
+                        <img 
+                          src={getPageCoverImage(page)!} 
+                          alt={page.title} 
+                          className="w-full h-full object-contain" 
+                        />
+                      ) : (
+                        <WikiIcon icon={page.icon} category={page.category} className="w-7 h-7 text-sky-400" />
+                      )}
+                    </div>
+                  )}
 
                   <div className="min-w-0 flex-1">
                     <h3 className="font-black text-white text-base group-hover:text-sky-400 transition-colors uppercase tracking-tight truncate">

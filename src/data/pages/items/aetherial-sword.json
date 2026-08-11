@@ -1,9 +1,6 @@
 {
-  "id": "aetherial-sword",
   "title": "Aetherial Sword",
-  "namespace": "aetheria:item/aetherial_sword",
   "type": "item",
-  "category": "items",
   "badge": "LEGENDARY WEAPON",
   "badgeColor": "amber",
   "description": "A legendary weapon forged with Celestial Crystals and Netherite Ingot. Grants temporary flight and levitation upon attacking.",

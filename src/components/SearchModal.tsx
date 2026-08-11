@@ -114,13 +114,15 @@ export const SearchModal: React.FC<SearchModalProps> = ({
                 className="p-3 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] hover:border-emerald-500/50 rounded cursor-pointer transition-all group flex items-center justify-between gap-3"
               >
                 <div className="flex items-start gap-3 truncate">
-                  <div className="w-10 h-10 bg-[#0c0c0c] border border-[#333] rounded flex items-center justify-center text-xl shrink-0 overflow-hidden p-1">
-                    {getPageCoverImage(page) ? (
-                      <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
-                    ) : (
-                      <WikiIcon icon={page.icon} className="w-5 h-5" />
-                    )}
-                  </div>
+                  {(getPageCoverImage(page) || page.category !== 'biomes') && (
+                    <div className="w-10 h-10 bg-[#0c0c0c] border border-[#333] rounded flex items-center justify-center text-xl shrink-0 overflow-hidden p-1">
+                      {getPageCoverImage(page) ? (
+                        <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
+                      ) : (
+                        <WikiIcon icon={page.icon} category={page.category} className="w-5 h-5" />
+                      )}
+                    </div>
+                  )}
                   <div className="truncate">
                     <div className="flex items-center gap-2">
                       <h4 className="font-bold text-white text-sm group-hover:text-emerald-400">

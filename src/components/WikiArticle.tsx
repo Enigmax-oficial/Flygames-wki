@@ -205,7 +205,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
               {getPageCoverImage(page) ? (
                 <img src={getPageCoverImage(page)!} alt={page.title} className="w-10 h-10 object-contain drop-shadow-md" />
               ) : (
-                <WikiIcon icon={page.icon} className="w-8 h-8 text-sky-400" />
+                <WikiIcon icon={page.icon} category={page.category} className="w-8 h-8 text-sky-400" />
               )}
               <span>{page.title}</span>
             </h1>
@@ -493,17 +493,19 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
       <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-[#1e293b] pb-5">
           <div className="flex items-start gap-4">
-            <div className="w-16 h-16 bg-[#0b0f19] border border-[#1e293b] rounded-2xl flex items-center justify-center text-4xl shrink-0 shadow-[0_0_15px_rgba(56,189,248,0.2)] overflow-hidden p-2">
-              {getItemImage(page.id) || (page.icon?.startsWith('data:') || page.icon?.startsWith('http') ? page.icon : null) ? (
-                <img 
-                  src={getItemImage(page.id) || page.icon} 
-                  alt={page.title} 
-                  className="w-full h-full object-contain" 
-                />
-              ) : (
-                <WikiIcon icon={page.icon} className="w-8 h-8 text-sky-400" />
-              )}
-            </div>
+            {(getItemImage(page.id) || (page.icon?.startsWith('data:') || page.icon?.startsWith('http') ? page.icon : null) || page.category !== 'biomes') && (
+              <div className="w-16 h-16 bg-[#0b0f19] border border-[#1e293b] rounded-2xl flex items-center justify-center text-4xl shrink-0 shadow-[0_0_15px_rgba(56,189,248,0.2)] overflow-hidden p-2">
+                {getItemImage(page.id) || (page.icon?.startsWith('data:') || page.icon?.startsWith('http') ? page.icon : null) ? (
+                  <img 
+                    src={getItemImage(page.id) || page.icon} 
+                    alt={page.title} 
+                    className="w-full h-full object-contain" 
+                  />
+                ) : (
+                  <WikiIcon icon={page.icon} category={page.category} className="w-8 h-8 text-sky-400" />
+                )}
+              </div>
+            )}
 
             <div>
               <div className="flex flex-wrap items-center gap-2">

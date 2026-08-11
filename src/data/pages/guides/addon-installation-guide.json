@@ -1,9 +1,6 @@
 {
-  "id": "addon-installation-guide",
   "title": "Addon Installation & Recipe Guide",
-  "namespace": "aetheria:guide/installation_guide",
   "type": "guide",
-  "category": "guides",
   "badge": "GUIDE",
   "badgeColor": "blue",
   "description": "Learn how to install the Aetheria Addon behavior and resource packs into Minecraft, enable experimental features, and craft custom recipes.",

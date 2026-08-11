@@ -345,12 +345,14 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
                       className="hover:bg-[#1e293b]/50 transition-colors cursor-pointer group"
                     >
                       <td className="py-3.5 px-5 font-bold text-white flex items-center gap-3">
-                        {getPageCoverImage(page) ? (
-                          <div className="w-8 h-8 rounded-lg bg-[#0b0f19] border border-[#1e293b] flex items-center justify-center shrink-0 overflow-hidden p-1 shadow">
-                            <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
-                          </div>
-                        ) : (
-                          <WikiIcon icon={page.icon} className="w-8 h-8 text-lg" />
+                        {(getPageCoverImage(page) || page.category !== 'biomes') && (
+                          getPageCoverImage(page) ? (
+                            <div className="w-8 h-8 rounded-lg bg-[#0b0f19] border border-[#1e293b] flex items-center justify-center shrink-0 overflow-hidden p-1 shadow">
+                              <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
+                            </div>
+                          ) : (
+                            <WikiIcon icon={page.icon} category={page.category} className="w-8 h-8 text-lg" />
+                          )
                         )}
                         <span className="group-hover:text-sky-300 transition-colors">{page.title}</span>
                       </td>

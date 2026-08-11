@@ -43,8 +43,8 @@ function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// Admin password hash for the configured password
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD ? hashPassword(process.env.ADMIN_PASSWORD) : '764db7d1b0fd9d8686646266120c04bbbe5c1df9107b39c16754e538b3cce756';
+// Admin password hash for the configured password (hash of hd189733b)
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD ? hashPassword(process.env.ADMIN_PASSWORD) : 'e527cfef2116eeda9f0b392baaa448dca44435333653726e1dafff8052445e43';
 
 // API Routes
 app.get('/api/health', (req, res) => {

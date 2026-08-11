@@ -1,0 +1,57 @@
+{
+  "title": "Celestial Forest Biome",
+  "type": "biome",
+  "badge": "BIOME",
+  "badgeColor": "purple",
+  "description": "A mystical biome featuring floating islands, luminous trees, and rare magical resources.",
+  "addonVersion": "v1.4.0",
+  "icon": "celestial-forest-biome",
+  "renderImageUrl": "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80",
+  "bannerImageUrl": "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=1200&q=80",
+  "images": [
+    "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80",
+    "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80"
+  ],
+  "gallery": [
+    {
+      "url": "https://images.unsplash.com/photo-1541701494587-cb58502866ab?auto=format&fit=crop&w=800&q=80",
+      "title": "Celestial Canopy",
+      "caption": "Luminous leaves shimmer with faint violet and blue hues in the twilight."
+    }
+  ],
+  "tags": ["biome", "forest", "celestial", "magic", "generation"],
+  "lastUpdated": "2026-08-09",
+  "author": "Aetheria World Gen Team",
+  "biomeStats": {
+    "climate": "Magical",
+    "grassColor": "#a855f7",
+    "structures": ["Celestial Altar", "Floating Island Ruins"],
+    "mobsSpawning": ["aetheria:void_stalker", "aetheria:crystalline_berserker"]
+  },
+  "behaviorBullets": [
+    "Generates at higher elevations above Y: 120 as floating island chains",
+    "Luminous trees emit permanent light level 10 to ward off regular hostile mobs",
+    "Magical springs restore 1 health point per second to players who stand in them",
+    "Celestial Vines can be harvested and woven into extremely durable climbing ropes"
+  ],
+  "behaviorMeta": {
+    "biomes": "Sky Realms & High Plateaus",
+    "groupSize": "Floating Islands"
+  },
+  "difficultyStats": [
+    { "difficulty": "Easy", "health": "Friendly Spirits Spawning", "attack": "Low Hazard", "icon": "🟩", "color": "emerald" },
+    { "difficulty": "Normal", "health": "Standard Void Stalker Density", "attack": "Fall Hazard", "icon": "🟧", "color": "amber" },
+    { "difficulty": "Hard", "health": "Elite Phantoms", "attack": "Void Pressure Risks", "icon": "🟥", "color": "rose" }
+  ],
+  "dropsTable": [
+    { "item": "Celestial Wood Log", "amount": "1–4", "chance": "100%", "icon": "wood" },
+    { "item": "Luminous Spores", "amount": "2–8", "chance": "60% Leaves", "icon": "sparkles" },
+    { "item": "Astral Essence Core", "amount": "1", "chance": "5% Floating Ruins", "icon": "star" }
+  ],
+  "sections": [
+    {
+      "title": "Biome Overview & Exploration",
+      "content": "The **Celestial Forest** is an enchanting floating ecosystem that represents the pinnacle of the Sky Realms. High above the ground, these islands are tethered together by giant celestial vines.\n\n- **Zero-Gravity Pockets:** Some valleys feature micro-gravity where players jump 2x higher.\n- **Luminescent Flora:** Luminous trees illuminate the night and provide celestial wood.\n- **Floating Ruins:** Ancient altars containing celestial maps and rare runes can be found scattered across major islands."
+    }
+  ]
+}

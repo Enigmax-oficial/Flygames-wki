@@ -49,13 +49,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   const dynamicCategories = WikiApi.getCategories();
 
   const renderSidebarIcon = (catId: string, iconStr: string) => {
-    if (catId === 'mobs') return <img src="/images/categories/mobs.png" alt="Mobs" className="w-4 h-4 object-contain" />;
-    if (catId === 'items') return <img src="/images/weapons/copper_sword.png" alt="Items" className="w-4 h-4 object-contain" />;
-    if (catId === 'blocks') return <img src="/images/categories/blocks.png" alt="Blocks" className="w-4 h-4 object-contain" />;
-    if (catId === 'recipes') return <img src="/images/categories/recipes.png" alt="Recipes" className="w-4 h-4 object-contain" />;
-    if (catId === 'biomes') return <img src="/images/categories/biomes.png" alt="Biomes" className="w-4 h-4 object-contain" />;
-    if (catId === 'guides') return <img src="/images/categories/guides.png" alt="Guides" className="w-4 h-4 object-contain" />;
-    return <WikiIcon icon={iconStr || 'item'} className="w-4 h-4" />;
+    return <WikiIcon icon={catId || iconStr || 'item'} className="w-4 h-4 text-sky-400" />;
   };
 
   return (
@@ -198,12 +192,14 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-2 truncate">
-                  {getPageCoverImage(page) ? (
-                    <div className="w-5 h-5 rounded bg-[#0b0f19] border border-[#1e293b] flex items-center justify-center shrink-0 overflow-hidden p-0.5">
-                      <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
-                    </div>
-                  ) : (
-                    <WikiIcon icon={page.icon} className="w-5 h-5 text-sm" />
+                  {(getPageCoverImage(page) || page.category !== 'biomes') && (
+                    getPageCoverImage(page) ? (
+                      <div className="w-5 h-5 rounded bg-[#0b0f19] border border-[#1e293b] flex items-center justify-center shrink-0 overflow-hidden p-0.5">
+                        <img src={getPageCoverImage(page)!} alt={page.title} className="w-full h-full object-contain" />
+                      </div>
+                    ) : (
+                      <WikiIcon icon={page.icon} category={page.category} className="w-5 h-5 text-sm" />
+                    )
                   )}
                   <span className="truncate">{page.title}</span>
                 </div>

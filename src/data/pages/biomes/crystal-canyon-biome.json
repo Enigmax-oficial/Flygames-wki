@@ -1,9 +1,6 @@
 {
-  "id": "crystal-canyon-biome",
   "title": "Crystal Canyon Biome",
-  "namespace": "aetheria:biome/crystal_canyon",
   "type": "biome",
-  "category": "biomes",
   "badge": "BIOME",
   "badgeColor": "purple",
   "description": "Subterranean canyon biome filled with glowing crystals, rare mineral veins, and dangerous subterranean bosses.",

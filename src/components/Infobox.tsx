@@ -51,7 +51,7 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
               className="w-full h-full object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
             />
           ) : (
-            <WikiIcon icon={page.icon} className="w-6 h-6 text-xl" />
+            <WikiIcon icon={page.icon} category={page.category} className="w-6 h-6 text-xl" />
           )}
         </div>
         <div className="absolute bottom-2 right-2 text-[10px] font-mono text-[#555]">
