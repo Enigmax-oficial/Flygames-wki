@@ -432,67 +432,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     );
   }
 
-  // Download Page JSON helper
-  const handleDownloadJson = () => {
-    const slug = title.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'new-wiki-page';
-    const bullets = [bullet1, bullet2].filter(b => b.trim() !== '');
-    const activeImage = imageSource === 'preset' ? selectedPresetImage : customImageUrl;
-    const customPropsRecord: Record<string, string> = {};
-    if (model3DKey) customPropsRecord['3D Model Key'] = model3DKey;
-    if (model3DTexture) customPropsRecord['Texture URL'] = model3DTexture;
-    customPropsList.forEach(p => {
-      if (p.key.trim() && p.value.trim()) {
-        customPropsRecord[p.key.trim()] = p.value.trim();
-      }
-    });
-
-    const pageObj: WikiPage = {
-      id: slug,
-      title: title || 'Untitled Page',
-      namespace: namespace || `aetheria:${slug}`,
-      category: selectedCatId,
-      description: description || 'Addon wiki entry.',
-      addonVersion: 'v1.4.0',
-      icon: icon || '📄',
-      renderImageUrl: activeImage || undefined,
-      bannerImageUrl: bannerImageUrl || undefined,
-      images: texturesStr ? texturesStr.split(',').map(s => s.trim()).filter(Boolean) : undefined,
-      customProperties: Object.keys(customPropsRecord).length > 0 ? customPropsRecord : undefined,
-      tags: [selectedCatId, 'Custom', 'Admin Created'],
-      lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      badge: badge || selectedCatId.toUpperCase(),
-      badgeColor,
-      behaviorBullets: bullets.length > 0 ? bullets : undefined,
-      difficultyStats: difficultyStats.length > 0 ? difficultyStats : undefined,
-      movementSpeed: movementSpeed || undefined,
-      dropsTable: dropsTable.length > 0 ? dropsTable : undefined,
-      sections: [
-        {
-          title: sectionTitle || 'Description',
-          content: sectionContent || description || 'No content provided.'
-        }
-      ]
-    };
-
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(pageObj, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `${pageObj.id}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
-
-  const handleDownloadExistingPageJson = (p: WikiPage) => {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(p, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", dataStr);
-    downloadAnchor.setAttribute("download", `${p.id}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
-
   // Handle Page submission
   const handleSubmitPage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1223,16 +1162,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-[1.01] active:scale-98 cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>Instantiate & Publish Article</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadJson}
-                  className="px-5 py-3 bg-[#1e293b] hover:bg-[#334155] border border-slate-700 text-sky-400 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shrink-0"
-                  title="Download JSON file for this page"
-                >
-                  <FileJson className="w-4 h-4" />
-                  <span>Download JSON File</span>
+                  <span>Create Page in SQL Database</span>
                 </button>
               </div>
 
@@ -1306,14 +1236,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         <span className="text-[9px] px-2 py-0.5 bg-sky-500/10 text-sky-400 rounded border border-sky-500/20 font-medium max-w-[110px] truncate" title={formatCategoryName(cp.category)}>
                           {formatCategoryName(cp.category)}
                         </span>
-                        
-                        <button
-                          onClick={() => handleDownloadExistingPageJson(cp)}
-                          className="p-1.5 bg-[#1a1a2e] hover:bg-sky-950/40 border border-slate-800 hover:border-sky-500/30 text-[#64748b] hover:text-sky-400 rounded transition cursor-pointer"
-                          title="Download page JSON"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                        </button>
 
                         <button
                           onClick={() => {

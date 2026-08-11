@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "templateId": "guide-template",
-  "name": "Guide / Progression Tutorial Template",
+  "name": "Guide / Progression Tutorial",
   "category": "guides",
   "description": "Template for tutorials, survival guides, boss order guides, and FAQs.",
   "defaultData": {

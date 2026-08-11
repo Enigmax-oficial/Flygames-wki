@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "templateId": "mob-template",
-  "name": "Mob / Entity / Boss Template",
+  "name": "Mob / Entity / Boss",
   "category": "mobs",
-  "description": "Template for entities, hostile or passive mobs, and bosses.",
+  "description": "Schema for entities, hostile or passive mobs, and bosses.",
   "defaultData": {
     "id": "mob-name",
     "title": "Entity Name",

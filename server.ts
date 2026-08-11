@@ -3,8 +3,62 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import crypto from 'crypto';
 import fs from 'fs';
+import initSqlJs, { Database } from 'sql.js';
+import { isAuthorizedAdminEmail } from './src/lib/adminAuth';
 
-// Helper to scan a directory recursively for functional images (excluding 0-byte placeholders)
+const app = express();
+const PORT = 3000;
+
+app.use(express.json({ limit: '10mb' }));
+
+// SQLite SQL Database initialization via sql.js
+let sqlDb: Database | null = null;
+const DB_FILE_PATH = path.join(process.cwd(), 'src', 'db', 'wiki.sqlite');
+
+async function getSqlDb(): Promise<Database> {
+  if (sqlDb) return sqlDb;
+  const SQL = await initSqlJs();
+  if (fs.existsSync(DB_FILE_PATH)) {
+    const fileBuffer = fs.readFileSync(DB_FILE_PATH);
+    sqlDb = new SQL.Database(fileBuffer);
+  } else {
+    sqlDb = new SQL.Database();
+  }
+
+  // Create standard SQL tables
+  sqlDb.run(`
+    CREATE TABLE IF NOT EXISTS wiki_pages (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      data TEXT NOT NULL,
+      updated_at TEXT
+    );
+  `);
+
+  sqlDb.run(`
+    CREATE TABLE IF NOT EXISTS wiki_categories (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      data TEXT NOT NULL
+    );
+  `);
+
+  persistSqlDb();
+  return sqlDb;
+}
+
+function persistSqlDb() {
+  if (sqlDb) {
+    const binaryArray = sqlDb.export();
+    const buffer = Buffer.from(binaryArray);
+    const dir = path.dirname(DB_FILE_PATH);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(DB_FILE_PATH, buffer);
+  }
+}
+
+// Helper to scan a directory recursively for functional images
 function scanDirRecursive(dirPath: string, rootDir: string): string[] {
   let results: string[] = [];
   if (!fs.existsSync(dirPath)) return results;
@@ -16,7 +70,6 @@ function scanDirRecursive(dirPath: string, rootDir: string): string[] {
       if (stat && stat.isDirectory()) {
         results = results.concat(scanDirRecursive(fullPath, rootDir));
       } else {
-        // Only include functional image files that have content (greater than 0 bytes)
         if (/\.(png|jpe?g|gif|svg|webp)$/i.test(file) && stat.size > 0) {
           const relPath = '/' + path.relative(rootDir, fullPath).replace(/\\/g, '/');
           results.push(relPath);
@@ -29,26 +82,18 @@ function scanDirRecursive(dirPath: string, rootDir: string): string[] {
   return results;
 }
 
-const app = express();
-const PORT = 3000;
-
-app.use(express.json());
-
-// In-memory SQL Server simulation table storage (backed by persistent structures)
-let dbPages: any[] = [];
-let dbCategories: any[] = [];
-
-// Helper to hash password with SHA-256 (Encrypted Password check)
+// Helper to hash password with SHA-256
 function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password).digest('hex');
 }
 
-// Admin password hash for the configured password (hash of hd189733b)
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD ? hashPassword(process.env.ADMIN_PASSWORD) : 'e527cfef2116eeda9f0b392baaa448dca44435333653726e1dafff8052445e43';
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD
+  ? hashPassword(process.env.ADMIN_PASSWORD)
+  : 'e527cfef2116eeda9f0b392baaa448dca44435333653726e1dafff8052445e43';
 
 // API Routes
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', sqlServer: 'connected', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', sqlServer: 'connected', databaseEngine: 'SQLite (sql.js)', timestamp: new Date().toISOString() });
 });
 
 // Endpoint to list all functional wiki image assets
@@ -75,7 +120,7 @@ app.post('/auth/google', (req, res) => {
     if (parts.length === 3) {
       const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
       const expectedClientId = '309962205395-c36qhp6n9qold6kcd5ii3d4t3q04qvt9.apps.googleusercontent.com';
-      
+
       return res.json({
         success: true,
         user: {
@@ -84,7 +129,7 @@ app.post('/auth/google', (req, res) => {
           picture: payload.picture,
           sub: payload.sub,
         },
-        audMatches: payload.aud === expectedClientId
+        audMatches: payload.aud === expectedClientId,
       });
     }
   } catch (err) {
@@ -94,10 +139,7 @@ app.post('/auth/google', (req, res) => {
   return res.json({ success: true, message: 'ID token received' });
 });
 
-
-import { isAuthorizedAdminEmail } from './src/lib/adminAuth';
-
-// Verify Admin Password (Encrypted check)
+// Verify Admin Password
 app.post('/api/admin/verify', (req, res) => {
   const { email, password } = req.body;
   if (!email || !isAuthorizedAdminEmail(email)) {
@@ -112,68 +154,110 @@ app.post('/api/admin/verify', (req, res) => {
   }
 });
 
-// Local JSON file generation endpoint
-app.post('/api/pages', async (req, res) => {
+// SQL Database Endpoints for Wiki Pages
+app.get(['/api/pages', '/api/sql/pages'], async (req, res) => {
+  try {
+    const db = await getSqlDb();
+    const stmt = db.prepare('SELECT data FROM wiki_pages');
+    const pages: any[] = [];
+    while (stmt.step()) {
+      const row = stmt.getAsObject();
+      if (row.data) {
+        try {
+          pages.push(JSON.parse(row.data as string));
+        } catch {}
+      }
+    }
+    stmt.free();
+    res.json({ success: true, pages, storedIn: 'SQL Database (SQLite)' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post(['/api/pages', '/api/sql/pages'], async (req, res) => {
   try {
     const page = req.body;
-    if (!page || !page.id || !page.category) {
+    if (!page || !page.id) {
       return res.status(400).json({ success: false, message: 'Invalid page object' });
     }
-    
-    // Determine target directory: src/data/pages/<category>
-    const targetDir = path.join(process.cwd(), 'src', 'data', 'pages', page.category);
-    
-    // Ensure directory exists
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
-    }
-    
-    const filename = `${page.id}.json`;
-    const filepath = path.join(targetDir, filename);
-    
-    // Write JSON file
-    fs.writeFileSync(filepath, JSON.stringify(page, null, 2), 'utf-8');
-    
-    return res.json({ success: true, message: 'Page JSON created successfully', path: filepath });
+    const db = await getSqlDb();
+    const now = new Date().toISOString();
+    const pageDataStr = JSON.stringify(page);
+
+    db.run(
+      'INSERT OR REPLACE INTO wiki_pages (id, category, title, data, updated_at) VALUES (?, ?, ?, ?, ?)',
+      [page.id, page.category || 'uncategorized', page.title || page.id, pageDataStr, now]
+    );
+    persistSqlDb();
+
+    return res.json({
+      success: true,
+      message: 'Page created and stored directly in SQL Database',
+      page,
+      storedIn: 'SQL Database (SQLite)',
+    });
   } catch (err: any) {
-    console.error('Error saving page JSON:', err);
+    console.error('Error saving page to SQL DB:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// SQL Sync Endpoints for Wiki Pages & Categories
-app.get('/api/sql/pages', (req, res) => {
-  res.json({ success: true, pages: dbPages });
+app.delete(['/api/pages/:id', '/api/sql/pages/:id'], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const db = await getSqlDb();
+    db.run('DELETE FROM wiki_pages WHERE id = ?', [id]);
+    persistSqlDb();
+    res.json({ success: true, message: `Page '${id}' deleted from SQL Database` });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-app.post('/api/sql/pages', (req, res) => {
-  const page = req.body;
-  if (!page || !page.id) {
-    return res.status(400).json({ success: false, message: 'Invalid page object' });
+// SQL Database Endpoints for Categories
+app.get(['/api/categories', '/api/sql/categories'], async (req, res) => {
+  try {
+    const db = await getSqlDb();
+    const stmt = db.prepare('SELECT data FROM wiki_categories');
+    const categories: any[] = [];
+    while (stmt.step()) {
+      const row = stmt.getAsObject();
+      if (row.data) {
+        try {
+          categories.push(JSON.parse(row.data as string));
+        } catch {}
+      }
+    }
+    stmt.free();
+    res.json({ success: true, categories, storedIn: 'SQL Database (SQLite)' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
-  const existingIdx = dbPages.findIndex(p => p.id === page.id);
-  if (existingIdx >= 0) {
-    dbPages[existingIdx] = page;
-  } else {
-    dbPages.push(page);
-  }
-  res.json({ success: true, page, storedIn: 'SQL Server Database' });
 });
 
-app.get('/api/sql/categories', (req, res) => {
-  res.json({ success: true, categories: dbCategories });
-});
-
-app.post('/api/sql/categories', (req, res) => {
-  const category = req.body;
-  if (!category || !category.id) {
-    return res.status(400).json({ success: false, message: 'Invalid category object' });
+app.post(['/api/categories', '/api/sql/categories'], async (req, res) => {
+  try {
+    const category = req.body;
+    if (!category || !category.id) {
+      return res.status(400).json({ success: false, message: 'Invalid category object' });
+    }
+    const db = await getSqlDb();
+    db.run(
+      'INSERT OR REPLACE INTO wiki_categories (id, label, data) VALUES (?, ?, ?)',
+      [category.id, category.label || category.id, JSON.stringify(category)]
+    );
+    persistSqlDb();
+    res.json({ success: true, category, storedIn: 'SQL Database (SQLite)' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
-  dbCategories.push(category);
-  res.json({ success: true, category, storedIn: 'SQL Server Database' });
 });
 
 async function startServer() {
+  // Pre-initialize SQL DB
+  await getSqlDb();
+
   // Vite middleware setup for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -190,7 +274,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[SQL Server & Express] Server running on http://localhost:${PORT}`);
+    console.log(`[SQL Database Server & Express] Server running on http://localhost:${PORT}`);
   });
 }
 

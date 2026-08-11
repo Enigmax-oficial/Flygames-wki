@@ -230,34 +230,34 @@ export class WikiApi {
       if (del) deletedIds = JSON.parse(del);
     } catch {}
 
-    // If a page exists in INITIAL_WIKI_PAGES (the JSON files), ensure it's not blocked by old delete state
-    const initialIds = new Set(INITIAL_WIKI_PAGES.map(p => p.id));
-    const activeDeletedIds = deletedIds.filter(id => !initialIds.has(id));
-    if (activeDeletedIds.length !== deletedIds.length) {
+    const saved = localStorage.getItem('aetheria_wiki_pages');
+    if (saved) {
       try {
-        localStorage.setItem('aetheria_deleted_page_ids', JSON.stringify(activeDeletedIds));
-      } catch {}
-      deletedIds = activeDeletedIds;
-    }
-
-    const activeInitialPages = INITIAL_WIKI_PAGES.filter(p => !deletedIds.includes(p.id));
-
-    try {
-      const saved = localStorage.getItem('aetheria_wiki_pages');
-      if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          const customPages = parsed.filter(p => p.isCustom || p.tags?.includes('Custom'));
-          const validCustomPages = customPages.filter(p => !deletedIds.includes(p.id));
-          
-          const uniqueMap = new Map<string, WikiPage>();
-          for (const p of activeInitialPages) uniqueMap.set(p.id, p);
-          for (const p of validCustomPages) uniqueMap.set(p.id, p);
-          return Array.from(uniqueMap.values());
+          return parsed.filter(p => !deletedIds.includes(p.id));
+        }
+      } catch {}
+    }
+    return [];
+  }
+
+  static async fetchPagesFromSql(): Promise<WikiPage[]> {
+    try {
+      const res = await fetch('/api/pages');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.pages)) {
+          const sqlPages: WikiPage[] = data.pages;
+          localStorage.setItem('aetheria_wiki_pages', JSON.stringify(sqlPages));
+          window.dispatchEvent(new Event('wiki_data_updated'));
+          return sqlPages;
         }
       }
-    } catch {}
-    return activeInitialPages;
+    } catch (e) {
+      console.warn('Failed to fetch pages from SQL DB:', e);
+    }
+    return this.getPages();
   }
 
   static createPage(page: WikiPage): WikiPage {
@@ -267,14 +267,25 @@ export class WikiApi {
     localStorage.setItem('aetheria_wiki_pages', JSON.stringify(updated));
 
     window.dispatchEvent(new Event('wiki_data_updated'));
-    fetch("/api/pages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(page) }).catch(err => console.error("Failed to save JSON", err));
+
+    // Directly save to SQL Database backend
+    fetch("/api/pages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(page)
+    }).then(res => res.json())
+      .then(data => {
+        console.log("Page saved to SQL Database:", data);
+        window.dispatchEvent(new Event('wiki_data_updated'));
+      })
+      .catch(err => console.error("Failed to save page to SQL Database", err));
+
     return page;
   }
 
   static deletePage(pageId: string): boolean {
     const pages = this.getPages();
     const exists = pages.some(p => p.id === pageId);
-    if (!exists) return false;
 
     try {
       const del = localStorage.getItem('aetheria_deleted_page_ids');
@@ -289,7 +300,12 @@ export class WikiApi {
     localStorage.setItem('aetheria_wiki_pages', JSON.stringify(filtered));
 
     window.dispatchEvent(new Event('wiki_data_updated'));
-    return true;
+
+    // Send delete query to SQL Database
+    fetch(`/api/pages/${encodeURIComponent(pageId)}`, { method: "DELETE" })
+      .catch(err => console.error("Failed to delete page from SQL Database", err));
+
+    return exists;
   }
 
   // Preset Images helper

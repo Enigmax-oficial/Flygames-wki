@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "templateId": "recipe-template",
-  "name": "Recipe / Crafting Template",
+  "name": "Recipe / Crafting",
   "category": "recipes",
   "description": "Template for documenting crafting recipes, forge formulas, or rituals.",
   "defaultData": {

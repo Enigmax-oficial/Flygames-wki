@@ -6,7 +6,7 @@ import {
   Crown, 
   Mail, 
   ShieldCheck, 
-  Download, 
+  Database, 
   LogOut, 
   Edit3, 
   Check, 
@@ -19,7 +19,6 @@ import {
   Award,
   Settings
 } from 'lucide-react';
-import { downloadTemplateScript, downloadGlobalPageCreator } from '../templates/PageCreator';
 import { WikiPage } from '../types/wiki';
 import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 
@@ -252,23 +251,13 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 <div className="bg-[#111827] border border-amber-500/30 rounded-2xl p-5 space-y-3">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-amber-400 flex items-center gap-2">
                     <Crown className="w-4 h-4 text-amber-400" />
-                    <span>Administrator Shortcut Downloads</span>
+                    <span>Administrator SQL Database Status</span>
                   </h3>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <button
-                      onClick={() => downloadTemplateScript('Etherium Shadow Blade', 'items', 'aetheria:shadow_blade')}
-                      className="px-3.5 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer"
-                    >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>Download Template JS</span>
-                    </button>
-                    <button
-                      onClick={() => downloadGlobalPageCreator()}
-                      className="px-3.5 py-2 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer"
-                    >
-                      <FileCode className="w-3.5 h-3.5" />
-                      <span>Download PageCreator.ts</span>
-                    </button>
+                    <div className="px-3.5 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-2">
+                      <Database className="w-3.5 h-3.5" />
+                      <span>SQL Database Connected (SQLite / Express Backend)</span>
+                    </div>
                   </div>
                 </div>
               )}

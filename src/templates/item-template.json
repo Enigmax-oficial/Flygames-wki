@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "templateId": "item-template",
-  "name": "Item / Equipment Template",
+  "name": "Item / Equipment",
   "category": "items",
-  "description": "Standard template for creating weapon, tool, armor, or general item pages.",
+  "description": "Standard schema for creating weapon, tool, armor, or general item pages.",
   "defaultData": {
     "id": "item-name",
     "title": "Item Name",

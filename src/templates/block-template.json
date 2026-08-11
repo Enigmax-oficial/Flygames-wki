@@ -1,9 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "templateId": "block-template",
-  "name": "Block / Ore Template",
+  "name": "Block / Ore",
   "category": "blocks",
-  "description": "Template for decorative blocks, ores, workstations, or special stone blocks.",
+  "description": "Schema for decorative blocks, ores, workstations, or special stone blocks.",
   "defaultData": {
     "id": "block-name",
     "title": "Block Name",

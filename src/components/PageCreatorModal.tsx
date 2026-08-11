@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
-import { PageCreator, downloadTemplateScript } from '../templates/PageCreator';
+import { PageCreator } from '../templates/PageCreator';
 import { WikiApi, PRESET_IMAGES } from '../lib/wikiApi';
 import { WikiIcon } from './WikiIcon';
 import { ITEM_IMAGES } from '../data/itemAssets';
@@ -11,7 +11,7 @@ import {
   Box, 
   Sparkles, 
   CheckCircle,
-  Download,
+  Database,
   Code,
   Zap,
   Sword
@@ -565,21 +565,10 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
 
           {/* Footer Submit */}
           <div className="pt-3 border-t border-[#1e293b] flex flex-wrap items-center justify-between gap-3">
-            {inputMode === 'form' ? (
-              <button
-                type="button"
-                onClick={() => downloadTemplateScript(title || 'New Item', category, namespace || 'aetheria:custom_item')}
-                className="px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl font-bold flex items-center gap-2 cursor-pointer transition-all"
-                title="Download executable JavaScript/TypeScript template script for source code implementation"
-              >
-                <Download className="w-4 h-4 text-amber-400" />
-                <span>Download Template JS</span>
-              </button>
-            ) : (
-              <div className="text-[11px] text-[#64748b]">
-                💡 Tip: Ensure JSON schema matches standard `WikiPage` attributes.
-              </div>
-            )}
+            <div className="px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5">
+              <Database className="w-3.5 h-3.5" />
+              <span>Saves directly to SQL Database</span>
+            </div>
 
             <div className="flex items-center gap-2">
               <button
@@ -594,7 +583,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                 className="px-6 py-2 bg-sky-500 hover:bg-sky-400 text-black font-bold rounded-xl shadow-[0_0_20px_rgba(56,189,248,0.4)] cursor-pointer active:scale-95 flex items-center gap-2"
               >
                 <CheckCircle className="w-4 h-4" />
-                <span>{inputMode === 'json' ? 'Import & Publish JSON' : 'Instantiate & Publish Page'}</span>
+                <span>Save to SQL Database</span>
               </button>
             </div>
           </div>

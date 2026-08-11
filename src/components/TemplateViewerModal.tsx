@@ -116,18 +116,10 @@ export const TemplateViewerModal: React.FC<TemplateViewerModalProps> = ({ isOpen
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCopy}
-                  className="px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#252525] text-[#ccc] rounded text-xs font-semibold flex items-center gap-1.5 border border-[#333]"
+                  className="px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#252525] text-[#ccc] rounded text-xs font-semibold flex items-center gap-1.5 border border-[#333] cursor-pointer"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copied ? 'Copied' : 'Copy'}</span>
-                </button>
-
-                <button
-                  onClick={handleDownload}
-                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-black font-bold rounded text-xs flex items-center gap-1.5 shadow"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download File</span>
+                  <span>{copied ? 'Copied' : 'Copy Schema'}</span>
                 </button>
               </div>
             </div>
