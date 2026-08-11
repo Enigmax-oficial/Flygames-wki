@@ -34,6 +34,7 @@
     "react-dom": "^19.0.1",
     "react-router-dom": "^7.18.2",
     "sql.js": "^1.14.1",
+    "sql.js-httpvfs": "^0.8.12",
     "three": "^0.185.1",
     "vite": "^6.2.3"
   },

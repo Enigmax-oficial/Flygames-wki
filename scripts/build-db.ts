@@ -111,6 +111,11 @@ async function buildDatabase() {
   fs.writeFileSync(dbPath, buffer);
   console.log(`📄 Wrote ${buffer.byteLength} bytes to ${dbPath}`);
 
+  // Write to public/data.sqlite as well
+  const dataDbPath = path.join(process.cwd(), 'public', 'data.sqlite');
+  fs.writeFileSync(dataDbPath, buffer);
+  console.log(`📄 Wrote ${buffer.byteLength} bytes to ${dataDbPath}`);
+
   // Auto-generate config.json describing database URL, page size, chunk size
   const config = {
     serverMode: 'vfs-http-range',
@@ -127,6 +132,15 @@ async function buildDatabase() {
   const configPath = path.join(outputDir, 'config.json');
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
   console.log(`⚙️ Wrote config file to ${configPath}`);
+
+  // Generate data.config.json pointing to /data.sqlite
+  const dataConfig = {
+    ...config,
+    databaseUrl: '/data.sqlite',
+  };
+  const dataConfigPath = path.join(process.cwd(), 'public', 'data.config.json');
+  fs.writeFileSync(dataConfigPath, JSON.stringify(dataConfig, null, 2), 'utf-8');
+  console.log(`⚙️ Wrote data config file to ${dataConfigPath}`);
 
   db.close();
   console.log('🎉 Database build complete!');

@@ -1,6 +1,6 @@
 {
   "serverMode": "vfs-http-range",
-  "databaseUrl": "/db/dataset.sqlite",
+  "databaseUrl": "/data.sqlite",
   "pageSize": 4096,
   "requestChunkSize": 4096,
   "totalSize": 602112,
