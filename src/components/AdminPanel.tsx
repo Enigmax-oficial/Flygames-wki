@@ -43,9 +43,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onSelectPage
 }) => {
   
-  // Encrypted Password State
+  // Encrypted Credentials State
   const isAuthorized = isAuthorizedAdminEmail(userEmail);
 
+  const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return sessionStorage.getItem('admin_auth_verified') === 'true';
@@ -58,9 +59,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setAuthError('');
     setIsVerifying(true);
 
-    const trimmedInput = passwordInput.trim();
+    const trimmedUser = usernameInput.trim();
+    const trimmedPass = passwordInput.trim();
 
-    if (trimmedInput === 'hd189733b') {
+    if (trimmedUser === 'adm' && trimmedPass === 'hd189733b') {
       setIsAdminAuthenticated(true);
       sessionStorage.setItem('admin_auth_verified', 'true');
       setIsVerifying(false);
@@ -71,7 +73,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       const res = await fetch('/api/admin/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail, password: trimmedInput })
+        body: JSON.stringify({ username: trimmedUser, password: trimmedPass, email: userEmail })
       });
       const data = await res.json() as any;
 
@@ -79,14 +81,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         setIsAdminAuthenticated(true);
         sessionStorage.setItem('admin_auth_verified', 'true');
       } else {
-        setAuthError(data.message || 'Incorrect administrator password.');
+        setAuthError(data.message || 'Incorrect administrator username or password.');
       }
     } catch {
-      if (trimmedInput === 'hd189733b') {
+      if (trimmedUser === 'adm' && trimmedPass === 'hd189733b') {
         setIsAdminAuthenticated(true);
         sessionStorage.setItem('admin_auth_verified', 'true');
       } else {
-        setAuthError('Incorrect administrator password.');
+        setAuthError('Incorrect administrator username or password.');
       }
     } finally {
       setIsVerifying(false);
@@ -444,22 +446,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <Crown className="w-7 h-7" />
         </div>
         <div className="space-y-2">
-          <h2 className="text-xl font-bold text-white">Authentication 2.0</h2>
+          <h2 className="text-xl font-bold text-white">Administrator Access Control</h2>
           <p className="text-xs text-slate-400">
-            Welcome, <span className="text-amber-400 font-mono">{userEmail}</span>. Please enter the secure administrator password to unlock the SQL Admin Panel.
+            Welcome, <span className="text-amber-400 font-mono">{userEmail}</span>. Please enter the administrator username and password to unlock the Admin Panel.
           </p>
         </div>
 
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <div>
-            <input
-              type="password"
-              placeholder="Enter Authentication 2.0 Password"
-              value={passwordInput}
-              onChange={(e) => setPasswordInput(e.target.value)}
-              className="w-full px-4 py-3 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest text-center"
-              autoFocus
-            />
+          <div className="space-y-3">
+            <div>
+              <label className="block text-left text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                Admin Username
+              </label>
+              <input
+                type="text"
+                placeholder="Username (e.g. adm)"
+                value={usernameInput}
+                onChange={(e) => setUsernameInput(e.target.value)}
+                className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono text-center"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-left text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                Admin Password
+              </label>
+              <input
+                type="password"
+                placeholder="Password"
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest text-center"
+              />
+            </div>
           </div>
 
           {authError && (

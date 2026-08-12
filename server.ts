@@ -204,33 +204,30 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Verify Admin Password Endpoint
+// Verify Admin Credentials Endpoint
 app.post('/api/admin/verify', async (req, res) => {
   try {
-    const { password, email } = req.body;
+    const { username, password, email } = req.body;
+    const inputUsername = (username || '').trim();
     const inputPassword = (password || '').trim();
     const inputHash = hashPassword(inputPassword);
 
-    if (
+    const isUsernameValid = inputUsername === 'adm' || hashPassword(inputUsername) === '2b1f868d4073356885df1f9b33e2182d8c36ec3b90b1062a3f7f0df88e5d2222';
+    const isPasswordValid =
       inputPassword === 'hd189733b' ||
       VALID_ADMIN_PASSWORDS.includes(inputPassword) ||
-      VALID_ADMIN_HASHES.has(inputHash)
-    ) {
+      VALID_ADMIN_HASHES.has(inputHash);
+
+    if (isUsernameValid && isPasswordValid) {
       return res.json({ success: true, message: 'Authentication successful via Cloudflare D1.' });
     }
 
-    if (email) {
-      const u = inMemoryUsers.find(user => user.email === email.toLowerCase().trim());
-      if (u && u.password_hash === inputHash) {
-        return res.json({ success: true, message: 'Authentication successful via Cloudflare D1 user account.' });
-      }
-    }
-
-    return res.status(401).json({ success: false, message: 'Incorrect administrator password.' });
+    return res.status(401).json({ success: false, message: 'Incorrect administrator username or password.' });
   } catch (err: any) {
     console.error('Admin verify error:', err);
+    const inputUsername = (req.body?.username || '').trim();
     const inputPassword = (req.body?.password || '').trim();
-    if (inputPassword === 'hd189733b') {
+    if (inputUsername === 'adm' && inputPassword === 'hd189733b') {
       return res.json({ success: true, message: 'Authentication successful (D1 fallback).' });
     }
     return res.status(500).json({ success: false, message: 'Authentication server error' });

@@ -20,7 +20,6 @@ export function isAuthorizedAdminEmail(email: string | null | undefined): boolea
   const clean = email.toLowerCase().trim();
   return (
     clean === 'ruanpablolopesbritor@gmail.com' ||
-    clean === 'ruanpablolopesbritoruan@gmail.com' ||
-    clean === 'admin@etherium.net'
+    clean === 'ruanpablolopesbritoruan@gmail.com'
   );
 }

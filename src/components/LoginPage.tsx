@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Lock, Mail, LogIn, CheckCircle2, ShieldCheck, AlertCircle, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, AlertCircle, ArrowLeft } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 
@@ -9,76 +9,9 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) => {
-  const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [authMethod, setAuthMethod] = useState('Aetheria Account');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMessage('');
-
-    if (!email || !password) {
-      setErrorMessage('Please fill in all required fields.');
-      setLoading(false);
-      return;
-    }
-
-    if (password.length < 4) {
-      setErrorMessage('Password must be at least 4 characters long.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, username, password }),
-      });
-
-      const data = await res.json() as any;
-
-      if (data.success) {
-        const displayName = data.user?.username || username || email.split('@')[0];
-        setAuthMethod('Cloudflare D1 Database');
-        setSuccess(true);
-        setLoading(false);
-        setTimeout(() => {
-          onLoginSuccess(displayName, data.user?.email || email);
-          setSuccess(false);
-        }, 800);
-      } else {
-        setErrorMessage(data.message || 'Authentication failed');
-        setLoading(false);
-      }
-    } catch {
-      // Fallback in case of temporary connection issues
-      const displayName = username || email.split('@')[0];
-      setAuthMethod('Cloudflare D1 Direct Auth');
-      setSuccess(true);
-      setLoading(false);
-      setTimeout(() => {
-        onLoginSuccess(displayName, email);
-        setSuccess(false);
-      }, 800);
-    }
-  };
-
-  const handleGuestLogin = () => {
-    setLoading(true);
-    setErrorMessage('');
-    setTimeout(() => {
-      setLoading(false);
-      onLoginSuccess('Explorer Steve', 'steve@minecraft.net');
-    }, 300);
-  };
+  const [authMethod, setAuthMethod] = useState('Google Identity Services');
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 bg-[#0b0f19] font-sans h-full min-h-[calc(100vh-64px)]">
@@ -97,7 +30,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
             </div>
             <div>
               <h3 className="font-bold text-base text-white">
-                {isRegister ? 'Create Account' : 'Account Sign In'}
+                Google Account Sign In
               </h3>
               <p className="text-xs text-[#94a3b8]">
                 Etherium Official Knowledge Base
@@ -122,9 +55,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
               <p className="text-xs text-[#94a3b8]">Authenticated via {authMethod}.</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-6 py-4">
+              <p className="text-xs text-[#94a3b8] text-center max-w-xs mx-auto">
+                Sign in with your Google Account to access administrator tools and knowledge base features.
+              </p>
+
               {/* Google Sign In Component via @react-oauth/google */}
-              <div className="flex justify-center w-full my-1">
+              <div className="flex justify-center w-full my-2">
                 <GoogleLogin
                   onSuccess={async (credentialResponse: CredentialResponse) => {
                     if (credentialResponse.credential) {
@@ -156,7 +93,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                           onLoginSuccess(name, emailVal);
                           setSuccess(false);
                         }, 800);
-                      } catch (err) {
+                      } catch {
                         try {
                           const decoded: any = jwtDecode(idToken);
                           const name = decoded.name || decoded.email?.split('@')[0] || 'Google User';
@@ -181,119 +118,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                   size="large"
                   shape="rectangular"
                   logo_alignment="left"
-                  width="350"
+                  width="320"
                 />
               </div>
-
-              <div className="relative py-1">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[#1e293b]" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-[#111827] px-2 text-[#64748b]">or email account</span>
-                </div>
-              </div>
-
-              {isRegister && (
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#94a3b8] uppercase">Username</label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-[#64748b] absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      required
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="e.g. EnderKnight99"
-                      className="w-full bg-[#0b0f19] border border-[#1e293b] rounded-xl py-2.5 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-sky-400 transition-colors"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#94a3b8] uppercase">Email Address</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-[#64748b] absolute left-3 top-3" />
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="player@etherium.net"
-                    className="w-full bg-[#0b0f19] border border-[#1e293b] rounded-xl py-2.5 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-sky-400 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#94a3b8] uppercase">Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-[#64748b] absolute left-3 top-3" />
-                  <input
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full bg-[#0b0f19] border border-[#1e293b] rounded-xl py-2.5 pl-9 pr-3 text-sm text-white focus:outline-none focus:border-sky-400 transition-colors"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-sky-500 hover:bg-sky-400 text-black font-bold rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(56,189,248,0.3)] flex items-center justify-center gap-2 active:scale-98 cursor-pointer disabled:opacity-50"
-              >
-                <LogIn className="w-4 h-4" />
-                <span>{loading ? 'Authenticating...' : isRegister ? 'Register Account' : 'Sign In'}</span>
-              </button>
-
-              <div className="relative py-1">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[#1e293b]" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-[#111827] px-2 text-[#64748b]">or</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleGuestLogin}
-                className="w-full py-2.5 bg-[#1e293b]/70 hover:bg-[#1e293b] text-[#cbd5e1] font-semibold rounded-xl text-xs border border-[#334155] transition-colors cursor-pointer"
-              >
-                Continue as Guest (Steve)
-              </button>
-            </form>
+            </div>
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 bg-[#0b0f19] border-t border-[#1e293b] text-center text-xs text-[#94a3b8]">
-          {isRegister ? (
-            <p>
-              Already have an account?{' '}
-              <button
-                onClick={() => setIsRegister(false)}
-                className="text-sky-400 hover:underline font-bold cursor-pointer"
-              >
-                Sign In
-              </button>
-            </p>
-          ) : (
-            <p>
-              Don't have an account?{' '}
-              <button
-                onClick={() => setIsRegister(true)}
-                className="text-sky-400 hover:underline font-bold cursor-pointer"
-              >
-                Create One
-              </button>
-            </p>
-          )}
-        </div>
         {/* Redirect Link Back */}
         <div className="p-4 bg-[#0b0f19] border-t border-[#1e293b] text-center">
           <button onClick={onBack} className="text-sky-400 hover:underline font-bold text-xs cursor-pointer">
@@ -304,5 +135,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
     </div>
   );
 };
+
 
 
