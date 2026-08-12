@@ -94,3 +94,6 @@ Whenever you edit `package.json` (e.g., adding, removing, or updating dependenci
 3. Commit the updated `bun.lock` file in the same commit as your `package.json` changes.
 
 **Do NOT remove `--frozen-lockfile` from `build.sh` to "fix" a broken build.** The correct fix is always to run `bun install` locally and commit the resulting `bun.lock`.
+
+### Build Script Permissions
+The build script must always be invoked via its interpreter (e.g., `bash build.sh`) in `wrangler.toml`'s `[build]` command, rather than relying on the file being executable (`./build.sh`). This is because this project's CI environment does not reliably preserve the executable bit (`chmod +x`) across commits, clones, or artifact restorations. Relying on POSIX file permissions will result in a `Permission denied` / `exit code 126` error during deployment. **Do NOT revert the build command to `./build.sh`.**
