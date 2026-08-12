@@ -23,10 +23,64 @@ const DB_FILE_PATH = path.join(process.cwd(), 'src', 'db', 'wiki.sqlite');
 async function getSqlDb(): Promise<Database> {
   if (sqlDb) return sqlDb;
   const SQL = await initSqlJs();
+
+  const setupTables = (db: Database) => {
+    // Verify database file health
+    db.exec('PRAGMA quick_check;');
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS wiki_pages (
+        id TEXT PRIMARY KEY,
+        category TEXT NOT NULL,
+        title TEXT NOT NULL,
+        data TEXT NOT NULL,
+        creator_email TEXT,
+        updated_at TEXT
+      );
+    `);
+
+    try {
+      db.run(`ALTER TABLE wiki_pages ADD COLUMN creator_email TEXT;`);
+    } catch {
+      // Column already exists
+    }
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS wiki_categories (
+        id TEXT PRIMARY KEY,
+        label TEXT NOT NULL,
+        data TEXT NOT NULL
+      );
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        username TEXT NOT NULL,
+        password_hash TEXT NOT NULL,
+        role TEXT DEFAULT 'user',
+        created_at TEXT NOT NULL
+      );
+    `);
+
+    try {
+      const adminEmail = 'admin@etherium.net';
+      const adminHash = hashPassword('hd189733b');
+      db.run(
+        `INSERT OR IGNORE INTO users (id, email, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
+        ['usr_admin', adminEmail, 'Administrator', adminHash, 'admin', new Date().toISOString()]
+      );
+    } catch (e) {
+      console.error('Error seeding admin user:', e);
+    }
+  };
+
   if (fs.existsSync(DB_FILE_PATH)) {
     try {
       const fileBuffer = fs.readFileSync(DB_FILE_PATH);
       sqlDb = new SQL.Database(fileBuffer);
+      setupTables(sqlDb);
     } catch (err) {
       console.error(`⚠️ SQLite file at ${DB_FILE_PATH} is corrupted or invalid! Re-creating clean database...`, err);
       try {
@@ -35,61 +89,17 @@ async function getSqlDb(): Promise<Database> {
         console.log(`Saved corrupted SQLite file to: ${corruptedPath}`);
       } catch (renameErr) {
         console.error('Failed to move corrupted SQLite file:', renameErr);
+        try { fs.unlinkSync(DB_FILE_PATH); } catch {}
       }
       sqlDb = new SQL.Database();
+      setupTables(sqlDb);
     }
   } else {
     sqlDb = new SQL.Database();
+    setupTables(sqlDb);
   }
 
-  // Create standard SQL tables
-  sqlDb.run(`
-    CREATE TABLE IF NOT EXISTS wiki_pages (
-      id TEXT PRIMARY KEY,
-      category TEXT NOT NULL,
-      title TEXT NOT NULL,
-      data TEXT NOT NULL,
-      creator_email TEXT,
-      updated_at TEXT
-    );
-  `);
-
-  try {
-    sqlDb.run(`ALTER TABLE wiki_pages ADD COLUMN creator_email TEXT;`);
-  } catch {
-    // Column already exists
-  }
-
-  sqlDb.run(`
-    CREATE TABLE IF NOT EXISTS wiki_categories (
-      id TEXT PRIMARY KEY,
-      label TEXT NOT NULL,
-      data TEXT NOT NULL
-    );
-  `);
-
-  sqlDb.run(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
-      username TEXT NOT NULL,
-      password_hash TEXT NOT NULL,
-      role TEXT DEFAULT 'user',
-      created_at TEXT NOT NULL
-    );
-  `);
-
-  try {
-    const adminEmail = 'admin@etherium.net';
-    const adminHash = hashPassword('hd189733b');
-    sqlDb.run(
-      `INSERT OR IGNORE INTO users (id, email, username, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-      ['usr_admin', adminEmail, 'Administrator', adminHash, 'admin', new Date().toISOString()]
-    );
-  } catch (e) {
-    console.error('Error seeding admin user:', e);
-  }
-
+  defaultPageService.setDb(sqlDb, persistSqlDb);
   persistSqlDb();
   return sqlDb;
 }

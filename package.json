@@ -8,8 +8,6 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
-    "build:db": "tsx scripts/build-db.ts",
-    "record": "tsx scripts/record.ts",
     "lint": "tsc --noEmit",
     "test": "jest"
   },
@@ -36,8 +34,7 @@
     "react-router-dom": "^7.18.2",
     "sql.js": "^1.14.1",
     "sql.js-httpvfs": "^0.8.12",
-    "three": "^0.185.1",
-    "vite": "^6.2.3"
+    "three": "^0.185.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260812.1",
