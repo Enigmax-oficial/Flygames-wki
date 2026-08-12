@@ -1,7 +1,4 @@
 import { WikiPage, CategoryType, PageTemplate } from '../types/wiki';
-import { INITIAL_WIKI_PAGES } from '../data/wikiPages';
-import { AVAILABLE_TEMPLATES } from '../data/templateRegistry';
-import { ITEM_IMAGES } from '../data/itemAssets';
 
 export interface DynamicCategory {
   id: string;
@@ -105,22 +102,6 @@ const imageMap = new Map<string, { url: string; label: string }>();
 
 defaultPresets.forEach((item) => imageMap.set(item.url, item));
 
-Object.entries(ITEM_IMAGES).forEach(([key, url]) => {
-  if (url && !imageMap.has(url)) {
-    const formattedLabel = key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-    imageMap.set(url, { url, label: `Asset: ${formattedLabel}` });
-  }
-});
-
-INITIAL_WIKI_PAGES.forEach((page) => {
-  const imagesToInclude = [page.imageUrl, page.coverImage, page.renderImageUrl, ...(page.images || [])];
-  imagesToInclude.forEach((url, i) => {
-    if (url && typeof url === 'string' && !imageMap.has(url)) {
-      imageMap.set(url, { url, label: `${page.title || page.id} Image ${i + 1}` });
-    }
-  });
-});
-
 export const PRESET_IMAGES = Array.from(imageMap.values());
 
 export class WikiApi {
@@ -191,7 +172,7 @@ export class WikiApi {
   static getTemplates(): PageTemplate[] {
     try {
       const saved = localStorage.getItem('aetheria_custom_templates');
-      const presets = AVAILABLE_TEMPLATES;
+      const presets: PageTemplate[] = [];
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
@@ -203,7 +184,7 @@ export class WikiApi {
       }
       return presets;
     } catch {
-      return AVAILABLE_TEMPLATES;
+      return [];
     }
   }
 

@@ -21,7 +21,7 @@ import {
   Zap,
   Tag
 } from 'lucide-react';
-import { getItemImage } from '../data/itemAssets';
+import { getItemImage } from '../lib/assetHelper';
 
 const ICON_MAP: Record<string, React.ElementType> = {
   mobs: Skull,

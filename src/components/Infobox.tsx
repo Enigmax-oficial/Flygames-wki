@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { WikiPage } from '../types/wiki';
 import { WikiIcon } from './WikiIcon';
 import { Heart, Sparkles, ChevronDown, ChevronUp, Layers, Tag, User } from 'lucide-react';
-import { getItemImage } from '../data/itemAssets';
+import { getItemImage } from '../lib/assetHelper';
 
 interface InfoboxProps {
   page: WikiPage;

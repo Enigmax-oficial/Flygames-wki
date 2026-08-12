@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { WikiIcon } from './WikiIcon';
-import { getItemImage, getPageCoverImage } from '../data/itemAssets';
+import { getItemImage, getPageCoverImage } from '../lib/assetHelper';
 import { 
   Sword, 
   Ghost, 

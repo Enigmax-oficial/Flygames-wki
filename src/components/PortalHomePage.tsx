@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
-import { getPageCoverImage, getItemImage } from '../data/itemAssets';
+import { getPageCoverImage, getItemImage } from '../lib/assetHelper';
 import { WikiApi } from '../lib/wikiApi';
 import { WikiIcon } from './WikiIcon';
 import { 

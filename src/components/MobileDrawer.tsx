@@ -1,6 +1,6 @@
 import React from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
-import { getPageCoverImage, getItemImage } from '../data/itemAssets';
+import { getPageCoverImage, getItemImage } from '../lib/assetHelper';
 import { WikiApi } from '../lib/wikiApi';
 import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 import { WikiIcon } from './WikiIcon';

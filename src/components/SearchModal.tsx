@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
-import { getPageCoverImage } from '../data/itemAssets';
+import { getPageCoverImage } from '../lib/assetHelper';
 import { WikiIcon } from './WikiIcon';
 import { Search, X, CornerDownLeft, Mic, MicOff, Volume2, AlertCircle } from 'lucide-react';
 import { useVoiceSearch } from '../hooks/useVoiceSearch';

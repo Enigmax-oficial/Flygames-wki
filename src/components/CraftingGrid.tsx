@@ -1,7 +1,7 @@
 import React from 'react';
 import { CraftingRecipe } from '../types/wiki';
 import { WikiIcon } from './WikiIcon';
-import { getItemImage } from '../data/itemAssets';
+import { getItemImage } from '../lib/assetHelper';
 import { ArrowRight, Sparkles, Flame, Shield } from 'lucide-react';
 
 interface CraftingGridProps {

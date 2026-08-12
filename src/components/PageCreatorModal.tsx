@@ -3,7 +3,7 @@ import { WikiPage, CategoryType } from '../types/wiki';
 import { PageCreator } from '../templates/PageCreator';
 import { WikiApi, PRESET_IMAGES } from '../lib/wikiApi';
 import { WikiIcon } from './WikiIcon';
-import { ITEM_IMAGES } from '../data/itemAssets';
+import { ITEM_IMAGES } from '../lib/assetHelper';
 import { 
   X, 
   FileText, 

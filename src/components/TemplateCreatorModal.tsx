@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AVAILABLE_TEMPLATES, createPageFromTemplate } from '../data/templateRegistry';
+import { AVAILABLE_TEMPLATES, createPageFromTemplate } from '../lib/assetHelper';
 import { WikiPage } from '../types/wiki';
 import { X, Sparkles, Eye, Save, FileText, Check, Code, Download, Upload } from 'lucide-react';
 import { CraftingGrid } from './CraftingGrid';

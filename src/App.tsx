@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { INITIAL_WIKI_PAGES } from './data/wikiPages';
 import { WikiPage, CategoryType } from './types/wiki';
 import { Header } from './components/Header';
 import { DesktopSidebar } from './components/DesktopSidebar';

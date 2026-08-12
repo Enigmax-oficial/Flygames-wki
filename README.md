@@ -80,3 +80,14 @@ npx wrangler d1 migrations apply minecraft-wiki-db --remote
    ```bash
    npx wrangler deploy
    ```
+
+---
+
+## 5. Contributing & Dependency Management
+
+**Important CI/CD Note:** This project enforces frozen lockfile installations in the CI environment (`bun install --frozen-lockfile`) to prevent unintended drift. 
+Whenever you edit `package.json` (e.g., adding, removing, or updating dependencies), you **must**:
+1. Run `bun install` locally.
+2. Commit the updated `bun.lock` file alongside your `package.json` changes.
+
+Failure to commit the lockfile will cause the automated deployment builder to reject the build.
