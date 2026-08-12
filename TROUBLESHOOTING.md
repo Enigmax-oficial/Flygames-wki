@@ -82,11 +82,17 @@ By default, Cloudflare Pages supports HTTP Range Requests out of the box and doe
 ---
 
 ## 🩺 Startup Runtime Self-Check
-On application startup, a runtime test query is automatically executed:
-```sql
-SELECT 1 as one;
-```
-If this query fails or logs an error in the browser developer console (F12), check your network tab and verify that the host's responses to `data.sqlite` return **HTTP Status 206 (Partial Content)** for range fetches rather than **HTTP Status 200** (Full file download).
+On application startup, a highly robust three-phase database health verification is executed:
+1.  **Integrity Check (`PRAGMA integrity_check;`):** Confirms that the physical structure of the SQLite database is uncorrupted and readable by the client-side WebAssembly SQLite engine.
+2.  **Schema Verification (`sqlite_master` lookup):** Queries the metadata system table to ensure that the core data table (`daily_records`) exists. This prevents a false success on empty, uninitialized, or defaulted databases.
+3.  **Row Count Validation (`SELECT COUNT(*) as count FROM daily_records;`):** Asserts that the table is populated with records (count > 0).
+
+These three checks prevent any false successes where a simple, trivial query (like `SELECT 1`) would succeed on an empty, corrupt, or missing database.
+
+If any of these checks fail or log an error in the browser developer console (F12), check the browser console and network tab to verify:
+- The host is properly serving the database file with **HTTP Status 206 (Partial Content)** for range requests.
+- The correct content-hashed sqlite URL in `/data.config.json` is reachable.
+- The SQLite binary asset `/data.[hash].sqlite` is not corrupted.
 
 ---
 

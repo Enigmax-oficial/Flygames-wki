@@ -4,6 +4,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import App from './App.tsx';
 import './index.css';
 import { query } from './db/client.ts';
+import { runDatabaseHealthCheck } from './db/health.ts';
 
 const CLIENT_ID = '309962205395-c36qhp6n9qold6kcd5ii3d4t3q04qvt9.apps.googleusercontent.com';
 
@@ -41,11 +42,16 @@ const CLIENT_ID = '309962205395-c36qhp6n9qold6kcd5ii3d4t3q04qvt9.apps.googleuser
 
   console.log('🔍 Starting SQLite HTTP Range Request database runtime self-check...');
   try {
-    const results = await query<{ one: number }>('SELECT 1 as one;');
-    if (results && results[0]?.one === 1) {
-      console.log('✅ DATABASE SELF-CHECK SUCCESS: SQLite range query executed successfully!', results);
+    const result = await runDatabaseHealthCheck(query);
+    console.log('🔍 [Self-Check Trace] PRAGMA integrity_check raw result:', JSON.stringify(result.trace.integrity));
+    console.log('🔍 [Self-Check Trace] sqlite_master check raw result:', JSON.stringify(result.trace.schema));
+    console.log('🔍 [Self-Check Trace] COUNT(*) check raw result:', JSON.stringify(result.trace.count));
+    console.log(`🔍 [Self-Check Results] Integrity: ${result.integrityOk ? 'PASS' : 'FAIL'}, Schema: ${result.schemaOk ? 'PASS' : 'FAIL'}, Row Count: ${result.countOk ? 'PASS' : 'FAIL'}`);
+
+    if (result.success) {
+      console.log('✅ DATABASE SELF-CHECK SUCCESS: All checks (integrity, schema, and row count) passed!');
     } else {
-      console.error('❌ DATABASE SELF-CHECK FAILURE: SQL executed but returned unexpected results:', results);
+      console.error('❌ DATABASE SELF-CHECK FAILED: Database integrity check, schema check, or row count validation failed!');
     }
   } catch (err) {
     console.error('❌ DATABASE SELF-CHECK ERROR: Failed to run SQLite range-request query on startup:', err);

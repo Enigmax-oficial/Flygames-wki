@@ -12,18 +12,6 @@ import {
   Hash,
   Globe
 } from 'lucide-react';
-import { db } from '../lib/firebase';
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  orderBy, 
-  getDocs,
-  onSnapshot,
-  Timestamp,
-  serverTimestamp
-} from 'firebase/firestore';
 
 interface Comment {
   id: string;
@@ -31,7 +19,7 @@ interface Comment {
   userName: string;
   userEmail: string;
   comment: string;
-  createdAt: any; // Firestore Timestamp, Date, or string
+  createdAt: string; // ISO string
 }
 
 interface WikiCommentsProps {
@@ -59,59 +47,11 @@ export const WikiComments: React.FC<WikiCommentsProps> = ({
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [isUsingFirestore, setIsUsingFirestore] = useState(true);
 
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Load comments
-  useEffect(() => {
-    setIsLoading(true);
-    setError(null);
-
-    let unsubscribe: () => void = () => {};
-
-    try {
-      // Create firestore query for comments on this page
-      const q = query(
-        collection(db, 'wiki_comments'),
-        where('pageId', '==', pageId),
-        orderBy('createdAt', 'asc')
-      );
-
-      // Subscribe to real-time updates
-      unsubscribe = onSnapshot(q, (snapshot) => {
-        const fetched: Comment[] = [];
-        snapshot.forEach((doc) => {
-          const data = doc.data();
-          fetched.push({
-            id: doc.id,
-            pageId: data.pageId || pageId,
-            userName: data.userName || 'Anonymous',
-            userEmail: data.userEmail || '',
-            comment: data.comment || '',
-            createdAt: data.createdAt
-          });
-        });
-        setComments(fetched);
-        setIsLoading(false);
-        setIsUsingFirestore(true);
-      }, (err) => {
-        console.warn('Firestore subscription failed, falling back to local storage comments:', err);
-        loadLocalComments();
-      });
-    } catch (err) {
-      console.warn('Firestore setup failed, falling back to local storage comments:', err);
-      loadLocalComments();
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [pageId]);
-
-  // Fallback: Local Storage loading
+  // Load comments from Local Storage
   const loadLocalComments = () => {
-    setIsUsingFirestore(false);
     try {
       const saved = localStorage.getItem('wiki_comments_local');
       if (saved) {
@@ -128,6 +68,12 @@ export const WikiComments: React.FC<WikiCommentsProps> = ({
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    setIsLoading(true);
+    setError(null);
+    loadLocalComments();
+  }, [pageId]);
 
   // Scroll to bottom
   useEffect(() => {
@@ -169,27 +115,19 @@ export const WikiComments: React.FC<WikiCommentsProps> = ({
     };
 
     try {
-      if (isUsingFirestore) {
-        // Save to real cloud Firestore
-        await addDoc(collection(db, 'wiki_comments'), {
-          ...commentData,
-          createdAt: serverTimestamp()
-        });
-      } else {
-        // Save to Local Storage fallback
-        const saved = localStorage.getItem('wiki_comments_local');
-        const allComments: Comment[] = saved ? JSON.parse(saved) : [];
-        const newComment: Comment = {
-          id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          ...commentData,
-          createdAt: new Date().toISOString()
-        };
-        allComments.push(newComment);
-        localStorage.setItem('wiki_comments_local', JSON.stringify(allComments));
-        
-        // Refresh local state
-        setComments(prev => [...prev, newComment]);
-      }
+      // Save to Local Storage
+      const saved = localStorage.getItem('wiki_comments_local');
+      const allComments: Comment[] = saved ? JSON.parse(saved) : [];
+      const newComment: Comment = {
+        id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        ...commentData,
+        createdAt: new Date().toISOString()
+      };
+      allComments.push(newComment);
+      localStorage.setItem('wiki_comments_local', JSON.stringify(allComments));
+      
+      // Refresh local state
+      setComments(prev => [...prev, newComment]);
 
       // Reset form states
       setInputText('');
@@ -200,27 +138,17 @@ export const WikiComments: React.FC<WikiCommentsProps> = ({
 
     } catch (err: any) {
       console.error('Failed to save comment:', err);
-      setError('Failed to post comment. Connection lost or database restricted.');
+      setError('Failed to post comment. Storage error.');
     } finally {
       setIsPosting(false);
     }
   };
 
   // Formatter for timestamp
-  const formatTime = (createdAt: any) => {
+  const formatTime = (createdAt: string) => {
     if (!createdAt) return 'Just now';
     try {
-      let date: Date;
-      if (createdAt instanceof Timestamp) {
-        date = createdAt.toDate();
-      } else if (createdAt && typeof createdAt.toDate === 'function') {
-        date = createdAt.toDate();
-      } else if (createdAt.seconds) {
-        date = new Date(createdAt.seconds * 1000);
-      } else {
-        date = new Date(createdAt);
-      }
-      
+      const date = new Date(createdAt);
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + ' - ' + date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
     } catch {
       return 'Just now';
@@ -239,26 +167,12 @@ export const WikiComments: React.FC<WikiCommentsProps> = ({
           <div>
             <h3 className="font-bold text-lg text-white flex items-center gap-2.5">
               Discussions & Questions
-              <span className={`text-[10px] px-2 py-0.5 rounded font-mono uppercase tracking-wider font-bold border ${
-                isUsingFirestore 
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
-                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-              }`}>
-                {isUsingFirestore ? 'Cloud Synced' : 'Local Sandbox'}
-              </span>
             </h3>
             <p className="text-xs text-[#94a3b8]">
               Ask questions or share feedback about the "{pageTitle}" article.
             </p>
           </div>
         </div>
-        
-        {isUsingFirestore && (
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-[#0b0f19] border border-[#1e293b] px-2.5 py-1 rounded-lg">
-            <Globe className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Comments persist across all readers</span>
-          </div>
-        )}
       </div>
 
       {/* Message feedback */}
