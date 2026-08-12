@@ -82,8 +82,22 @@ async function buildDatabase() {
   db.run('CREATE INDEX IF NOT EXISTS idx_daily_records_category ON daily_records(category);');
   db.run('CREATE INDEX IF NOT EXISTS idx_daily_records_date_category ON daily_records(date, category);');
 
-  console.log('📦 Inserting seed records into database...');
-  const seedData = generateSeedData();
+  console.log('📦 Resolving source dataset...');
+  const sourcePath = path.join(process.cwd(), 'example', 'source-data.json');
+  let seedData: DailyRecordInput[];
+  if (fs.existsSync(sourcePath)) {
+    console.log(`📦 Loading existing source records from ${sourcePath}...`);
+    seedData = JSON.parse(fs.readFileSync(sourcePath, 'utf-8'));
+  } else {
+    console.log('📦 File example/source-data.json not found. Generating initial seed dataset...');
+    seedData = generateSeedData();
+    const sourceDir = path.dirname(sourcePath);
+    if (!fs.existsSync(sourceDir)) {
+      fs.mkdirSync(sourceDir, { recursive: true });
+    }
+    fs.writeFileSync(sourcePath, JSON.stringify(seedData, null, 2), 'utf-8');
+    console.log(`📦 Saved initial seed dataset to ${sourcePath}`);
+  }
 
   db.run('BEGIN TRANSACTION;');
   const stmt = db.prepare(`

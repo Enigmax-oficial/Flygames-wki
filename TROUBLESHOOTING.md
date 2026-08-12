@@ -96,16 +96,34 @@ If any of these checks fail or log an error in the browser developer console (F1
 
 ---
 
-## ♻️ Stale Data After Rebuild (HTTP & Worker Caching)
+## ⚡ Write-Through Asynchronous Database Recording Flow
 
-### The Problem
-When updating and redeploying the SQLite database (`data.sqlite`), client browsers or CDNs can serve stale/cached records from a previous build. This happens because:
-1. **Aggressive Browser/CDN Cache:** CDNs and browser caches can cache `.sqlite` range-request responses indefinitely if the database file name stays the same.
-2. **Web Worker Caching:** The `sql.js-httpvfs` worker thread caches fetched virtual filesystem pages in memory for the lifetime of the application session, ignoring newly deployed backend data.
+### The Challenge
+Because the database file is served directly via **HTTP Range Requests** to the browser's WebAssembly SQLite engine, it is mathematically **read-only** at the browser client. Range requests fetch byte ranges from a static file (e.g., hosted on S3 or a CDN) but cannot execute `INSERT`, `UPDATE`, or `DELETE` mutations back to that hosted file.
 
-### The Solution: Multi-Level Cache-Busting
-This project utilizes a robust, automated cache-busting pipeline:
-1. **Build-Time Content Hashing:** The database build pipeline (`scripts/build-db.ts`) computes a SHA-256 hash of the generated SQLite binary buffer and outputs a content-hashed database file (e.g. `data.[hash].sqlite`).
-2. **Fresh Metadata Loading:** A metadata config file `data.config.json` holds the current hashed URL. This file is served with `Cache-Control: no-store, no-cache, must-revalidate` to ensure it is always fetched fresh.
-3. **Dynamic Client Syncing:** The database client (`src/db/client.ts`) fetches the configuration file on startup with a query parameter cache-buster (`/data.config.json?cb=[timestamp]`). If the resolved URL differs from the currently initialized worker database, the client automatically re-initializes and hot-swaps the worker to query the new content-hashed SQLite file.
-4. **Aggressive Hashed File Caching:** Since hashed database files are uniquely named per compile, the server configures them with high-performance `Cache-Control: public, max-age=31536000, immutable` headers.
+### The Architectural Solution
+To handle dynamic writes safely and cleanly, this project implements a strict **Write-Through Asynchronous Pipeline**:
+
+```
+[Browser Client]
+       │
+       ▼ (Sends HTTP POST /api/records/add)
+[Node.js Server-Side API or CLI tool]
+       │
+       ├─► 1. Acquires a sequential file lock (example/source-data.json.lock)
+       ├─► 2. Validates properties against DailyRecord schema
+       ├─► 3. Appends row cleanly to the source file (example/source-data.json)
+       ├─► 4. Releases file lock
+       ├─► 5. Triggers build compile: tsx scripts/build-db.ts
+       │      └─► Compiles a brand new SQLite database public/data.[hash].sqlite
+       │      └─► Updates public/data.config.json with the new Build Hash
+       └─► 6. Executes deployment script (e.g., uploading to S3/CDN)
+```
+
+### Expected Propagation Delay
+Because of this sequential, reliable build-and-deploy pipeline, updates are **not immediate**:
+1. **Append & SQLite Compilation:** ~1-2 seconds.
+2. **CDN Upload & Deployment:** Varies depending on host speed (typically 1-5 seconds on AWS S3/Netlify, or instant locally).
+3. **Client Hot-Swap Syncing:** The browser client checks the configuration on a regular basis or on reload. Once the configuration file on the server updates, the client detects the new build hash and instantly hot-swaps to the fresh, content-hashed dataset.
+
+---

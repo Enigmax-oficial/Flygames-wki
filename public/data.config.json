@@ -1,10 +1,10 @@
 {
   "serverMode": "full",
-  "url": "/data.c6a30ee5.sqlite",
+  "url": "/data.7f0acf4f.sqlite",
   "pageSize": 4096,
   "requestChunkSize": 4096,
   "databaseLengthBytes": 602112,
-  "recordCount": 2000,
+  "recordCount": 2001,
   "tables": [
     "daily_records"
   ],
@@ -13,6 +13,6 @@
     "idx_daily_records_category",
     "idx_daily_records_date_category"
   ],
-  "generatedAt": "2026-08-12T00:31:47.700Z",
-  "buildHash": "c6a30ee5"
+  "generatedAt": "2026-08-12T01:07:47.980Z",
+  "buildHash": "7f0acf4f"
 }

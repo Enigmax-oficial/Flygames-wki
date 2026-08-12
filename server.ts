@@ -7,6 +7,7 @@ import initSqlJs, { Database } from 'sql.js';
 import { isAuthorizedAdminEmail } from './src/lib/adminAuth';
 import { createPageRouter } from './src/admin/pageController';
 import { defaultPageService } from './src/admin/pageService.js';
+import { appendRecord } from './scripts/record.js';
 
 const app = express();
 const PORT = 3000;
@@ -323,6 +324,52 @@ app.post('/api/admin/verify', async (req, res) => {
       return res.json({ success: true, message: 'Authentication successful (SQLite fallback).' });
     }
     return res.status(500).json({ success: false, message: 'Authentication server error' });
+  }
+});
+
+// Endpoint to append records to static range-request source dataset
+app.post('/api/records/add', async (req, res) => {
+  try {
+    const { date, category, value, metric_name, notes } = req.body;
+    
+    // Validate request body
+    if (!date || !category || typeof value !== 'number') {
+      return res.status(400).json({
+        success: false,
+        error: "Missing or invalid fields. 'date', 'category', and 'value' (number) are required."
+      });
+    }
+
+    const metricName = metric_name || `${category}_DailyCount`;
+    
+    // Call appendRecord (acquires lock, appends to source JSON, triggers build & deploy)
+    await appendRecord({
+      date,
+      category,
+      value,
+      metric_name: metricName,
+      notes: notes || '',
+      created_at: new Date().toISOString()
+    });
+
+    // Read the newly updated data config file to return the fresh hash and status
+    const configContent = fs.readFileSync(path.join(process.cwd(), 'public', 'data.config.json'), 'utf-8');
+    const configObj = JSON.parse(configContent);
+
+    return res.json({
+      success: true,
+      message: 'Record successfully recorded, database rebuilt, and redeployed!',
+      buildHash: configObj.buildHash,
+      recordCount: configObj.recordCount,
+      url: `/data.${configObj.buildHash}.sqlite`
+    });
+
+  } catch (err: any) {
+    console.error('API /api/records/add error:', err);
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Internal server error during recording process.'
+    });
   }
 });
 
