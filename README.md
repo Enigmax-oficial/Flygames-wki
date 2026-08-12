@@ -85,9 +85,12 @@ npx wrangler d1 migrations apply minecraft-wiki-db --remote
 
 ## 5. Contributing & Dependency Management
 
-**Important CI/CD Note:** This project enforces frozen lockfile installations in the CI environment (`bun install --frozen-lockfile`) to prevent unintended drift. 
-Whenever you edit `package.json` (e.g., adding, removing, or updating dependencies), you **must**:
-1. Run `bun install` locally.
-2. Commit the updated `bun.lock` file alongside your `package.json` changes.
+**Important CI/CD Note:** This project enforces deterministic builds in the CI environment (via `build.sh` and `wrangler.toml`). The `build.sh` script intentionally uses `bun install --frozen-lockfile` to explicitly fail the build if the lockfile drifts from `package.json`. This strictly prevents false-positive deploys utilizing a stale cache.
 
-Failure to commit the lockfile will cause the automated deployment builder to reject the build.
+### When changing dependencies
+Whenever you edit `package.json` (e.g., adding, removing, or updating dependencies), you **must**:
+1. Run `bun install` locally to regenerate the lockfile.
+2. Run `npm run verify-lockfile` locally to ensure it passes.
+3. Commit the updated `bun.lock` file in the same commit as your `package.json` changes.
+
+**Do NOT remove `--frozen-lockfile` from `build.sh` to "fix" a broken build.** The correct fix is always to run `bun install` locally and commit the resulting `bun.lock`.
