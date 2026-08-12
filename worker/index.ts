@@ -1,5 +1,5 @@
 import { Env } from './types';
-import { handlePagesRequest, jsonResponse } from './routes/pages';
+import { handlePagesRequest, jsonResponse, ensureSchema } from './routes/pages';
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -65,6 +65,7 @@ export default {
       if (pathname === '/api/admin/database-stats' || pathname === '/admin/database-stats') {
         let pageCount = 0;
         try {
+          await ensureSchema(env);
           const res = await env.mysql.prepare('SELECT COUNT(*) as count FROM pages').first<{ count: number }>();
           pageCount = res?.count || 0;
         } catch {}

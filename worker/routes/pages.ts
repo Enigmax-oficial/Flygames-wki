@@ -21,7 +21,29 @@ function generateSlug(title: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
+let schemaInitialized = false;
+
+export async function ensureSchema(env: Env): Promise<void> {
+  if (schemaInitialized) return;
+  try {
+    await env.mysql.exec(`
+      CREATE TABLE IF NOT EXISTS pages (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        content TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+    `);
+    schemaInitialized = true;
+  } catch (err) {
+    console.error('Failed to ensure D1 pages table schema:', err);
+  }
+}
+
 export async function handlePagesRequest(request: Request, url: URL, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
+  await ensureSchema(env);
   const method = request.method;
   const pathParts = url.pathname.split('/').filter(Boolean); // e.g. ["pages"] or ["pages", "some-slug"]
 
