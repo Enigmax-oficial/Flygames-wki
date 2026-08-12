@@ -135,6 +135,17 @@ export default {
         return jsonResponse({ error: 'Endpoint not found', path: pathname }, 404, corsHeaders);
       }
 
+      // Serve static assets / SPA frontend via Cloudflare Workers Assets
+      if (env.ASSETS) {
+        let assetRes = await env.ASSETS.fetch(request as any);
+        if (assetRes.status === 404 && request.method === 'GET' && !pathname.includes('.')) {
+          // SPA fallback to index.html for client-side routing
+          const indexUrl = new URL('/index.html', request.url);
+          assetRes = await env.ASSETS.fetch(new Request(indexUrl, request) as any);
+        }
+        return assetRes as unknown as Response;
+      }
+
       return jsonResponse({ error: 'Endpoint not found' }, 404, corsHeaders);
     } catch (err: unknown) {
       console.error('Unhandled worker error:', err);

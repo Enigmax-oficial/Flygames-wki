@@ -1,7 +1,8 @@
-import { D1Database } from '@cloudflare/workers-types';
+import { D1Database, Fetcher } from '@cloudflare/workers-types';
 
 export interface Env {
   mysql: D1Database;
+  ASSETS?: Fetcher;
 }
 
 export interface PageRecord {
