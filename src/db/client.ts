@@ -94,8 +94,16 @@ export async function getWorker(forceReset = false) {
  * Core query function matching the exact user requirements
  */
 export async function query<T>(sql: string, params?: unknown[]): Promise<T[]> {
-  const worker = await getWorker();
-  return worker.db.query(sql, params || []);
+  try {
+    const worker = await getWorker();
+    if (!worker || !worker.db) {
+      throw new Error('Database worker was not properly initialized.');
+    }
+    return await worker.db.query(sql, params || []);
+  } catch (err) {
+    console.error('❌ [SQLite Client] Query execution failed or database is corrupted:', err);
+    return [];
+  }
 }
 
 /**
@@ -109,13 +117,22 @@ export class MiniSqlDbClient {
   }
 
   public async initialize(): Promise<void> {
-    await getWorker();
+    try {
+      await getWorker();
+    } catch (err) {
+      console.error('❌ [SQLite Client] Failed to initialize worker on start:', err);
+    }
   }
 
   public async query<T>(sql: string, params: unknown[] = []): Promise<QueryResult<T>> {
     const startTime = performance.now();
+    let rows: T[] = [];
     
-    const rows = await query<T>(sql, params);
+    try {
+      rows = await query<T>(sql, params);
+    } catch (err) {
+      console.error('❌ [MiniSqlDbClient] Inner query execution failed:', err);
+    }
     
     const executionTimeMs = Math.round((performance.now() - startTime) * 100) / 100;
     

@@ -24,8 +24,20 @@ async function getSqlDb(): Promise<Database> {
   if (sqlDb) return sqlDb;
   const SQL = await initSqlJs();
   if (fs.existsSync(DB_FILE_PATH)) {
-    const fileBuffer = fs.readFileSync(DB_FILE_PATH);
-    sqlDb = new SQL.Database(fileBuffer);
+    try {
+      const fileBuffer = fs.readFileSync(DB_FILE_PATH);
+      sqlDb = new SQL.Database(fileBuffer);
+    } catch (err) {
+      console.error(`⚠️ SQLite file at ${DB_FILE_PATH} is corrupted or invalid! Re-creating clean database...`, err);
+      try {
+        const corruptedPath = `${DB_FILE_PATH}.corrupted-${Date.now()}`;
+        fs.renameSync(DB_FILE_PATH, corruptedPath);
+        console.log(`Saved corrupted SQLite file to: ${corruptedPath}`);
+      } catch (renameErr) {
+        console.error('Failed to move corrupted SQLite file:', renameErr);
+      }
+      sqlDb = new SQL.Database();
+    }
   } else {
     sqlDb = new SQL.Database();
   }
