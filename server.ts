@@ -140,6 +140,55 @@ const VALID_ADMIN_HASHES = new Set([
   ...VALID_ADMIN_PASSWORDS.map((p) => hashPassword(p))
 ]);
 
+// Robust HTTP Range Request handler for SQLite files (.sqlite) for sql.js-httpvfs
+app.get(/.*\.sqlite$/, (req, res) => {
+  const sqlitePath = path.join(process.cwd(), 'public', req.path);
+  if (!fs.existsSync(sqlitePath)) {
+    return res.status(404).send('SQLite database file not found');
+  }
+
+  const stat = fs.statSync(sqlitePath);
+  const fileSize = stat.size;
+  const range = req.headers.range;
+
+  res.setHeader('Accept-Ranges', 'bytes');
+  res.setHeader('Content-Type', 'application/x-sqlite3');
+
+  if (/^data\.[a-f0-9]+\.sqlite$/.test(path.basename(sqlitePath))) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+  } else {
+    res.setHeader('Cache-Control', 'no-cache');
+  }
+
+  if (range) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+
+    if (start >= fileSize) {
+      res.status(416).setHeader('Content-Range', `bytes */${fileSize}`);
+      return res.send();
+    }
+
+    const chunksize = (end - start) + 1;
+    const file = fs.createReadStream(sqlitePath, { start, end });
+
+    res.writeHead(206, {
+      'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+      'Accept-Ranges': 'bytes',
+      'Content-Length': chunksize,
+      'Content-Type': 'application/x-sqlite3',
+    });
+    file.pipe(res);
+  } else {
+    res.writeHead(200, {
+      'Content-Length': fileSize,
+      'Content-Type': 'application/x-sqlite3',
+    });
+    fs.createReadStream(sqlitePath).pipe(res);
+  }
+});
+
 // API Routes
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', sqlServer: 'connected', databaseEngine: 'SQLite (sql.js)', timestamp: new Date().toISOString() });
