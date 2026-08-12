@@ -1,0 +1,232 @@
+[
+  {
+    "id": "bhb",
+    "title": "Bhb",
+    "namespace": "my_addon:mob_name",
+    "category": "mobs",
+    "description": "A legendary creature inhabiting the Addon lands.",
+    "addonVersion": "v1.4.0",
+    "icon": "G",
+    "renderImageUrl": "/images/tools/gold_axe.png",
+    "tags": [
+      "mobs",
+      "Custom",
+      "Admin Created"
+    ],
+    "lastUpdated": "Aug 11, 2026",
+    "badge": "MOB / ENTITY / BOSS",
+    "badgeColor": "emerald",
+    "movementSpeed": "Apple",
+    "sections": [
+      {
+        "title": "Behavior & Attacks",
+        "content": "This entity is extremely dangerous. It has 3 combat phases:\n\n1. **Phase 1 (100% - 70% HP):** Fast melee attacks and charges.\n2. **Phase 2 (70% - 30% HP):** Summons 3 Celestial Minions and casts magic lightning.\n3. **Phase 3 (Frenzy < 30% HP):** Gains damage resistance and increased movement speed."
+      }
+    ]
+  },
+  {
+    "id": "ll",
+    "title": "Ll",
+    "namespace": "aetheria:ll",
+    "category": "items",
+    "description": "Oo",
+    "addonVersion": "v1.4.0",
+    "icon": "aetheria:aetherial_sword",
+    "renderImageUrl": "/images/weapons/gold_sword.png",
+    "tags": [
+      "items",
+      "Custom",
+      "Admin Created"
+    ],
+    "lastUpdated": "Aug 11, 2026",
+    "badge": "L",
+    "badgeColor": "emerald",
+    "sections": [
+      {
+        "title": "Overview",
+        "content": "Oo"
+      }
+    ]
+  },
+  {
+    "id": "cc",
+    "title": "Cc",
+    "namespace": "aetheria:cc",
+    "category": "items",
+    "description": "V",
+    "addonVersion": "v1.4.0",
+    "icon": "aetheria:aetherial_sword",
+    "renderImageUrl": "https://images.unsplash.com/photo-1607988795691-3d0147b43231?auto=format&fit=crop&w=600&q=80",
+    "tags": [
+      "items",
+      "Custom",
+      "Admin Created"
+    ],
+    "lastUpdated": "Aug 11, 2026",
+    "badge": "ITEMS",
+    "badgeColor": "emerald",
+    "sections": [
+      {
+        "title": "Overview",
+        "content": "V"
+      }
+    ],
+    "creatorEmail": "ruanpablolopesbritor@gmail.com"
+  },
+  {
+    "id": "vg",
+    "title": "Vg",
+    "namespace": "aetheria:vg",
+    "category": "items",
+    "description": "T",
+    "addonVersion": "v1.4.0",
+    "icon": "aetheria:aetherial_sword",
+    "renderImageUrl": "/images/tools/gold_pickaxe.png",
+    "tags": [
+      "items",
+      "Custom",
+      "Admin Created"
+    ],
+    "lastUpdated": "Aug 11, 2026",
+    "badge": "ITEMS",
+    "badgeColor": "emerald",
+    "sections": [
+      {
+        "title": "Overview",
+        "content": "T"
+      }
+    ],
+    "creatorEmail": "ruanpablolopesbritor@gmail.com"
+  },
+  {
+    "id": "bb",
+    "title": "Bb",
+    "namespace": "aetheria:bb",
+    "category": "items",
+    "description": "Nm",
+    "addonVersion": "v1.4.0",
+    "icon": "aetheria:aetherial_sword",
+    "renderImageUrl": "/images/tools/iron_pickaxe.png",
+    "tags": [
+      "items",
+      "Custom",
+      "Admin Created"
+    ],
+    "lastUpdated": "Aug 11, 2026",
+    "badge": "Bj",
+    "badgeColor": "emerald",
+    "movementSpeed": "Kk",
+    "sections": [
+      {
+        "title": "Overview",
+        "content": "Jj"
+      }
+    ],
+    "creatorEmail": "ruanpablolopesbritor@gmail.com"
+  },
+  {
+    "id": "hv",
+    "title": "Hv",
+    "namespace": "aetheria:hv",
+    "category": "items",
+    "description": "Ii",
+    "addonVersion": "v1.4.0",
+    "icon": "aetheria:aetherial_sword",
+    "renderImageUrl": "https://images.unsplash.com/photo-1605899435973-ca2d1a8861cf?auto=format&fit=crop&w=600&q=80",
+    "tags": [
+      "items",
+      "Custom",
+      "Admin Created"
+    ],
+    "lastUpdated": "Aug 11, 2026",
+    "badge": "ITEMS",
+    "badgeColor": "emerald",
+    "sections": [
+      {
+        "title": "Overview",
+        "content": "Jj"
+      }
+    ],
+    "creatorEmail": "ruanpablolopesbritor@gmail.com"
+  },
+  {
+    "id": "j",
+    "title": "J",
+    "namespace": "aetheria:j",
+    "category": "items",
+    "description": "J",
+    "addonVersion": "v1.4.0",
+    "icon": "aetheria:aetherial_sword",
+    "renderImageUrl": "https://images.unsplash.com/photo-1607988795691-3d0147b43231?auto=format&fit=crop&w=600&q=80",
+    "tags": [
+      "items",
+      "Custom",
+      "Admin Created"
+    ],
+    "lastUpdated": "Aug 11, 2026",
+    "badge": "ITEMS",
+    "badgeColor": "emerald",
+    "sections": [
+      {
+        "title": "Overview",
+        "content": "J"
+      }
+    ],
+    "creatorEmail": "ruanpablolopesbritor@gmail.com"
+  },
+  {
+    "id": "bhhh",
+    "title": "Bhhh",
+    "namespace": "aetheria:bhhh",
+    "category": "items",
+    "description": "Njj",
+    "addonVersion": "v1.4.0",
+    "icon": "aetheria:aetherial_sword",
+    "renderImageUrl": "https://images.unsplash.com/photo-1607988795691-3d0147b43231?auto=format&fit=crop&w=600&q=80",
+    "tags": [
+      "items",
+      "Custom",
+      "Admin Created"
+    ],
+    "lastUpdated": "Aug 11, 2026",
+    "badge": "ITEMS",
+    "badgeColor": "emerald",
+    "behaviorBullets": [
+      "Nj",
+      "Jj"
+    ],
+    "sections": [
+      {
+        "title": "Overview",
+        "content": "Njj"
+      }
+    ],
+    "creatorEmail": "ruanpablolopesbritor@gmail.com"
+  },
+  {
+    "id": "uyf",
+    "title": "Uyf",
+    "namespace": "my_addon:item_name",
+    "category": "items",
+    "description": "Brief description of what this item does and how it is obtained.",
+    "addonVersion": "v1.4.0",
+    "icon": "sword",
+    "renderImageUrl": "/images/weapons/iron_sword.png",
+    "tags": [
+      "items",
+      "Custom",
+      "Admin Created"
+    ],
+    "lastUpdated": "Aug 11, 2026",
+    "badge": "ITEM / EQUIPMENT",
+    "badgeColor": "emerald",
+    "movementSpeed": "Bb",
+    "sections": [
+      {
+        "title": "Overview",
+        "content": "**Item Name** is an equipment piece added by the Addon that grants special abilities to the player."
+      }
+    ],
+    "creatorEmail": "ruanpablolopesbritor@gmail.com"
+  }
+]

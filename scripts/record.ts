@@ -53,6 +53,132 @@ function releaseLock(): void {
 }
 
 // 3. Core record append function
+export async function appendPageRecord(page: any): Promise<void> {
+  if (!page || !page.id || typeof page.id !== 'string') {
+    throw new Error("Validation Error: Page must contain a valid string 'id'.");
+  }
+  if (!page.title || typeof page.title !== 'string') {
+    throw new Error("Validation Error: Page must contain a valid string 'title'.");
+  }
+  if (!page.category || typeof page.category !== 'string') {
+    throw new Error("Validation Error: Page must contain a valid string 'category'.");
+  }
+
+  const pagesSourcePath = path.join(process.cwd(), 'example', 'source-pages.json');
+
+  console.log('🔒 Acquiring source pages file lock...');
+  await acquireLock();
+
+  try {
+    let pages: any[] = [];
+    if (fs.existsSync(pagesSourcePath)) {
+      const content = fs.readFileSync(pagesSourcePath, 'utf-8');
+      pages = JSON.parse(content);
+    }
+
+    // Upsert (insert or replace by id)
+    const index = pages.findIndex(p => p.id === page.id);
+    const updatedPage = {
+      ...page,
+      lastUpdated: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      updated_at: new Date().toISOString()
+    };
+
+    if (index >= 0) {
+      pages[index] = updatedPage;
+    } else {
+      pages.unshift(updatedPage);
+    }
+
+    const dir = path.dirname(pagesSourcePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(pagesSourcePath, JSON.stringify(pages, null, 2) + '\n', 'utf-8');
+    console.log(`📝 Saved page ${page.id} to source pages dataset.`);
+
+  } finally {
+    console.log('🔓 Releasing source pages file lock...');
+    releaseLock();
+  }
+
+  // Rebuild
+  console.log('🛠️ Rebuilding static SQLite database files...');
+  try {
+    execSync('npm run build:db', { stdio: 'inherit' });
+  } catch (err: any) {
+    console.error('❌ Rebuild failed with errors.');
+    throw new Error(`Rebuild step failed: ${err.message}`);
+  }
+
+  // Deploy trigger
+  console.log('🌐 Executing static deployment step...');
+  const deployCommand = process.env.DEPLOY_COMMAND;
+  if (deployCommand) {
+    console.log(`🚀 Shelling out to DEPLOY_COMMAND: ${deployCommand}`);
+    try {
+      execSync(deployCommand, { stdio: 'inherit' });
+    } catch (err: any) {
+      console.error('❌ Deployment shell command execution failed!');
+      throw new Error(`Deploy step failed: ${err.message}`);
+    }
+  } else {
+    console.log('📤 [Simulated Deploy] Syncing changed SQLite assets to static storage bucket/CDN...');
+    console.log('📤 [Simulated Deploy] Uploaded: public/data.sqlite -> Static CDN');
+    console.log('📤 [Simulated Deploy] Uploaded: public/data.config.json -> Static CDN');
+    console.log('✅ [Simulated Deploy] CDN cache-busting successfully completed.');
+  }
+}
+
+export async function deletePageRecord(pageId: string): Promise<void> {
+  const pagesSourcePath = path.join(process.cwd(), 'example', 'source-pages.json');
+
+  console.log('🔒 Acquiring source pages file lock...');
+  await acquireLock();
+
+  try {
+    let pages: any[] = [];
+    if (fs.existsSync(pagesSourcePath)) {
+      const content = fs.readFileSync(pagesSourcePath, 'utf-8');
+      pages = JSON.parse(content);
+    }
+
+    const filtered = pages.filter(p => p.id !== pageId);
+    fs.writeFileSync(pagesSourcePath, JSON.stringify(filtered, null, 2) + '\n', 'utf-8');
+    console.log(`❌ Deleted page ${pageId} from source pages dataset.`);
+
+  } finally {
+    console.log('🔓 Releasing source pages file lock...');
+    releaseLock();
+  }
+
+  // Rebuild
+  console.log('🛠️ Rebuilding static SQLite database files...');
+  try {
+    execSync('npm run build:db', { stdio: 'inherit' });
+  } catch (err: any) {
+    console.error('❌ Rebuild failed with errors.');
+    throw new Error(`Rebuild step failed: ${err.message}`);
+  }
+
+  // Deploy trigger
+  console.log('🌐 Executing static deployment step...');
+  const deployCommand = process.env.DEPLOY_COMMAND;
+  if (deployCommand) {
+    console.log(`🚀 Shelling out to DEPLOY_COMMAND: ${deployCommand}`);
+    try {
+      execSync(deployCommand, { stdio: 'inherit' });
+    } catch (err: any) {
+      console.error('❌ Deployment shell command execution failed!');
+      throw new Error(`Deploy step failed: ${err.message}`);
+    }
+  } else {
+    console.log('📤 [Simulated Deploy] Syncing changed SQLite assets to static storage bucket/CDN...');
+  }
+}
+
+// 3. Core record append function
 export async function appendRecord(record: Omit<DailyRecord, 'id'>): Promise<void> {
   // Validation
   if (!record.date || !/^\d{4}-\d{2}-\d{2}$/.test(record.date)) {

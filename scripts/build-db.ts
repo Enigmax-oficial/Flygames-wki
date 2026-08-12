@@ -82,6 +82,19 @@ async function buildDatabase() {
   db.run('CREATE INDEX IF NOT EXISTS idx_daily_records_category ON daily_records(category);');
   db.run('CREATE INDEX IF NOT EXISTS idx_daily_records_date_category ON daily_records(date, category);');
 
+  // Create Wiki Pages Table
+  db.run(`
+    CREATE TABLE IF NOT EXISTS wiki_pages (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      data TEXT NOT NULL,
+      creator_email TEXT,
+      updated_at TEXT
+    );
+  `);
+  db.run('CREATE INDEX IF NOT EXISTS idx_wiki_pages_category ON wiki_pages(category);');
+
   console.log('📦 Resolving source dataset...');
   const sourcePath = path.join(process.cwd(), 'example', 'source-data.json');
   let seedData: DailyRecordInput[];
@@ -99,6 +112,57 @@ async function buildDatabase() {
     console.log(`📦 Saved initial seed dataset to ${sourcePath}`);
   }
 
+  console.log('📦 Resolving wiki pages source dataset...');
+  const pagesSourcePath = path.join(process.cwd(), 'example', 'source-pages.json');
+  let wikiPages: any[] = [];
+  if (fs.existsSync(pagesSourcePath)) {
+    console.log(`📦 Loading existing wiki pages from ${pagesSourcePath}...`);
+    try {
+      wikiPages = JSON.parse(fs.readFileSync(pagesSourcePath, 'utf-8'));
+    } catch (err) {
+      console.error('⚠️ Error parsing source-pages.json, resetting to empty array:', err);
+      wikiPages = [];
+    }
+  } else {
+    console.log('📦 File example/source-pages.json not found. Checking src/db/wiki.sqlite for extraction...');
+    const wikiSqlitePath = path.join(process.cwd(), 'src', 'db', 'wiki.sqlite');
+    if (fs.existsSync(wikiSqlitePath)) {
+      try {
+        const fileBuffer = fs.readFileSync(wikiSqlitePath);
+        const sourceSqlDb = new SQL.Database(fileBuffer);
+        const sourceStmt = sourceSqlDb.prepare('SELECT id, category, title, data, creator_email, updated_at FROM wiki_pages');
+        while (sourceStmt.step()) {
+          const row = sourceStmt.getAsObject();
+          if (row.data) {
+            try {
+              wikiPages.push(JSON.parse(row.data as string));
+            } catch {
+              wikiPages.push({
+                id: row.id,
+                category: row.category,
+                title: row.title,
+                creatorEmail: row.creator_email,
+                lastUpdated: row.updated_at
+              });
+            }
+          }
+        }
+        sourceStmt.free();
+        sourceSqlDb.close();
+        console.log(`✅ Extracted ${wikiPages.length} wiki pages from src/db/wiki.sqlite`);
+      } catch (err) {
+        console.warn('⚠️ Could not extract wiki pages from src/db/wiki.sqlite:', err);
+      }
+    }
+    // Save extracted pages (or empty array) to source-pages.json
+    const pagesDir = path.dirname(pagesSourcePath);
+    if (!fs.existsSync(pagesDir)) {
+      fs.mkdirSync(pagesDir, { recursive: true });
+    }
+    fs.writeFileSync(pagesSourcePath, JSON.stringify(wikiPages, null, 2) + '\n', 'utf-8');
+    console.log(`📦 Saved source pages to ${pagesSourcePath}`);
+  }
+
   db.run('BEGIN TRANSACTION;');
   const stmt = db.prepare(`
     INSERT INTO daily_records (id, date, metric_name, value, category, notes, created_at)
@@ -109,9 +173,29 @@ async function buildDatabase() {
     stmt.run([row.id, row.date, row.metric_name, row.value, row.category, row.notes, row.created_at]);
   }
   stmt.free();
+
+  const pageStmt = db.prepare(`
+    INSERT INTO wiki_pages (id, category, title, data, creator_email, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?);
+  `);
+
+  for (const page of wikiPages) {
+    const creatorEmail = page.creatorEmail || page.authorEmail || 'ruanpablolopesbritor@gmail.com';
+    const lastUpdated = page.lastUpdated || new Date().toISOString();
+    pageStmt.run([
+      page.id,
+      page.category || 'uncategorized',
+      page.title || page.id,
+      JSON.stringify(page),
+      creatorEmail,
+      lastUpdated
+    ]);
+  }
+  pageStmt.free();
   db.run('COMMIT;');
 
   console.log(`✅ Successfully inserted ${seedData.length} records.`);
+  console.log(`✅ Successfully inserted ${wikiPages.length} wiki pages.`);
 
   // Export DB binary
   const binaryData = db.export();
@@ -163,9 +247,9 @@ async function buildDatabase() {
     pageSize: 4096,
     requestChunkSize: 4096,
     databaseLengthBytes: buffer.byteLength,
-    recordCount: seedData.length,
-    tables: ['daily_records'],
-    indexes: ['idx_daily_records_date', 'idx_daily_records_category', 'idx_daily_records_date_category'],
+    recordCount: seedData.length + wikiPages.length,
+    tables: ['daily_records', 'wiki_pages'],
+    indexes: ['idx_daily_records_date', 'idx_daily_records_category', 'idx_daily_records_date_category', 'idx_wiki_pages_category'],
     generatedAt: new Date().toISOString(),
     buildHash: hash
   };

@@ -223,95 +223,84 @@ export class WikiApi {
   }
 
   // Page Methods
-  static getPages(): WikiPage[] {
-    let deletedIds: string[] = [];
-    try {
-      const del = localStorage.getItem('aetheria_deleted_page_ids');
-      if (del) deletedIds = JSON.parse(del);
-    } catch {}
+  private static cachedPages: WikiPage[] = [];
 
-    const saved = localStorage.getItem('aetheria_wiki_pages');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          return parsed.filter(p => !deletedIds.includes(p.id));
-        }
-      } catch {}
-    }
-    return [];
+  static getPages(): WikiPage[] {
+    return this.cachedPages;
   }
 
   static async fetchPagesFromSql(): Promise<WikiPage[]> {
+    try {
+      // Try to query sql.js-httpvfs static range-request DB first
+      const clientModule = await import('../db/client');
+      const rows = await clientModule.query<{ data: string }>('SELECT data FROM wiki_pages');
+      if (rows && rows.length > 0) {
+        const sqlPages: WikiPage[] = rows.map(r => JSON.parse(r.data));
+        this.cachedPages = sqlPages;
+        window.dispatchEvent(new Event('wiki_data_updated'));
+        console.log(`✅ [WikiApi] Loaded ${sqlPages.length} pages directly from static SQLite via sql.js-httpvfs`);
+        return sqlPages;
+      }
+    } catch (e) {
+      console.warn('[WikiApi] sql.js-httpvfs static range-request page fetch failed/unsupported, falling back to /api/pages:', e);
+    }
+
     try {
       const res = await fetch('/api/pages');
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.pages)) {
           const sqlPages: WikiPage[] = data.pages;
-          localStorage.setItem('aetheria_wiki_pages', JSON.stringify(sqlPages));
+          this.cachedPages = sqlPages;
           window.dispatchEvent(new Event('wiki_data_updated'));
           return sqlPages;
         }
       }
     } catch (e) {
-      console.warn('Failed to fetch pages from SQL DB:', e);
+      console.warn('[WikiApi] Failed to fetch pages from /api/pages fallback:', e);
     }
+
     return this.getPages();
   }
 
-  static createPage(page: WikiPage, userEmail?: string): WikiPage {
-    const pages = this.getPages();
+  static async createPage(page: WikiPage, userEmail?: string): Promise<WikiPage> {
     const emailToSave = userEmail || page.creatorEmail || localStorage.getItem('etherium_user_email') || 'ruanpablolopesbritor@gmail.com';
     page.creatorEmail = emailToSave;
 
-    const filteredPages = pages.filter(p => p.id !== page.id);
-    const updated = [page, ...filteredPages];
-    localStorage.setItem('aetheria_wiki_pages', JSON.stringify(updated));
-
-    window.dispatchEvent(new Event('wiki_data_updated'));
-
-    // Directly save to SQL Database backend
-    fetch("/api/pages", {
+    const res = await fetch("/api/pages", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
         "X-User-Email": emailToSave
       },
       body: JSON.stringify(page)
-    }).then(res => res.json())
-      .then(data => {
-        console.log("Page saved to SQL Database with creator email:", data);
-        window.dispatchEvent(new Event('wiki_data_updated'));
-      })
-      .catch(err => console.error("Failed to save page to SQL Database", err));
+    });
 
-    return page;
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || data.message || 'Server pipeline error');
+    }
+
+    const savedPage = data.page || page;
+    this.cachedPages = [savedPage, ...this.cachedPages.filter(p => p.id !== savedPage.id)];
+    window.dispatchEvent(new Event('wiki_data_updated'));
+    return savedPage;
   }
 
-  static deletePage(pageId: string): boolean {
-    const pages = this.getPages();
-    const exists = pages.some(p => p.id === pageId);
-
+  static async deletePage(pageId: string): Promise<boolean> {
     try {
-      const del = localStorage.getItem('aetheria_deleted_page_ids');
-      const deletedIds = del ? JSON.parse(del) : [];
-      if (!deletedIds.includes(pageId)) {
-        deletedIds.push(pageId);
-        localStorage.setItem('aetheria_deleted_page_ids', JSON.stringify(deletedIds));
+      const res = await fetch(`/api/pages/${encodeURIComponent(pageId)}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Server delete error');
       }
-    } catch {}
-
-    const filtered = pages.filter(p => p.id !== pageId);
-    localStorage.setItem('aetheria_wiki_pages', JSON.stringify(filtered));
-
-    window.dispatchEvent(new Event('wiki_data_updated'));
-
-    // Send delete query to SQL Database
-    fetch(`/api/pages/${encodeURIComponent(pageId)}`, { method: "DELETE" })
-      .catch(err => console.error("Failed to delete page from SQL Database", err));
-
-    return exists;
+      this.cachedPages = this.cachedPages.filter(p => p.id !== pageId);
+      window.dispatchEvent(new Event('wiki_data_updated'));
+      return true;
+    } catch (err) {
+      console.error("Failed to delete page:", err);
+      return false;
+    }
   }
 
   // Preset Images helper

@@ -324,6 +324,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
 
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSavingPage, setIsSavingPage] = useState(false);
   const [createdPageId, setCreatedPageId] = useState('');
   const [editorMode, setEditorMode] = useState<'form' | 'text'>('form');
   const [rawJsonCode, setRawJsonCode] = useState('');
@@ -361,19 +362,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setEditorMode('text');
   };
 
-  const publishFromTextEditor = () => {
+  const publishFromTextEditor = async () => {
     try {
       const parsed = JSON.parse(rawJsonCode);
       if (!parsed.id || !parsed.title) {
         alert('Invalid JSON: must contain at least id and title.');
         return;
       }
-      WikiApi.createPage(parsed, userEmail || undefined);
-      setCreatedPageId(parsed.id);
-      setIsSuccess(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      if (onPageCreated) {
-        onPageCreated(parsed);
+      setIsSavingPage(true);
+      try {
+        const savedPage = await WikiApi.createPage(parsed, userEmail || undefined);
+        setCreatedPageId(savedPage.id);
+        setIsSuccess(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (onPageCreated) {
+          onPageCreated(savedPage);
+        }
+      } catch (err: any) {
+        alert('Failed to save page through server pipeline: ' + err.message);
+      } finally {
+        setIsSavingPage(false);
       }
     } catch (err: any) {
       alert('JSON Parse Error: ' + err.message);
@@ -481,7 +489,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   }
 
   // Handle Page submission
-  const handleSubmitPage = (e: React.FormEvent) => {
+  const handleSubmitPage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description) return;
 
@@ -523,28 +531,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       ]
     };
 
-    // Save using the Dynamic API layer
-    WikiApi.createPage(newPage, userEmail || undefined);
-    onPageCreated(newPage);
-    setCreatedPageId(slug);
-    setIsSuccess(true);
-    
-    // Reset page creation inputs
-    setTitle('');
-    setDescription('');
-    setNamespace('aetheria:custom_item');
-    setBadge('');
-    setBullet1('');
-    setBullet2('');
-    setSectionContent('');
-    setSelectedTemplateId('');
-    setBannerImageUrl('');
-    setTexturesStr('');
-    setCustomPropsList([]);
+    setIsSavingPage(true);
+    try {
+      const savedPage = await WikiApi.createPage(newPage, userEmail || undefined);
+      onPageCreated(savedPage);
+      setCreatedPageId(slug);
+      setIsSuccess(true);
+      
+      // Reset page creation inputs
+      setTitle('');
+      setDescription('');
+      setNamespace('aetheria:custom_item');
+      setBadge('');
+      setBullet1('');
+      setBullet2('');
+      setSectionContent('');
+      setSelectedTemplateId('');
+      setBannerImageUrl('');
+      setTexturesStr('');
+      setCustomPropsList([]);
 
-    setTimeout(() => {
-      setIsSuccess(false);
-    }, 6000);
+      setTimeout(() => {
+        setIsSuccess(false);
+      }, 6000);
+    } catch (err: any) {
+      alert("Failed to save page through server pipeline: " + err.message);
+    } finally {
+      setIsSavingPage(false);
+    }
   };
 
   // Handle Category Creation
@@ -762,11 +776,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </button>
                   <button
                     type="button"
+                    disabled={isSavingPage}
                     onClick={publishFromTextEditor}
-                    className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.3)] cursor-pointer flex items-center gap-2"
+                    className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs rounded-xl transition shadow-[0_0_20px_rgba(16,185,129,0.3)] cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Sparkles className="w-4 h-4" />
-                    <span>Publish from Text Editor</span>
+                    {isSavingPage ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                        <span>Publishing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Publish from Text Editor</span>
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -1219,10 +1243,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-[1.01] active:scale-98 cursor-pointer flex items-center justify-center gap-2"
+                  disabled={isSavingPage}
+                  className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm rounded-xl transition-all shadow-[0_0_20px_rgba(16,185,129,0.3)] hover:scale-[1.01] active:scale-98 cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Create Page in SQL Database</span>
+                  {isSavingPage ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                      <span>Compiling & Rebuilding Database...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Create Page in SQL Database</span>
+                    </>
+                  )}
                 </button>
               </div>
 

@@ -1,18 +1,20 @@
 {
   "serverMode": "full",
-  "url": "/data.7f0acf4f.sqlite",
+  "url": "/data.35702b6b.sqlite",
   "pageSize": 4096,
   "requestChunkSize": 4096,
-  "databaseLengthBytes": 602112,
-  "recordCount": 2001,
+  "databaseLengthBytes": 622592,
+  "recordCount": 2010,
   "tables": [
-    "daily_records"
+    "daily_records",
+    "wiki_pages"
   ],
   "indexes": [
     "idx_daily_records_date",
     "idx_daily_records_category",
-    "idx_daily_records_date_category"
+    "idx_daily_records_date_category",
+    "idx_wiki_pages_category"
   ],
-  "generatedAt": "2026-08-12T01:07:47.980Z",
-  "buildHash": "7f0acf4f"
+  "generatedAt": "2026-08-12T01:45:12.484Z",
+  "buildHash": "35702b6b"
 }

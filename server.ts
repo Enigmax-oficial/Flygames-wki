@@ -7,7 +7,7 @@ import initSqlJs, { Database } from 'sql.js';
 import { isAuthorizedAdminEmail } from './src/lib/adminAuth';
 import { createPageRouter } from './src/admin/pageController';
 import { defaultPageService } from './src/admin/pageService.js';
-import { appendRecord } from './scripts/record.js';
+import { appendRecord, appendPageRecord, deletePageRecord } from './scripts/record.js';
 
 const app = express();
 const PORT = 3000;
@@ -412,6 +412,10 @@ app.post(['/api/pages', '/api/sql/pages'], async (req, res) => {
 
     page.creatorEmail = creatorEmail;
 
+    // Append to source-pages.json and rebuild compiled database assets
+    await appendPageRecord(page);
+
+    // Also update current active connection
     const db = await getSqlDb();
     const now = new Date().toISOString();
     const pageDataStr = JSON.stringify(page);
@@ -431,7 +435,7 @@ app.post(['/api/pages', '/api/sql/pages'], async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Page created and saved directly in SQLite database with creator email address',
+      message: 'Page created and compiled into static SQLite database assets',
       page,
       creatorEmail,
       storedIn: 'SQL Database (SQLite)',
@@ -445,10 +449,12 @@ app.post(['/api/pages', '/api/sql/pages'], async (req, res) => {
 app.delete(['/api/pages/:id', '/api/sql/pages/:id'], async (req, res) => {
   try {
     const { id } = req.params;
+    await deletePageRecord(id);
+
     const db = await getSqlDb();
     db.run('DELETE FROM wiki_pages WHERE id = ?', [id]);
     persistSqlDb();
-    res.json({ success: true, message: `Page '${id}' deleted from SQL Database` });
+    res.json({ success: true, message: `Page '${id}' deleted from SQL Database and static assets` });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
