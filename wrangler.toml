@@ -2,9 +2,6 @@ name = "flygames"
 main = "worker/index.ts"
 compatibility_date = "2026-03-01"
 
-[build]
-command = "bash build.sh"
-
 [[d1_databases]]
 binding = "mysql"
 database_name = "minecraft-wiki-db"
