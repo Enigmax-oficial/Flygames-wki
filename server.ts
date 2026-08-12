@@ -388,9 +388,19 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[Cloudflare D1 Server & Express] Server running on http://localhost:${PORT}`);
-  });
+  const effectivePort = process.env.PORT || PORT;
+
+  // Support Windows Server IISNode named pipes or standard TCP ports
+  if (typeof effectivePort === 'string' && (effectivePort.startsWith('\\\\.\\pipe\\') || effectivePort.includes('pipe'))) {
+    app.listen(effectivePort, () => {
+      console.log(`[Cloudflare D1 Server & Express] Server running on Windows IISNode named pipe: ${effectivePort}`);
+    });
+  } else {
+    const numericPort = typeof effectivePort === 'string' ? parseInt(effectivePort, 10) || 3000 : effectivePort;
+    app.listen(numericPort, '0.0.0.0', () => {
+      console.log(`[Cloudflare D1 Server & Express] Server running on http://localhost:${numericPort}`);
+    });
+  }
 }
 
 startServer();

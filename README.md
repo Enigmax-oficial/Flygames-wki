@@ -83,7 +83,14 @@ npx wrangler d1 migrations apply minecraft-wiki-db --remote
 
 ---
 
-## 5. Contributing & Dependency Management
+## 6. Windows Server / IIS Hosting
+
+This project is fully configured for deployment on **Windows Server** (IIS / IISNode or PM2):
+
+- **IIS Integration**: A pre-configured `web.config` file routes incoming IIS traffic directly to `dist/server.cjs` via `iisnode` and handles dynamic named pipes (`process.env.PORT`).
+- **PM2 / Windows Services**: An `ecosystem.config.cjs` file is provided for running under PM2 on Windows Server (`pm2 start ecosystem.config.cjs`).
+- **Cross-Platform Environment**: `cross-env` is used in npm scripts to ensure environment variables function across Windows CMD, PowerShell, and bash.
+
 
 **Important CI/CD Note:** This project enforces deterministic builds in the CI environment (via inline commands in `wrangler.toml`). The build pipeline intentionally uses `bun install --frozen-lockfile` to explicitly fail the build if the lockfile drifts from `package.json`. This strictly prevents false-positive deploys utilizing a stale cache.
 
