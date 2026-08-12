@@ -127,3 +127,16 @@ Because of this sequential, reliable build-and-deploy pipeline, updates are **no
 3. **Client Hot-Swap Syncing:** The browser client checks the configuration on a regular basis or on reload. Once the configuration file on the server updates, the client detects the new build hash and instantly hot-swaps to the fresh, content-hashed dataset.
 
 ---
+
+## 🚫 HTTP 405 Method Not Allowed on API Routes (`/api/pages`)
+
+### Root Cause Analysis
+An **HTTP 405 Method Not Allowed** error occurs when a client sends a `POST` or `DELETE` request to an endpoint (such as `/api/pages` or `/api/sql/pages`) but the server rejects the method because:
+1. **Outdated Production Bundle (`dist/server.cjs`)**: The production server process was running an older compiled bundle (`server.ts` compiled via `esbuild`) that did not yet include the `POST /api/pages` and `DELETE /api/pages/:id` route handlers.
+2. **Static Asset Middleware Precedence**: Static file handlers or SPA catch-all routers were intercepting `/api/pages` before Express API routers could evaluate `POST` or `DELETE` methods, resulting in static server 405/404 responses.
+
+### Solution & Architectural Enforcement
+- **Register API Routes First**: Ensure all Express API route handlers (`POST /api/pages`, `DELETE /api/pages/:id`, etc.) are registered *before* static file middleware and wildcard catch-alls.
+- **Production Server Bundle Compilation**: Always run `npm run build` (which bundles `server.ts` to `dist/server.cjs`) and `npm run build:db` whenever server-side routes or database pipelines are modified.
+- **Single Source of Truth**: Maintained the single SQLite database architecture (`sql.js-httpvfs`) where `build-db.ts` generates a single content-hashed `data.[hash].sqlite` file, avoiding split brain databases while fully supporting server-side write-through pipeline execution.
+
