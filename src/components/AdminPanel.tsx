@@ -96,13 +96,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Navigation Tab State
   const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'api-playground' | 'assets' | 'database'>('create-page');
 
-  // SQLite Database Access States
+  // Cloudflare D1 Database Access States
   const [dbUsers, setDbUsers] = useState<any[]>([]);
   const [dbPages, setDbPages] = useState<any[]>([]);
   const [isDbLoading, setIsDbLoading] = useState(false);
   const [dbError, setDbError] = useState('');
 
-  // Fetch SQLite administrative stats
+  // Fetch Cloudflare D1 administrative stats
   useEffect(() => {
     if (activeTab === 'database') {
       setIsDbLoading(true);
@@ -1761,16 +1761,16 @@ wikiApi.createPage({
             <div>
               <h2 className="text-base font-extrabold text-white flex items-center gap-2">
                 <Database className="w-5 h-5 text-sky-400" />
-                <span>SQLite Database Console</span>
+                <span>Cloudflare D1 Database Console</span>
               </h2>
               <p className="text-xs text-slate-400 mt-1">
-                Real-time query of tables in the live server-side <code className="font-mono text-sky-300">wiki.sqlite</code> file. Secure credentials filtering is active.
+                Real-time query of tables in Cloudflare D1 database. Secure credentials filtering is active.
               </p>
             </div>
             <div className="flex gap-2">
               <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>SQLite Read / Write OK</span>
+                <span>Cloudflare D1 Read / Write OK</span>
               </span>
             </div>
           </div>
@@ -1843,10 +1843,10 @@ wikiApi.createPage({
                 </p>
               </div>
 
-              {/* SQLite Wiki Pages Section */}
+              {/* Cloudflare D1 Wiki Pages Section */}
               <div className="space-y-3">
                 <h3 className="text-xs font-extrabold text-sky-400 uppercase tracking-widest flex items-center gap-2">
-                  <span>2. SQLite Pages Database Table</span>
+                  <span>2. Cloudflare D1 Pages Database Table</span>
                   <span className="text-[10px] font-mono text-slate-500 normal-case bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
                     {dbPages.length} active records
                   </span>
@@ -1866,7 +1866,7 @@ wikiApi.createPage({
                       {dbPages.length === 0 ? (
                         <tr>
                           <td colSpan={5} className="p-4 text-center text-slate-500 italic">
-                            No custom pages currently active in SQLite database.
+                            No custom pages currently active in Cloudflare D1 database.
                           </td>
                         </tr>
                       ) : (

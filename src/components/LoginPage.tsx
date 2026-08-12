@@ -47,7 +47,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
       if (data.success) {
         const displayName = data.user?.username || username || email.split('@')[0];
-        setAuthMethod('SQLite Database');
+        setAuthMethod('Cloudflare D1 Database');
         setSuccess(true);
         setLoading(false);
         setTimeout(() => {
@@ -61,7 +61,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
     } catch {
       // Fallback in case of temporary connection issues
       const displayName = username || email.split('@')[0];
-      setAuthMethod('SQLite Direct Auth');
+      setAuthMethod('Cloudflare D1 Direct Auth');
       setSuccess(true);
       setLoading(false);
       setTimeout(() => {

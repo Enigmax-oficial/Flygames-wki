@@ -256,7 +256,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   <div className="flex flex-wrap gap-2 pt-1">
                     <div className="px-3.5 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-2">
                       <Database className="w-3.5 h-3.5" />
-                      <span>SQL Database Connected (SQLite / Express Backend)</span>
+                      <span>SQL Database Connected (Cloudflare D1 / Express Backend)</span>
                     </div>
                   </div>
                 </div>
