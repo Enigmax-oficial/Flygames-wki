@@ -3,7 +3,7 @@ main = "worker/index.ts"
 compatibility_date = "2026-03-01"
 
 [build]
-command = "./build.sh"
+command = "bash build.sh"
 
 [[d1_databases]]
 binding = "mysql"
