@@ -4,8 +4,8 @@ compatibility_date = "2026-03-01"
 
 [[d1_databases]]
 binding = "mysql"
-database_name = "minecraft-wiki-db"
-database_id = "83e4738d-6bb8-4ca3-7d90-e4c68b0ddfab"
+database_name = "my-sql"
+database_id = "d7f3eefe-63ff-4b62-8baf-6dc44381abab"
 
 [vars]
 ENVIRONMENT = "production"
