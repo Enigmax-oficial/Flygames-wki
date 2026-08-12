@@ -6,6 +6,7 @@ import fs from 'fs';
 import initSqlJs, { Database } from 'sql.js';
 import { isAuthorizedAdminEmail } from './src/lib/adminAuth';
 import { createPageRouter } from './src/admin/pageController';
+import { defaultPageService } from './src/admin/pageService.js';
 
 const app = express();
 const PORT = 3000;
@@ -435,7 +436,10 @@ app.post(['/api/categories', '/api/sql/categories'], async (req, res) => {
 
 async function startServer() {
   // Pre-initialize SQL DB
-  await getSqlDb();
+  const db = await getSqlDb();
+  
+  // Register database with PageService
+  defaultPageService.setDb(db, persistSqlDb);
 
   // Serve static files from the public folder first using Express's robust range-request static server
   const publicPath = path.join(process.cwd(), 'public');
