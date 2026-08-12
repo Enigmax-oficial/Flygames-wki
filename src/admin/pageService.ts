@@ -56,6 +56,40 @@ export class PageService {
     }
   }
 
+  public async reseed(): Promise<number> {
+    await fs.mkdir(this.pagesDir, { recursive: true });
+    let count = 0;
+    try {
+      const sourceFile = path.join(process.cwd(), 'example', 'source-pages.json');
+      const exists = await this.fileExists(sourceFile);
+      if (exists) {
+        const content = await fs.readFile(sourceFile, 'utf-8');
+        const sourcePages = JSON.parse(content);
+        if (Array.isArray(sourcePages)) {
+          for (const sp of sourcePages) {
+            const slug = slugify(sp.id || sp.title || 'page');
+            if (!slug) continue;
+            const targetPath = this.getFilePath(slug);
+            const now = new Date().toISOString();
+            const pageObj: Page = {
+              id: sp.id || crypto.randomUUID(),
+              title: sp.title || 'Untitled Page',
+              slug,
+              content: sp.description || (typeof sp.content === 'string' ? sp.content : JSON.stringify(sp)),
+              createdAt: sp.createdAt || now,
+              updatedAt: sp.updatedAt || now,
+            };
+            await fs.writeFile(targetPath, JSON.stringify(pageObj, null, 2), 'utf-8');
+            count++;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error during reseed:', err);
+    }
+    return count;
+  }
+
   private getFilePath(slug: string): string {
     return path.join(this.pagesDir, `${slug}.json`);
   }

@@ -331,6 +331,21 @@ app.post(['/api/categories', '/api/sql/categories'], async (req, res) => {
 });
 
 // Admin endpoint to access Cloudflare D1 stats
+app.post('/api/admin/reseed', async (req, res) => {
+  try {
+    const count = await defaultPageService.reseed();
+    res.json({
+      success: true,
+      message: `Database reseeded successfully with ${count} records.`,
+      seededCount: count,
+      storedIn: 'Cloudflare D1'
+    });
+  } catch (err: any) {
+    console.error('Error reseeding database:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get('/api/admin/database-stats', async (req, res) => {
   try {
     const users = inMemoryUsers.map(u => ({ username: u.username, role: u.role, created_at: u.created_at }));
