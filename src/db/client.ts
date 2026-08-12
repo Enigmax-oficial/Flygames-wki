@@ -2,15 +2,16 @@ import { createDbWorker } from 'sql.js-httpvfs';
 import { DBConfig, ChunkFetchStats, QueryResult } from './types.js';
 
 let workerPromise: Promise<any> | null = null;
+let currentWorkerUrl: string | null = null;
 let rangeRequestsSupported: boolean | null = null;
 
 /**
  * Probes host to check if HTTP Range Requests (206 Partial Content) are supported
  */
-export async function checkRangeSupport(): Promise<boolean> {
-  if (rangeRequestsSupported !== null) return rangeRequestsSupported;
+export async function checkRangeSupport(probeUrl: string = '/data.sqlite'): Promise<boolean> {
+  if (rangeRequestsSupported !== null && currentWorkerUrl === probeUrl) return rangeRequestsSupported;
   try {
-    const response = await fetch('/data.sqlite', {
+    const response = await fetch(probeUrl, {
       method: 'GET',
       headers: { Range: 'bytes=0-0' },
     });
@@ -24,29 +25,56 @@ export async function checkRangeSupport(): Promise<boolean> {
 }
 
 /**
- * Returns a singleton instance of the sql.js-httpvfs Web Worker
+ * Returns a singleton or hot-reloaded instance of the sql.js-httpvfs Web Worker
  */
-export async function getWorker() {
-  if (workerPromise) return workerPromise;
+export async function getWorker(forceReset = false) {
+  let config: any = { url: '/data.sqlite', buildHash: 'unknown', generatedAt: new Date().toISOString() };
+  try {
+    // Add cache-busting timestamp query parameter to ensure we bypass aggressive browser/CDN caches
+    const response = await fetch(`/data.config.json?cb=${Date.now()}`, {
+      cache: 'no-store',
+      headers: { 'Cache-Control': 'no-cache' }
+    });
+    if (response.ok) {
+      config = await response.json();
+    }
+  } catch (err) {
+    console.warn('⚠️ [SQLite Client] Failed to fetch data.config.json, falling back to unhashed data.sqlite:', err);
+  }
+
+  const dbUrl = config.url || '/data.sqlite';
+  const buildHash = config.buildHash || 'unknown';
+  const generatedAt = config.generatedAt || 'unknown';
+
+  // If a worker already exists and the database URL hasn't changed, reuse it
+  if (workerPromise && currentWorkerUrl === dbUrl && !forceReset) {
+    return workerPromise;
+  }
+
+  if (workerPromise) {
+    console.log(`🔄 [SQLite Client] New database version detected! Hot-swapping worker to: ${dbUrl}`);
+  }
+
+  currentWorkerUrl = dbUrl;
 
   workerPromise = (async () => {
-    // Check range support first
-    const supportsRange = await checkRangeSupport();
+    // Check range support on the resolved database url
+    const supportsRange = await checkRangeSupport(dbUrl);
     if (!supportsRange) {
       console.error('❌ ERROR: HTTP Range Requests are not supported by the static host! sql.js-httpvfs will fail or fallback.');
       throw new Error('HTTP Range Requests unsupported. Server must respond with 206 Partial Content for Range headers.');
     }
 
-    console.log('⚡ Initializing sql.js-httpvfs worker with inline configuration...');
+    console.log(`⚡ Initializing sql.js-httpvfs worker with database file: ${dbUrl} (Build Hash: ${buildHash}, Generated: ${generatedAt})`);
     
-    // Create the worker with inline config to bypass extra config fetching
+    // Create the worker with dynamic hashed url
     const worker = await createDbWorker(
       [
         {
           from: 'inline',
           config: {
             serverMode: 'full',
-            url: '/data.sqlite',
+            url: dbUrl,
             requestChunkSize: 4096,
           },
         },
@@ -55,7 +83,7 @@ export async function getWorker() {
       '/sql-wasm.wasm'
     );
 
-    console.log('✅ sql.js-httpvfs worker successfully initialized.');
+    console.log(`✅ sql.js-httpvfs worker successfully initialized with build hash: ${buildHash}`);
     return worker;
   })();
 

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import initSqlJs from 'sql.js';
+import crypto from 'crypto';
 
 interface DailyRecordInput {
   id: string;
@@ -102,6 +103,26 @@ async function buildDatabase() {
   const binaryData = db.export();
   const buffer = Buffer.from(binaryData);
 
+  // Calculate SHA-256 content hash of the DB buffer (first 8 characters)
+  const hash = crypto.createHash('sha256').update(buffer).digest('hex').substring(0, 8);
+  console.log(`🔑 Computed database SHA-256 build hash: ${hash}`);
+
+  // Clean up obsolete hashed databases in public/
+  const publicDir = path.join(process.cwd(), 'public');
+  if (fs.existsSync(publicDir)) {
+    const existingFiles = fs.readdirSync(publicDir);
+    for (const file of existingFiles) {
+      if (/^data\.[a-f0-9]+\.sqlite$/.test(file)) {
+        try {
+          fs.unlinkSync(path.join(publicDir, file));
+          console.log(`🧹 Deleted stale compiled database: ${file}`);
+        } catch (e) {
+          console.warn(`Failed to clean up old DB file: ${file}`, e);
+        }
+      }
+    }
+  }
+
   const outputDir = path.join(process.cwd(), 'public', 'db');
   if (!fs.existsSync(outputDir)) {
     fs.mkdirSync(outputDir, { recursive: true });
@@ -111,10 +132,15 @@ async function buildDatabase() {
   fs.writeFileSync(dbPath, buffer);
   console.log(`📄 Wrote ${buffer.byteLength} bytes to ${dbPath}`);
 
-  // Write to public/data.sqlite as well
+  // Write to public/data.sqlite as fallback
   const dataDbPath = path.join(process.cwd(), 'public', 'data.sqlite');
   fs.writeFileSync(dataDbPath, buffer);
   console.log(`📄 Wrote ${buffer.byteLength} bytes to ${dataDbPath}`);
+
+  // Write content-hashed database to public/data.[hash].sqlite
+  const hashedDbPath = path.join(publicDir, `data.${hash}.sqlite`);
+  fs.writeFileSync(hashedDbPath, buffer);
+  console.log(`📄 Wrote content-hashed database: ${hashedDbPath}`);
 
   // Auto-generate config.json describing database URL, page size, chunk size
   const config = {
@@ -127,20 +153,21 @@ async function buildDatabase() {
     tables: ['daily_records'],
     indexes: ['idx_daily_records_date', 'idx_daily_records_category', 'idx_daily_records_date_category'],
     generatedAt: new Date().toISOString(),
+    buildHash: hash
   };
 
   const configPath = path.join(outputDir, 'config.json');
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
   console.log(`⚙️ Wrote config file to ${configPath}`);
 
-  // Generate data.config.json pointing to /data.sqlite
+  // Generate data.config.json pointing to /data.[hash].sqlite
   const dataConfig = {
     ...config,
-    url: '/data.sqlite',
+    url: `/data.${hash}.sqlite`,
   };
   const dataConfigPath = path.join(process.cwd(), 'public', 'data.config.json');
   fs.writeFileSync(dataConfigPath, JSON.stringify(dataConfig, null, 2), 'utf-8');
-  console.log(`⚙️ Wrote data config file to ${dataConfigPath}`);
+  console.log(`⚙️ Wrote data config file with hash mapping to ${dataConfigPath}`);
 
   db.close();
   console.log('🎉 Database build complete!');

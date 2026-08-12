@@ -6,6 +6,24 @@
     <title>Aetheria Addon Wiki</title>
     <meta name="google-adsense-account" content="ca-pub-9144292410564162">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9144292410564162" crossorigin="anonymous"></script>
+    <script>
+      // Global blocker for benign sandbox WebSocket rejections
+      window.addEventListener('unhandledrejection', function(event) {
+        var reason = event.reason;
+        var msg = reason && reason.message ? reason.message : String(reason || '');
+        if (msg.includes('WebSocket') || msg.includes('websocket') || msg.includes('HMR') || msg.includes('vite')) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      }, true);
+      window.addEventListener('error', function(event) {
+        var msg = event.message || '';
+        if (msg.includes('WebSocket') || msg.includes('websocket') || msg.includes('HMR') || msg.includes('vite')) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      }, true);
+    </script>
   </head>
   <body>
     <div id="root"></div>

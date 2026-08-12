@@ -87,3 +87,19 @@ On application startup, a runtime test query is automatically executed:
 SELECT 1 as one;
 ```
 If this query fails or logs an error in the browser developer console (F12), check your network tab and verify that the host's responses to `data.sqlite` return **HTTP Status 206 (Partial Content)** for range fetches rather than **HTTP Status 200** (Full file download).
+
+---
+
+## ♻️ Stale Data After Rebuild (HTTP & Worker Caching)
+
+### The Problem
+When updating and redeploying the SQLite database (`data.sqlite`), client browsers or CDNs can serve stale/cached records from a previous build. This happens because:
+1. **Aggressive Browser/CDN Cache:** CDNs and browser caches can cache `.sqlite` range-request responses indefinitely if the database file name stays the same.
+2. **Web Worker Caching:** The `sql.js-httpvfs` worker thread caches fetched virtual filesystem pages in memory for the lifetime of the application session, ignoring newly deployed backend data.
+
+### The Solution: Multi-Level Cache-Busting
+This project utilizes a robust, automated cache-busting pipeline:
+1. **Build-Time Content Hashing:** The database build pipeline (`scripts/build-db.ts`) computes a SHA-256 hash of the generated SQLite binary buffer and outputs a content-hashed database file (e.g. `data.[hash].sqlite`).
+2. **Fresh Metadata Loading:** A metadata config file `data.config.json` holds the current hashed URL. This file is served with `Cache-Control: no-store, no-cache, must-revalidate` to ensure it is always fetched fresh.
+3. **Dynamic Client Syncing:** The database client (`src/db/client.ts`) fetches the configuration file on startup with a query parameter cache-buster (`/data.config.json?cb=[timestamp]`). If the resolved URL differs from the currently initialized worker database, the client automatically re-initializes and hot-swaps the worker to query the new content-hashed SQLite file.
+4. **Aggressive Hashed File Caching:** Since hashed database files are uniquely named per compile, the server configures them with high-performance `Cache-Control: public, max-age=31536000, immutable` headers.

@@ -434,6 +434,39 @@ app.post(['/api/categories', '/api/sql/categories'], async (req, res) => {
   }
 });
 
+// Admin endpoint to access SQLite users (usernames) and wiki pages
+app.get('/api/admin/database-stats', async (req, res) => {
+  try {
+    const db = await getSqlDb();
+    
+    // Get users (explicitly omitting emails and password hashes)
+    const usersStmt = db.prepare('SELECT username, role, created_at FROM users');
+    const users: any[] = [];
+    while (usersStmt.step()) {
+      users.push(usersStmt.getAsObject());
+    }
+    usersStmt.free();
+
+    // Get pages
+    const pagesStmt = db.prepare('SELECT id, category, title, creator_email, updated_at FROM wiki_pages');
+    const pages: any[] = [];
+    while (pagesStmt.step()) {
+      pages.push(pagesStmt.getAsObject());
+    }
+    pagesStmt.free();
+
+    res.json({
+      success: true,
+      users,
+      pages,
+      storedIn: 'SQL Database (SQLite)'
+    });
+  } catch (err: any) {
+    console.error('Error fetching admin database stats:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 async function startServer() {
   // Pre-initialize SQL DB
   const db = await getSqlDb();
@@ -445,9 +478,21 @@ async function startServer() {
   const publicPath = path.join(process.cwd(), 'public');
   app.use(express.static(publicPath, {
     setHeaders: (res, filePath) => {
+      const baseName = path.basename(filePath);
       if (filePath.endsWith('.sqlite')) {
         res.setHeader('Accept-Ranges', 'bytes');
         res.setHeader('Content-Type', 'application/x-sqlite3');
+        
+        // Content-hashed files (e.g. data.eb02dafa.sqlite) can be aggressively cached!
+        if (/^data\.[a-f0-9]+\.sqlite$/.test(baseName)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else {
+          // Fallback or unhashed data.sqlite
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      } else if (filePath.endsWith('.json')) {
+        // Configurations must never be cached by CDN or browser to ensure dynamic file pointing
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
       }
     }
   }));

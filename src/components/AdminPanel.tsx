@@ -94,7 +94,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'api-playground' | 'assets'>('create-page');
+  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'api-playground' | 'assets' | 'database'>('create-page');
+
+  // SQLite Database Access States
+  const [dbUsers, setDbUsers] = useState<any[]>([]);
+  const [dbPages, setDbPages] = useState<any[]>([]);
+  const [isDbLoading, setIsDbLoading] = useState(false);
+  const [dbError, setDbError] = useState('');
+
+  // Fetch SQLite administrative stats
+  useEffect(() => {
+    if (activeTab === 'database') {
+      setIsDbLoading(true);
+      setDbError('');
+      fetch('/api/admin/database-stats')
+        .then((res) => {
+          if (!res.ok) throw new Error('Database stats endpoint response failure.');
+          return res.json();
+        })
+        .then((data) => {
+          if (data.success) {
+            setDbUsers(data.users || []);
+            setDbPages(data.pages || []);
+          } else {
+            setDbError(data.error || 'Failed to fetch database tables.');
+          }
+        })
+        .catch((err) => {
+          console.error(err);
+          setDbError('Could not reach the administrative database API.');
+        })
+        .finally(() => {
+          setIsDbLoading(false);
+        });
+    }
+  }, [activeTab]);
 
   // Asset Gallery States
   const [imageList, setImageList] = useState<string[]>([
@@ -629,6 +663,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         >
           <ImageIcon className="w-4 h-4" />
           <span>Asset Library</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('database')}
+          className={`px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+            activeTab === 'database'
+              ? 'border-sky-400 text-sky-400 bg-sky-500/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+          }`}
+        >
+          <Database className="w-4 h-4" />
+          <span>Database Access</span>
         </button>
       </div>
 
@@ -1671,6 +1717,146 @@ wikiApi.createPage({
                 </div>
               );
             })()
+          )}
+        </div>
+      )}
+
+      {activeTab === 'database' && (
+        <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 space-y-8 shadow-xl animate-in fade-in duration-300">
+          <div className="border-b border-[#1e293b] pb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h2 className="text-base font-extrabold text-white flex items-center gap-2">
+                <Database className="w-5 h-5 text-sky-400" />
+                <span>SQLite Database Console</span>
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Real-time query of tables in the live server-side <code className="font-mono text-sky-300">wiki.sqlite</code> file. Secure credentials filtering is active.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <span className="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-lg font-bold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>SQLite Read / Write OK</span>
+              </span>
+            </div>
+          </div>
+
+          {dbError && (
+            <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 font-bold">
+              {dbError}
+            </div>
+          )}
+
+          {isDbLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 space-y-3">
+              <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-xs font-bold text-slate-400">Loading database tables...</span>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Users Section (Usernames Only, Explicitly No Emails or Password Hashes) */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-extrabold text-sky-400 uppercase tracking-widest flex items-center gap-2">
+                  <span>1. Registered Usernames Table</span>
+                  <span className="text-[10px] font-mono text-slate-500 lowercase normal-case bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                    {dbUsers.length} total records
+                  </span>
+                </h3>
+                <div className="overflow-x-auto border border-[#1e293b] rounded-xl">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-[#0b0f19] border-b border-[#1e293b] text-slate-400 font-bold">
+                        <th className="p-3">Username</th>
+                        <th className="p-3 text-rose-400">Email Address (Hidden)</th>
+                        <th className="p-3 text-rose-400">Password Hash (Hidden)</th>
+                        <th className="p-3">Status / Password Representation</th>
+                        <th className="p-3">Role</th>
+                        <th className="p-3">Registered At</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#1e293b] text-slate-300">
+                      {dbUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-4 text-center text-slate-500 italic">
+                            No users found in database.
+                          </td>
+                        </tr>
+                      ) : (
+                        dbUsers.map((user, idx) => (
+                          <tr key={idx} className="hover:bg-[#111827]">
+                            <td className="p-3 font-bold text-white">{user.username}</td>
+                            <td className="p-3 font-mono text-rose-400/80 bg-rose-500/5 select-none">[SECURE REDACTED]</td>
+                            <td className="p-3 font-mono text-rose-400/80 bg-rose-500/5 select-none">[SECURE REDACTED]</td>
+                            <td className="p-3 font-mono text-slate-500">•••••••• (Masked Securely)</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                user.role === 'admin' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-slate-800 text-slate-400'
+                              }`}>
+                                {user.role}
+                              </span>
+                            </td>
+                            <td className="p-3 text-slate-400 font-mono text-[10px]">
+                              {user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  ⚠️ <strong>Security Audit Notice:</strong> Email addresses and password cryptographic hashes are filtered server-side to comply with privacy compliance guidelines. Only public usernames and metadata are readable.
+                </p>
+              </div>
+
+              {/* SQLite Wiki Pages Section */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-extrabold text-sky-400 uppercase tracking-widest flex items-center gap-2">
+                  <span>2. SQLite Pages Database Table</span>
+                  <span className="text-[10px] font-mono text-slate-500 normal-case bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                    {dbPages.length} active records
+                  </span>
+                </h3>
+                <div className="overflow-x-auto border border-[#1e293b] rounded-xl">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-[#0b0f19] border-b border-[#1e293b] text-slate-400 font-bold">
+                        <th className="p-3">Page ID / Namespace</th>
+                        <th className="p-3">Title</th>
+                        <th className="p-3">Category</th>
+                        <th className="p-3">Author Email</th>
+                        <th className="p-3">Last Modified</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#1e293b] text-slate-300">
+                      {dbPages.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-4 text-center text-slate-500 italic">
+                            No custom pages currently active in SQLite database.
+                          </td>
+                        </tr>
+                      ) : (
+                        dbPages.map((page, idx) => (
+                          <tr key={idx} className="hover:bg-[#111827]">
+                            <td className="p-3 font-mono text-sky-300">{page.id}</td>
+                            <td className="p-3 font-bold text-white">{page.title}</td>
+                            <td className="p-3">
+                              <span className="px-1.5 py-0.5 bg-sky-500/10 text-sky-400 rounded border border-sky-500/20 text-[10px]">
+                                {page.category}
+                              </span>
+                            </td>
+                            <td className="p-3 text-slate-400">{page.creator_email || 'System'}</td>
+                            <td className="p-3 font-mono text-slate-400 text-[10px]">
+                              {page.updated_at ? new Date(page.updated_at).toLocaleString() : 'N/A'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       )}

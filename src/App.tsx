@@ -218,6 +218,16 @@ export default function App() {
       setPages(WikiApi.getPages());
     };
     window.addEventListener('wiki_data_updated', handleUpdate);
+
+    // Synchronize local states with SQLite server DB on application mount
+    WikiApi.fetchPagesFromSql().then((fetched) => {
+      if (fetched && fetched.length > 0) {
+        setPages(fetched);
+      }
+    }).catch(err => {
+      console.warn("Failed to synchronize with SQLite DB on mount:", err);
+    });
+
     return () => window.removeEventListener('wiki_data_updated', handleUpdate);
   }, []);
 
