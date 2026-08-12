@@ -276,9 +276,16 @@ export class WikiApi {
       body: JSON.stringify(page)
     });
 
-    const data = await res.json();
+    const text = await res.text();
+    let data: any = {};
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (e) {
+      throw new Error(`Server returned non-JSON response (${res.status}): ${text || res.statusText}`);
+    }
+
     if (!res.ok || !data.success) {
-      throw new Error(data.error || data.message || 'Server pipeline error');
+      throw new Error(data.error || data.message || `Server pipeline error (status ${res.status})`);
     }
 
     const savedPage = data.page || page;
@@ -290,9 +297,15 @@ export class WikiApi {
   static async deletePage(pageId: string): Promise<boolean> {
     try {
       const res = await fetch(`/api/pages/${encodeURIComponent(pageId)}`, { method: "DELETE" });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch (e) {
+        throw new Error(`Server returned non-JSON response (${res.status}): ${text || res.statusText}`);
+      }
       if (!res.ok || !data.success) {
-        throw new Error(data.error || data.message || 'Server delete error');
+        throw new Error(data.error || data.message || `Server delete error (status ${res.status})`);
       }
       this.cachedPages = this.cachedPages.filter(p => p.id !== pageId);
       window.dispatchEvent(new Event('wiki_data_updated'));

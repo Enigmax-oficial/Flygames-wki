@@ -1,10 +1,10 @@
 {
   "serverMode": "full",
-  "url": "/data.35702b6b.sqlite",
+  "url": "/data.55b91d58.sqlite",
   "pageSize": 4096,
   "requestChunkSize": 4096,
   "databaseLengthBytes": 622592,
-  "recordCount": 2010,
+  "recordCount": 2011,
   "tables": [
     "daily_records",
     "wiki_pages"
@@ -15,6 +15,6 @@
     "idx_daily_records_date_category",
     "idx_wiki_pages_category"
   ],
-  "generatedAt": "2026-08-12T01:45:12.484Z",
-  "buildHash": "35702b6b"
+  "generatedAt": "2026-08-12T02:01:46.384Z",
+  "buildHash": "55b91d58"
 }
