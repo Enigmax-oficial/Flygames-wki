@@ -73,7 +73,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: userEmail, password: trimmedInput })
       });
-      const data = await res.json();
+      const data = await res.json() as any;
 
       if (data.success) {
         setIsAdminAuthenticated(true);
@@ -110,7 +110,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       fetch('/api/admin/database-stats')
         .then((res) => {
           if (!res.ok) throw new Error('Database stats endpoint response failure.');
-          return res.json();
+          return res.json() as any;
         })
         .then((data) => {
           if (data.success) {
@@ -207,7 +207,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     if (activeTab === 'assets') {
       setIsImagesLoading(true);
       fetch('/api/images/list')
-        .then((res) => res.json())
+        .then((res) => res.json() as any)
         .then((data) => {
           if (data.success && data.images && data.images.length > 0) {
             setImageList(data.images);

@@ -231,33 +231,32 @@ export class WikiApi {
 
   static async fetchPagesFromSql(): Promise<WikiPage[]> {
     try {
-      // Try to query sql.js-httpvfs static range-request DB first
-      const clientModule = await import('../db/client');
-      const rows = await clientModule.query<{ data: string }>('SELECT data FROM wiki_pages');
-      if (rows && rows.length > 0) {
-        const sqlPages: WikiPage[] = rows.map(r => JSON.parse(r.data));
-        this.cachedPages = sqlPages;
-        window.dispatchEvent(new Event('wiki_data_updated'));
-        console.log(`✅ [WikiApi] Loaded ${sqlPages.length} pages directly from static SQLite via sql.js-httpvfs`);
-        return sqlPages;
-      }
-    } catch (e) {
-      console.warn('[WikiApi] sql.js-httpvfs static range-request page fetch failed/unsupported, falling back to /api/pages:', e);
-    }
-
-    try {
       const res = await fetch('/api/pages');
       if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.pages)) {
-          const sqlPages: WikiPage[] = data.pages;
-          this.cachedPages = sqlPages;
-          window.dispatchEvent(new Event('wiki_data_updated'));
-          return sqlPages;
-        }
+        const data = await res.json() as { results?: Array<{ id: string; title: string; slug: string; content: string; created_at: string; updated_at: string }> };
+        const rows = data.results || (Array.isArray(data) ? data : []);
+        const pages: WikiPage[] = rows.map(r => ({
+          id: r.slug || r.id,
+          title: r.title,
+          namespace: 'minecraft:' + (r.slug || r.id).replace(/-/g, '_'),
+          category: 'guides',
+          description: r.content ? r.content.substring(0, 150) : '',
+          addonVersion: '1.0.0',
+          icon: '✨',
+          tags: [r.slug || r.id],
+          lastUpdated: r.updated_at || new Date().toISOString(),
+          content: r.content,
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+          templateId: 'standard',
+        } as unknown as WikiPage));
+        this.cachedPages = pages;
+        window.dispatchEvent(new Event('wiki_data_updated'));
+        console.log(`✅ [WikiApi] Loaded ${pages.length} pages from Cloudflare D1 Worker API`);
+        return pages;
       }
     } catch (e) {
-      console.warn('[WikiApi] Failed to fetch pages from /api/pages fallback:', e);
+      console.warn('[WikiApi] Failed to fetch pages from Cloudflare D1 API:', e);
     }
 
     return this.getPages();
@@ -267,13 +266,20 @@ export class WikiApi {
     const emailToSave = userEmail || page.creatorEmail || localStorage.getItem('etherium_user_email') || 'ruanpablolopesbritor@gmail.com';
     page.creatorEmail = emailToSave;
 
+    const pageSlug = page.id || page.title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-');
+    const pageContent = (page as any).content || page.description || '';
+
     const res = await fetch("/api/pages", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
         "X-User-Email": emailToSave
       },
-      body: JSON.stringify(page)
+      body: JSON.stringify({
+        title: page.title,
+        slug: pageSlug,
+        content: pageContent,
+      })
     });
 
     const text = await res.text();
@@ -284,30 +290,35 @@ export class WikiApi {
       throw new Error(`Server returned non-JSON response (${res.status}): ${text || res.statusText}`);
     }
 
-    if (!res.ok || !data.success) {
-      throw new Error(data.error || data.message || `Server pipeline error (status ${res.status})`);
+    if (!res.ok) {
+      throw new Error(data.error || `Server error (status ${res.status})`);
     }
 
-    const savedPage = data.page || page;
+    const savedRecord = data;
+    const savedPage: WikiPage = {
+      ...page,
+      id: savedRecord.slug || savedRecord.id || page.id,
+      title: savedRecord.title || page.title,
+      description: savedRecord.content || page.description,
+      lastUpdated: savedRecord.updated_at || new Date().toISOString(),
+    };
+
     this.cachedPages = [savedPage, ...this.cachedPages.filter(p => p.id !== savedPage.id)];
     window.dispatchEvent(new Event('wiki_data_updated'));
     return savedPage;
   }
 
-  static async deletePage(pageId: string): Promise<boolean> {
+  static async deletePage(pageId: string, slug?: string): Promise<boolean> {
     try {
-      const res = await fetch(`/api/pages/${encodeURIComponent(pageId)}`, { method: "DELETE" });
-      const text = await res.text();
-      let data: any = {};
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch (e) {
-        throw new Error(`Server returned non-JSON response (${res.status}): ${text || res.statusText}`);
+      const identifier = slug || pageId;
+      const res = await fetch(`/api/pages/${encodeURIComponent(identifier)}`, { method: "DELETE" });
+      if (!res.ok && res.status !== 204) {
+        const text = await res.text();
+        let data: any = {};
+        try { data = text ? JSON.parse(text) : {}; } catch {}
+        throw new Error(data.error || `Server delete error (status ${res.status})`);
       }
-      if (!res.ok || !data.success) {
-        throw new Error(data.error || data.message || `Server delete error (status ${res.status})`);
-      }
-      this.cachedPages = this.cachedPages.filter(p => p.id !== pageId);
+      this.cachedPages = this.cachedPages.filter(p => p.id !== pageId && p.id !== slug);
       window.dispatchEvent(new Event('wiki_data_updated'));
       return true;
     } catch (err) {

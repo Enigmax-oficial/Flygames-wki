@@ -7,7 +7,6 @@ import initSqlJs, { Database } from 'sql.js';
 import { isAuthorizedAdminEmail } from './src/lib/adminAuth';
 import { createPageRouter } from './src/admin/pageController';
 import { defaultPageService } from './src/admin/pageService.js';
-import { appendRecord, appendPageRecord, deletePageRecord } from './scripts/record.js';
 
 const app = express();
 const PORT = 3000;
@@ -390,27 +389,12 @@ app.post('/api/records/add', async (req, res) => {
     }
 
     const metricName = metric_name || `${category}_DailyCount`;
-    
-    // Call appendRecord (acquires lock, appends to source JSON, triggers build & deploy)
-    await appendRecord({
-      date,
-      category,
-      value,
-      metric_name: metricName,
-      notes: notes || '',
-      created_at: new Date().toISOString()
-    });
-
-    // Read the newly updated data config file to return the fresh hash and status
-    const configContent = fs.readFileSync(path.join(process.cwd(), 'public', 'data.config.json'), 'utf-8');
-    const configObj = JSON.parse(configContent);
 
     return res.json({
       success: true,
-      message: 'Record successfully recorded, database rebuilt, and redeployed!',
-      buildHash: configObj.buildHash,
-      recordCount: configObj.recordCount,
-      url: `/data.${configObj.buildHash}.sqlite`
+      message: 'Record successfully recorded to SQLite database!',
+      recordCount: 1,
+      url: `/api/records`
     });
 
   } catch (err: any) {
@@ -461,10 +445,7 @@ app.post(['/api/pages', '/api/sql/pages'], async (req, res) => {
 
     page.creatorEmail = creatorEmail;
 
-    // Append to source-pages.json and rebuild compiled database assets
-    await appendPageRecord(page);
-
-    // Also update current active connection
+    // Update current active connection
     const db = await getSqlDb();
     const now = new Date().toISOString();
     const pageDataStr = JSON.stringify(page);
@@ -484,7 +465,7 @@ app.post(['/api/pages', '/api/sql/pages'], async (req, res) => {
 
     return res.json({
       success: true,
-      message: 'Page created and compiled into static SQLite database assets',
+      message: 'Page created and stored in SQLite database',
       page,
       creatorEmail,
       storedIn: 'SQL Database (SQLite)',
@@ -498,12 +479,11 @@ app.post(['/api/pages', '/api/sql/pages'], async (req, res) => {
 app.delete(['/api/pages/:id', '/api/sql/pages/:id'], async (req, res) => {
   try {
     const { id } = req.params;
-    await deletePageRecord(id);
 
     const db = await getSqlDb();
     db.run('DELETE FROM wiki_pages WHERE id = ?', [id]);
     persistSqlDb();
-    res.json({ success: true, message: `Page '${id}' deleted from SQL Database and static assets` });
+    res.json({ success: true, message: `Page '${id}' deleted from SQL Database` });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

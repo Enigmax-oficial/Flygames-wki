@@ -43,7 +43,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
         body: JSON.stringify({ email, username, password }),
       });
 
-      const data = await res.json();
+      const data = await res.json() as any;
 
       if (data.success) {
         const displayName = data.user?.username || username || email.split('@')[0];
@@ -136,7 +136,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ id_token: idToken }),
                         });
-                        const data = await res.json();
+                        const data = await res.json() as any;
 
                         let name = 'Google User';
                         let emailVal = 'user@gmail.com';

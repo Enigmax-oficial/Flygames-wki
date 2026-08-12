@@ -1,80 +1,82 @@
-# Mini SQL Server over HTTP Range Requests
+# Minecraft Addon Wiki - Cloudflare D1 & Worker Architecture
 
-A lightweight, serverless, client-side SQLite query engine that runs SQL queries against a static `.sqlite` file hosted on any static HTTP host (such as GitHub Pages, AWS S3, Cloudflare Pages, or Netlify). Inspired by `sql.js-httpvfs`.
-
-Instead of downloading the entire database or hosting an active backend database process, the client lazily fetches only the specific SQLite database pages required for a query using standard **HTTP Range Requests** (`Range: bytes=start-end`).
+This project uses **Cloudflare D1** (serverless SQLite at the edge) accessed via a **Cloudflare Worker** as the single source of truth for both reads and writes. This eliminates the legacy static file rebuild/redeploy pipeline and provides a live, zero-latency database API.
 
 ---
 
 ## Architecture & File Structure
 
 ```
-├── scripts/
-│   └── build-db.ts        # Node.js script that compiles source data into dataset.sqlite & config.json
-├── public/
-│   └── db/
-│     ├── dataset.sqlite   # Static SQLite database asset
-│     └── config.json      # Auto-generated configuration (page size, URL, indexes, size)
-├── src/
-│   └── db/
-│       ├── types.ts       # Database schema interfaces, config types, and query stats
-│       ├── client.ts      # Browser-side HTTP Range VFS query client with caching and fallback
-│       └── repository.ts  # Type-safe DAO/Repository layer wrapping SQL queries (no ORM)
-└── README.md              # Documentation and deployment instructions
+├── worker/
+│   ├── index.ts           # Cloudflare Worker entry point, CORS & routing
+│   ├── types.ts           # TypeScript interfaces (Env, PageRecord, etc.)
+│   └── routes/
+│       └── pages.ts       # REST handlers for GET, POST, PUT, DELETE /pages
+├── schema.sql             # SQL DDL for the pages table and indexes
+├── wrangler.toml          # Cloudflare Worker configuration & D1 database binding
+└── README.md              # Documentation and setup instructions
 ```
 
 ---
 
-## How It Works
+## 1. Environment & D1 Configuration (`wrangler.toml`)
 
-1. **Static Pre-compilation**: The build pipeline runs `scripts/build-db.ts` to transform seed data, CSVs, or JSON arrays into a single `.sqlite` file with B-Tree indexes on frequently queried columns (e.g. `date`, `category`).
-2. **HTTP Range Requests**: When executing queries in the browser, `RangeVirtualFileSystem` in `src/db/client.ts` calculates the SQLite page offset (4096-byte chunks) needed for index lookups and row fetches.
-3. **Chunk Caching**: Fetched pages are cached in memory so subsequent queries hit the local cache without network requests.
-4. **Graceful Fallback**: If a host or CDN does not support HTTP Range Requests (`206 Partial Content`), the engine automatically falls back to downloading the full `.sqlite` file in a non-blocking background stream.
+The Worker binds to Cloudflare D1 via the `mysql` binding name (maintaining compatibility with existing configuration):
+
+```toml
+name = "minecraft-addon-wiki-worker"
+main = "worker/index.ts"
+compatibility_date = "2026-03-01"
+
+[[d1_databases]]
+binding = "mysql"
+database_name = "minecraft-wiki-db"
+database_id = "your-d1-database-uuid-here"
+```
 
 ---
 
-## How to Regenerate the SQLite Database
+## 2. Database Schema & Setup
 
-To build or update the SQLite file and config:
+To initialize or update the D1 database schema:
 
+### Local Development (Wrangler Local D1)
 ```bash
-# Run the database pre-compilation script
-npm run build:db
+npx wrangler d1 execute minecraft-wiki-db --local --file=./schema.sql
 ```
 
-This updates:
-- `public/db/dataset.sqlite`
-- `public/db/config.json`
+### Remote Production D1 Deployment
+```bash
+npx wrangler d1 execute minecraft-wiki-db --remote --file=./schema.sql
+```
+
+### Migrations (Optional)
+If using Wrangler migrations:
+```bash
+npx wrangler d1 migrations create minecraft-wiki-db create_pages_table
+# Add SQL statements to the generated migration file in migrations/
+npx wrangler d1 migrations apply minecraft-wiki-db --remote
+```
 
 ---
 
-## Deployment Instructions
+## 3. Worker API Endpoints
 
-Because the database file is just a static file asset in `public/db/`:
+- `GET /pages` — List pages with query parameters `?limit=` (default 20, max 100) and `?offset=`, sorted by `updated_at DESC`.
+- `GET /pages/:slug` — Fetch a single page by slug (404 if not found).
+- `POST /pages` — Create a new page. Body requires `title` and `content`. Automatically generates a URL-safe `slug` if not provided. Returns `409` if the slug already exists.
+- `PUT /pages/:slug` — Partial update of a page by slug.
+- `DELETE /pages/:slug` — Delete a page by slug (`204 No Content` on success).
 
-1. Run the build script to generate static production assets:
+---
+
+## 4. Development & Deployment
+
+1. **Local Worker Preview**:
    ```bash
-   npm run build
+   npx wrangler dev
    ```
-2. Deploy the `dist/` or `public/` directory to any static web host:
-   - **GitHub Pages**: Ensure CORS and standard GET range requests are allowed.
-   - **AWS S3 / CloudFront**: Enable `Accept-Ranges: bytes` in S3 metadata.
-   - **Cloudflare Pages / Netlify / Vercel**: Works out of the box for byte range requests.
-
----
-
-## Type-Safe Query Layer Example
-
-```typescript
-import { defaultDailyRecordRepository } from './src/db/repository';
-
-// 1. Query records by date
-const { rows, stats, executionTimeMs } = await defaultDailyRecordRepository.getRecordsByDate('2026-02-15');
-console.log('Records for 2026-02-15:', rows);
-console.log('Bytes requested over HTTP Range:', stats.bytesRequested);
-
-// 2. Query category breakdown
-const breakdown = await defaultDailyRecordRepository.getCategoryBreakdown();
-console.log('Category totals:', breakdown.rows);
-```
+2. **Deploy Worker to Cloudflare Edge**:
+   ```bash
+   npx wrangler deploy
+   ```
