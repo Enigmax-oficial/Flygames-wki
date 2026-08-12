@@ -1,14 +1,12 @@
 
  ⛅️ wrangler 4.122.0
 ────────────────────
-[custom build] Running: bash build.sh
-[custom build] Verifying lockfile is in sync with package.json...
-[custom build] 
+[custom build] Running: echo 'Verifying lockfile...' && bun install --frozen-lockfile && echo 'Running typecheck...' && bun run lint && echo 'Building...' && bun run build
+[custom build] Verifying lockfile...
 [custom build] bun install v1.3.14 (0d9b296a)
 [custom build] 
 [custom build] 
-[custom build] Checked 659 installs across 776 packages (no changes) [67.00ms]
-[custom build] 
+[custom build] Checked 659 installs across 776 packages (no changes) [63.00ms]
 [custom build] Running typecheck...
 [custom build] 
 [custom build] $ tsc --noEmit
@@ -31,7 +29,6 @@
 [custom build] 
 [custom build] dist/assets/index-BwSfoDha.css     92.30 kB │ gzip:  13.68 kB
 [custom build] dist/assets/index-B3ipAudD.js   1,315.88 kB │ gzip: 317.53 kB
-[custom build] ✓ built in 7.25s
 [custom build] 
 [custom build] 
 [custom build] (!) Some chunks are larger than 500 kB after minification. Consider:
@@ -39,11 +36,13 @@
 [custom build] - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 [custom build] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
 [custom build] 
+[custom build] ✓ built in 7.53s
+[custom build] 
 [custom build] 
 [custom build]   dist/server.cjs      24.1kb
 [custom build]   dist/server.cjs.map  41.5kb
 [custom build] 
-[custom build] ⚡ Done in 14ms
+[custom build] ⚡ Done in 15ms
 [custom build] 
 Total Upload: 8.21 KiB / gzip: 2.10 KiB
 Your Worker has access to the following bindings:

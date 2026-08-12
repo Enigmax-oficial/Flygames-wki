@@ -85,7 +85,7 @@ npx wrangler d1 migrations apply minecraft-wiki-db --remote
 
 ## 5. Contributing & Dependency Management
 
-**Important CI/CD Note:** This project enforces deterministic builds in the CI environment (via `build.sh` and `wrangler.toml`). The `build.sh` script intentionally uses `bun install --frozen-lockfile` to explicitly fail the build if the lockfile drifts from `package.json`. This strictly prevents false-positive deploys utilizing a stale cache.
+**Important CI/CD Note:** This project enforces deterministic builds in the CI environment (via inline commands in `wrangler.toml`). The build pipeline intentionally uses `bun install --frozen-lockfile` to explicitly fail the build if the lockfile drifts from `package.json`. This strictly prevents false-positive deploys utilizing a stale cache.
 
 ### When changing dependencies
 Whenever you edit `package.json` (e.g., adding, removing, or updating dependencies), you **must**:
@@ -93,7 +93,4 @@ Whenever you edit `package.json` (e.g., adding, removing, or updating dependenci
 2. Run `npm run verify-lockfile` locally to ensure it passes.
 3. Commit the updated `bun.lock` file in the same commit as your `package.json` changes.
 
-**Do NOT remove `--frozen-lockfile` from `build.sh` to "fix" a broken build.** The correct fix is always to run `bun install` locally and commit the resulting `bun.lock`.
-
-### Build Script Permissions
-The build script must always be invoked via its interpreter (e.g., `bash build.sh`) in `wrangler.toml`'s `[build]` command, rather than relying on the file being executable (`./build.sh`). This is because this project's CI environment does not reliably preserve the executable bit (`chmod +x`) across commits, clones, or artifact restorations. Relying on POSIX file permissions will result in a `Permission denied` / `exit code 126` error during deployment. **Do NOT revert the build command to `./build.sh`.**
+**Do NOT remove `--frozen-lockfile` from `wrangler.toml` to "fix" a broken build.** The correct fix is always to run `bun install` locally and commit the resulting `bun.lock`.
