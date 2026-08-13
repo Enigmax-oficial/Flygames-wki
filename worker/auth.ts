@@ -125,6 +125,84 @@ export async function handleAuthRequest(
     });
   };
 
+  // POST /auth/google or /api/auth/google
+  if (pathname === '/auth/google' || pathname === '/api/auth/google') {
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {}
+
+    const idToken = body.id_token;
+    let email = body.email;
+    let name = body.name || 'Google User';
+
+    if (idToken && !email) {
+      try {
+        const parts = idToken.split('.');
+        if (parts.length === 3) {
+          let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+          while (b64.length % 4) {
+            b64 += '=';
+          }
+          const payloadStr = atob(b64);
+          const payload = JSON.parse(payloadStr);
+          email = payload.email;
+          name = payload.name || (email ? email.split('@')[0] : 'Google User');
+        }
+      } catch (err) {
+        console.warn('Could not parse Google ID token:', err);
+      }
+    }
+
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return jsonRes({ error: 'Google authentication missing valid email address' }, 400);
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const now = new Date().toISOString();
+
+    // Check if user exists in D1 database
+    let existingUser = await env.mysql
+      .prepare('SELECT id, email, created_at FROM users WHERE email = ?')
+      .bind(cleanEmail)
+      .first<{ id: string; email: string; created_at: string }>();
+
+    let userId = existingUser?.id;
+
+    if (!existingUser) {
+      userId = 'usr_' + crypto.randomUUID();
+      await env.mysql
+        .prepare(
+          'INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
+        )
+        .bind(userId, cleanEmail, 'oauth:google', now, now)
+        .run();
+
+      existingUser = { id: userId, email: cleanEmail, created_at: now };
+    } else {
+      await env.mysql
+        .prepare('UPDATE users SET updated_at = ? WHERE id = ?')
+        .bind(now, userId)
+        .run();
+    }
+
+    const createdAt = existingUser ? existingUser.created_at : now;
+    const finalUserId = userId || 'usr_' + crypto.randomUUID();
+
+    const token = await createToken({ id: finalUserId, email: cleanEmail });
+
+    return jsonRes({
+      success: true,
+      token,
+      user: {
+        id: finalUserId,
+        email: cleanEmail,
+        name,
+        created_at: createdAt,
+      },
+    });
+  }
+
   // POST /auth/signup or /api/auth/signup
   if (pathname === '/auth/signup' || pathname === '/api/auth/signup') {
     if (request.method !== 'POST') {

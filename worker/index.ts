@@ -24,12 +24,14 @@ export default {
     }
 
     try {
-      // Auth endpoints (/auth/signup, /auth/login, /api/auth/signup, /api/auth/login)
+      // Auth endpoints (/auth/signup, /auth/login, /auth/google, etc.)
       if (
         pathname === '/auth/signup' ||
         pathname === '/api/auth/signup' ||
         pathname === '/auth/login' ||
-        pathname === '/api/auth/login'
+        pathname === '/api/auth/login' ||
+        pathname === '/auth/google' ||
+        pathname === '/api/auth/google'
       ) {
         return await handleAuthRequest(request, url, env, corsHeaders);
       }
@@ -95,19 +97,6 @@ export default {
           storedIn: 'Cloudflare D1',
           pagesCount: pageCount,
           users: [{ username: 'adm', role: 'admin', created_at: new Date().toISOString() }],
-        }, 200, corsHeaders);
-      }
-
-      // Google auth endpoint
-      if (pathname === '/auth/google' || pathname === '/api/auth/google') {
-        let body: any = {};
-        try {
-          body = await request.json();
-        } catch {}
-        return jsonResponse({
-          success: true,
-          message: 'Google authentication verified',
-          id_token: body.id_token ? 'received' : undefined,
         }, 200, corsHeaders);
       }
 

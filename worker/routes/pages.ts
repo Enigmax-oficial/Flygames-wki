@@ -29,6 +29,12 @@ export async function ensureSchema(env: Env): Promise<void> {
     await env.mysql.exec(
       'CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT NOT NULL, image_url TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
     );
+    await env.mysql.exec(
+      'CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
+    );
+    await env.mysql.exec(
+      'CREATE TABLE IF NOT EXISTS favorites (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, page_id TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE (user_id, page_id));'
+    );
     try {
       await env.mysql.exec('ALTER TABLE pages ADD COLUMN category TEXT;');
     } catch (e) {

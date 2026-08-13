@@ -213,6 +213,8 @@ app.all([
   '/auth/login',
   '/api/auth/signup',
   '/api/auth/login',
+  '/auth/google',
+  '/api/auth/google',
   '/favorites',
   '/favorites/*',
   '/api/favorites',
@@ -303,37 +305,6 @@ app.get('/api/images/list', (req, res) => {
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
-});
-
-// Google OAuth verification endpoint
-app.post('/auth/google', (req, res) => {
-  const { id_token } = req.body;
-  if (!id_token) {
-    return res.status(400).json({ success: false, error: 'Missing id_token' });
-  }
-
-  try {
-    const parts = id_token.split('.');
-    if (parts.length === 3) {
-      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
-      const expectedClientId = '309962205395-c36qhp6n9qold6kcd5ii3d4t3q04qvt9.apps.googleusercontent.com';
-
-      return res.json({
-        success: true,
-        user: {
-          name: payload.name || (payload.email ? payload.email.split('@')[0] : 'Google User'),
-          email: payload.email,
-          picture: payload.picture,
-          sub: payload.sub,
-        },
-        audMatches: payload.aud === expectedClientId,
-      });
-    }
-  } catch (err) {
-    console.error('Error parsing Google ID token:', err);
-  }
-
-  return res.json({ success: true, message: 'ID token received' });
 });
 
 // Authentication - Register Endpoint
