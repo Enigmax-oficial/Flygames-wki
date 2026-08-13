@@ -123,6 +123,7 @@ export interface WikiPage {
 
   // Custom metadata / KV
   views?: number;
+  view_count?: number;
   customProperties?: Record<string, string>;
 }
 

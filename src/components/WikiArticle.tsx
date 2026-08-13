@@ -398,19 +398,21 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleToggleFavorite}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer border ${
-              isFavorited
-                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-                : 'bg-[#1e293b]/70 hover:bg-[#1e293b] text-[#cbd5e1] border-[#334155]'
-            }`}
-            title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-          >
-            <Heart className={`w-3.5 h-3.5 ${isFavorited ? 'fill-amber-400 text-amber-400' : 'text-amber-400'}`} />
-            <span>{isFavorited ? 'Favorited' : 'Add to Favorites'}</span>
-          </button>
+          {(!!currentUserEmail || WikiApi.isUserLoggedIn()) && (
+            <button
+              type="button"
+              onClick={handleToggleFavorite}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer border ${
+                isFavorited
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                  : 'bg-[#1e293b]/70 hover:bg-[#1e293b] text-[#cbd5e1] border-[#334155]'
+              }`}
+              title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Heart className={`w-3.5 h-3.5 ${isFavorited ? 'fill-amber-400 text-amber-400' : 'text-amber-400'}`} />
+              <span>{isFavorited ? 'Favorited' : 'Add to Favorites'}</span>
+            </button>
+          )}
 
           <button
             onClick={handleShare}
