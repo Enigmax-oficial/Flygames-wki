@@ -67,16 +67,12 @@ export default function App() {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   const handlePageCreated = async (newPage: WikiPage) => {
-    try {
-      const savedPage = await WikiApi.createPage(newPage, userEmail || undefined);
-      setPages((prev) => {
-        const updated = [savedPage, ...prev.filter(p => p.id !== savedPage.id)];
-        navigateToPage(savedPage.id, updated);
-        return updated;
-      });
-    } catch (err: any) {
-      alert("Failed to save page through server pipeline: " + err.message);
-    }
+    const savedPage = await WikiApi.createPage(newPage, userEmail || undefined);
+    setPages((prev) => {
+      const updated = [savedPage, ...prev.filter(p => p.id !== savedPage.id)];
+      navigateToPage(savedPage.id, updated);
+      return updated;
+    });
   };
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(() => {
     try {

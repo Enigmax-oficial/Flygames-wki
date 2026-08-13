@@ -102,6 +102,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
     )
   );
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -128,7 +129,8 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
         try {
           await onPageCreated(newPage);
           onClose();
-        } finally {
+        } catch (err: any) {
+          setJsonError(err.message || 'Failed to create page');
           setIsSaving(false);
         }
       } catch (err: any) {
@@ -221,6 +223,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
     }
 
     setIsSaving(true);
+    setFormError(null);
     try {
       await onPageCreated(createdPage);
       onClose();
@@ -230,8 +233,8 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
       setDescription('');
       setImageUrl('');
       setMultiplePhotosStr('');
-    } catch (err) {
-      // Handled inside handlePageCreated
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to create page');
     } finally {
       setIsSaving(false);
     }
@@ -283,6 +286,11 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
 
         {/* Form / JSON Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1 text-xs">
+          {formError && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-xl font-medium text-xs flex items-center gap-2">
+              <span>⚠️ Error:</span> {formError}
+            </div>
+          )}
           {inputMode === 'json' ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
