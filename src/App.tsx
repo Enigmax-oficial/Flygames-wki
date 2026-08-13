@@ -8,6 +8,7 @@ import { PortalHomePage } from './components/PortalHomePage';
 import { CategoryOverviewPage } from './components/CategoryOverviewPage';
 import { SearchModal } from './components/SearchModal';
 import { LoginPage } from './components/LoginPage';
+import { AdminSetupPage } from './components/AdminSetupPage';
 import { PageCreatorModal } from './components/PageCreatorModal';
 import { AccountModal } from './components/AccountModal';
 import { AdminPanel } from './components/AdminPanel';
@@ -107,7 +108,11 @@ export default function App() {
       .then(res => res.json())
       .then((data: any) => {
         if (data.success) {
-          setHasAdmin(Boolean(data.hasAdmin));
+          const adminExists = Boolean(data.hasAdmin);
+          setHasAdmin(adminExists);
+          if (!adminExists && window.location.pathname !== '/admin-setup') {
+            navigateToPage('admin-setup');
+          }
         }
       })
       .catch(() => {});
@@ -134,6 +139,9 @@ export default function App() {
 
     if (rawHash === 'login') {
       return { pageId: 'login', category: 'all' as CategoryType | 'all' };
+    }
+    if (rawHash === 'admin-setup') {
+      return { pageId: 'admin-setup', category: 'all' as CategoryType | 'all' };
     }
     if (rawHash === 'admin-panel') {
       return { pageId: 'admin-panel', category: 'all' as CategoryType | 'all' };
@@ -194,6 +202,11 @@ export default function App() {
     if (pageId === 'login') {
       window.history.pushState(null, '', '/login'); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId('login');
+      return;
+    }
+    if (pageId === 'admin-setup') {
+      window.history.pushState(null, '', '/admin-setup'); window.dispatchEvent(new Event('popstate'));
+      setSelectedPageId('admin-setup');
       return;
     }
     if (pageId === 'admin-panel') {
@@ -288,7 +301,33 @@ export default function App() {
     <div className="min-h-screen bg-[#0b0f19] text-[#e2e8f0] font-sans selection:bg-sky-500 selection:text-black flex flex-col">
       <ConnectivityBanner />
 
-      {selectedPageId === 'login' ? (
+      {selectedPageId === 'admin-setup' ? (
+        hasAdmin ? (
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0b0f19] text-center text-slate-300">
+            <div className="max-w-md p-8 bg-[#111827] border border-slate-800 rounded-2xl space-y-4">
+              <h3 className="text-lg font-bold text-white">Configuração Indisponível</h3>
+              <p className="text-xs text-slate-400">
+                A conta de administrador já foi inicializada. Esta página de configuração de uso único foi desativada e não pode mais ser acessada.
+              </p>
+              <button
+                onClick={() => navigateToPage('home')}
+                className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Voltar ao Portal
+              </button>
+            </div>
+          </div>
+        ) : (
+          <AdminSetupPage
+            onSetupComplete={(email) => {
+              setHasAdmin(true);
+              handleLoginSuccess('Administrator', email, true, 'home');
+              navigateToPage('home');
+            }}
+            onBackToLogin={() => navigateToPage('login')}
+          />
+        )
+      ) : selectedPageId === 'login' ? (
         <LoginPage 
           onBack={() => navigateToPage('home')}
           onLoginSuccess={(name, email, isAdmin, target) => {

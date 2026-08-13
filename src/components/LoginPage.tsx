@@ -9,69 +9,8 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) => {
-  const [usernameInput, setUsernameInput] = useState('');
-  const [passwordInput, setPasswordInput] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [authMethod, setAuthMethod] = useState('');
-
-  const fillDefaultCredentials = () => {
-    setUsernameInput('adm');
-    setPasswordInput('admin');
-    setErrorMessage('');
-  };
-
-  const handlePasswordLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
-    
-    const u = usernameInput.trim();
-    const p = passwordInput.trim();
-
-    if (!u || !p) {
-      setErrorMessage('Por favor, digite o nome de usuário e a senha.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const res = await fetch('/api/admin/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: u, password: p }),
-      });
-      const data = await res.json() as any;
-
-      if (data.success) {
-        setAuthMethod('Credenciais de Administrador');
-        setSuccess(true);
-        if (data.token) {
-          try {
-            localStorage.setItem('etherium_admin_token', data.token);
-            localStorage.setItem('etherium_auth_token', data.token);
-          } catch {}
-        }
-        sessionStorage.setItem('admin_auth_verified', 'true');
-        sessionStorage.setItem('admin_initial_setup', 'true');
-
-        const userName = data.user?.username || (u === 'adm' ? 'adm' : u);
-        const userEmail = data.user?.email || (u === 'adm' ? 'adm@wiki.local' : `${u}@wiki.local`);
-
-        setTimeout(() => {
-          onLoginSuccess(userName, userEmail, true, 'admin-panel');
-          setSuccess(false);
-        }, 600);
-      } else {
-        setErrorMessage(data.message || 'Credenciais inválidas. Para o primeiro acesso use usuário: adm e senha: admin.');
-      }
-    } catch {
-      setErrorMessage('Erro de conexão com o servidor de autenticação.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 bg-[#0b0f19] font-sans h-full min-h-[calc(100vh-64px)]">
@@ -86,12 +25,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-bold text-base text-white">
-                Acesso ao Painel & Sistema
+                Acesso ao Sistema
               </h3>
               <p className="text-xs text-[#94a3b8]">
                 Etherium Official Knowledge Base
@@ -101,124 +40,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
         </div>
 
         {/* Form Body */}
-        <div className="p-6 space-y-4">
+        <div className="p-8 space-y-6 text-center">
           {errorMessage && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center gap-2">
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center gap-2 text-left">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
           {success ? (
-            <div className="py-8 text-center space-y-3">
+            <div className="py-6 space-y-3">
               <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto animate-bounce" />
-              <h4 className="text-lg font-bold text-white">Login Autorizado!</h4>
+              <h4 className="text-lg font-bold text-white">Login Realizado com Sucesso!</h4>
               <p className="text-xs text-slate-400">
-                Redirecionando para o painel de criação de contas...
+                Redirecionando para o portal...
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              
-              {/* Initial credentials callout */}
-              <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2">
-                <div className="flex items-center justify-between text-amber-400 text-xs font-bold">
-                  <span className="flex items-center gap-1.5">
-                    <Key className="w-4 h-4" />
-                    <span>Primeiro Acesso ao Painel:</span>
-                  </span>
-                  <span className="text-[10px] bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30">Inicial</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                  <div className="bg-[#0b0f19] px-2.5 py-1 rounded border border-slate-800">
-                    <span className="text-slate-500 text-[10px] block font-sans">Usuário:</span>
-                    <strong className="text-amber-300">adm</strong>
-                  </div>
-                  <div className="bg-[#0b0f19] px-2.5 py-1 rounded border border-slate-800">
-                    <span className="text-slate-500 text-[10px] block font-sans">Senha:</span>
-                    <strong className="text-amber-300">admin</strong>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={fillDefaultCredentials}
-                  className="w-full py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Preencher "adm" e "admin"</span>
-                </button>
-              </div>
-
-              {/* Username/Password Form */}
-              <form onSubmit={handlePasswordLogin} className="space-y-3.5">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Usuário ou E-mail</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ex: adm"
-                    value={usernameInput}
-                    onChange={(e) => setUsernameInput(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600"
-                    autoFocus
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Senha</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      placeholder="Ex: admin"
-                      value={passwordInput}
-                      onChange={(e) => setPasswordInput(e.target.value)}
-                      className="w-full px-4 py-2.5 pr-10 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest placeholder:tracking-normal placeholder:text-slate-600"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
-                      title={showPassword ? 'Ocultar senha' : 'Revelar senha'}
-                    >
-                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                      <span>Verificando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="w-4 h-4" />
-                      <span>Entrar no Sistema</span>
-                    </>
-                  )}
-                </button>
-              </form>
-
-              <div className="relative flex py-2 items-center">
-                <div className="flex-grow border-t border-slate-800"></div>
-                <span className="flex-shrink mx-3 text-slate-600 text-[10px] uppercase font-bold tracking-wider">ou autentique com</span>
-                <div className="flex-grow border-t border-slate-800"></div>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <h4 className="text-base font-bold text-white">Entre com sua conta Google</h4>
+                <p className="text-xs text-slate-400">
+                  Autenticação segura via Google Workspace / Identity Services.
+                </p>
               </div>
 
               {/* Google Sign In Component */}
-              <div className="flex justify-center w-full">
+              <div className="flex justify-center w-full py-4">
                 <GoogleLogin
                   onSuccess={async (credentialResponse: CredentialResponse) => {
                     if (credentialResponse.credential) {
@@ -234,14 +82,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                         let name = 'Google User';
                         let emailVal = 'user@gmail.com';
 
-                        if (data && data.token) {
-                          try {
-                            localStorage.setItem('etherium_auth_token', data.token);
-                          } catch (e) {
-                            console.warn('LocalStorage save token error', e);
-                          }
-                        }
-
                         if (data && data.user) {
                           name = data.user.name || name;
                           emailVal = data.user.email || emailVal;
@@ -251,10 +91,34 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                           emailVal = decoded.email || emailVal;
                         }
 
-                        setAuthMethod('Google Identity Services');
+                        // Verify if email is registered as an admin in database
+                        try {
+                          const checkRes = await fetch('/api/admin/verify-google', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: emailVal })
+                          });
+                          const checkData = await checkRes.json() as any;
+                          if (!checkRes.ok || !checkData.success) {
+                            setErrorMessage(checkData.error || 'E-mail não autorizado. Apenas administradores cadastrados podem acessar.');
+                            return;
+                          }
+                        } catch {
+                          setErrorMessage('Erro ao verificar autorização de administrador.');
+                          return;
+                        }
+
+                        if (data && data.token) {
+                          try {
+                            localStorage.setItem('etherium_auth_token', data.token);
+                          } catch (e) {
+                            console.warn('LocalStorage save token error', e);
+                          }
+                        }
+
                         setSuccess(true);
                         setTimeout(() => {
-                          onLoginSuccess(name, emailVal, false, 'home');
+                          onLoginSuccess(name, emailVal, true, 'home');
                           setSuccess(false);
                         }, 600);
                       } catch {
@@ -262,27 +126,39 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                           const decoded: any = jwtDecode(idToken);
                           const name = decoded.name || decoded.email?.split('@')[0] || 'Google User';
                           const emailVal = decoded.email || 'user@gmail.com';
-                          setAuthMethod('Google Identity Services');
+
+                          // Verify admin database
+                          const checkRes = await fetch('/api/admin/verify-google', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: emailVal })
+                          });
+                          const checkData = await checkRes.json() as any;
+                          if (!checkRes.ok || !checkData.success) {
+                            setErrorMessage(checkData.error || 'E-mail não autorizado. Apenas administradores cadastrados podem acessar.');
+                            return;
+                          }
+
                           setSuccess(true);
                           setTimeout(() => {
-                            onLoginSuccess(name, emailVal, false, 'home');
+                            onLoginSuccess(name, emailVal, true, 'home');
                             setSuccess(false);
                           }, 600);
                         } catch {
-                          setErrorMessage('Google authentication processing failed');
+                          setErrorMessage('Falha ao processar autenticação Google.');
                         }
                       }
                     }
                   }}
                   onError={() => {
-                    setErrorMessage('Google Sign-In failed');
+                    setErrorMessage('Falha no login com Google.');
                   }}
                   useOneTap={false}
                   theme="outline"
-                  size="medium"
+                  size="large"
                   shape="rectangular"
                   logo_alignment="left"
-                  width="320"
+                  width="340"
                 />
               </div>
             </div>

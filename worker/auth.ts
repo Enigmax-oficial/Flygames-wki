@@ -191,11 +191,18 @@ export async function handleAuthRequest(
       return jsonRes({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { email, password } = body;
-    if (!email || typeof email !== 'string' || !email.includes('@')) {
+    const { username, password, email, adminPassword } = body;
+    if (username !== 'admin' || password !== 'admin') {
+      return jsonRes({ error: 'Credenciais de bootstrap inválidas. Use o usuário "admin" e a senha "admin".' }, 401);
+    }
+
+    const targetEmail = email || body.email;
+    const targetPassword = adminPassword || body.password;
+
+    if (!targetEmail || typeof targetEmail !== 'string' || !targetEmail.includes('@')) {
       return jsonRes({ error: 'Valid email address is required' }, 400);
     }
-    if (!password || typeof password !== 'string' || password.length < 6) {
+    if (!targetPassword || typeof targetPassword !== 'string' || targetPassword.length < 6) {
       return jsonRes({ error: 'Password must be at least 6 characters long' }, 400);
     }
 
@@ -206,11 +213,11 @@ export async function handleAuthRequest(
 
     const adminCount = adminCountRes?.count || 0;
     if (adminCount >= 1) {
-      return jsonRes({ error: 'Admin account already initialized. Bootstrap is locked.' }, 403);
+      return jsonRes({ error: 'Admin account already initialized. This page can only be used once.' }, 403);
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-    const hashed = await hashPassword(password);
+    const cleanEmail = targetEmail.trim().toLowerCase();
+    const hashed = await hashPassword(targetPassword);
     const now = new Date().toISOString();
 
     // Check if user already exists
@@ -258,6 +265,33 @@ export async function handleAuthRequest(
       },
       201
     );
+  }
+
+  // POST /api/admin/verify-google or /auth/admin/verify-google
+  if (pathname === '/api/admin/verify-google' || pathname === '/auth/admin/verify-google') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      return jsonRes({ error: 'Invalid JSON body' }, 400);
+    }
+    const { email } = body;
+    if (!email || typeof email !== 'string') {
+      return jsonRes({ error: 'Email is required' }, 400);
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    const adminCheck = await env.mysql
+      .prepare('SELECT * FROM adm WHERE email = ?')
+      .bind(cleanEmail)
+      .first<any>();
+
+    if (!adminCheck) {
+      return jsonRes({ success: false, error: 'E-mail não autorizado como administrador. Apenas administradores cadastrados podem acessar.' }, 403);
+    }
+    return jsonRes({ success: true, admin: adminCheck });
   }
 
   // POST /auth/admin/create, /api/auth/admin/create, /api/admin/users/create
