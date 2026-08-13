@@ -67,8 +67,14 @@ async function proxyToWorker(req: any, res: any) {
     const bodyText = await response.text();
     res.send(bodyText);
   } catch (err: any) {
-    console.error('Error proxying request to local D1 worker:', err);
-    res.status(500).json({ error: 'Failed to communicate with Cloudflare D1 local worker: ' + err.message });
+    const errMessage = err.message || '';
+    const isConnectionError = errMessage.includes('fetch failed') || errMessage.includes('invalid connection header') || err.name === 'InvalidArgumentError';
+    if (isConnectionError) {
+      console.warn('Warning proxying request to local D1 worker (offline/idle):', errMessage);
+    } else {
+      console.error('Error proxying request to local D1 worker:', err);
+    }
+    res.status(500).json({ error: 'Failed to communicate with Cloudflare D1 local worker: ' + errMessage });
   }
 }
 
