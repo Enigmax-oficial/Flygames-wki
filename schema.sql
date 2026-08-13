@@ -3,7 +3,9 @@ CREATE TABLE IF NOT EXISTS pages (
   title TEXT NOT NULL,
   slug TEXT NOT NULL UNIQUE,
   content TEXT NOT NULL,
+  category TEXT DEFAULT 'guides',
   image_url TEXT,
+  views INTEGER NOT NULL DEFAULT 0,
   view_count INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
@@ -17,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
+  is_admin INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -33,5 +36,12 @@ CREATE TABLE IF NOT EXISTS favorites (
 );
 CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
 
-ALTER TABLE pages ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0;
-
+CREATE TABLE IF NOT EXISTS comments (
+  id TEXT PRIMARY KEY,
+  page_id TEXT NOT NULL,
+  user_name TEXT NOT NULL,
+  user_email TEXT NOT NULL,
+  comment TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_comments_page ON comments(page_id);

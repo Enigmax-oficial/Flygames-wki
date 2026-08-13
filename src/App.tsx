@@ -13,6 +13,7 @@ import { AccountModal } from './components/AccountModal';
 import { AdminPanel } from './components/AdminPanel';
 import { FavoritesPage } from './components/FavoritesPage';
 import { LoadingScreen } from './components/LoadingScreen';
+import { ConnectivityBanner } from './components/ConnectivityBanner';
 import { WikiApi } from './lib/wikiApi';
 
 export default function App() {
@@ -265,9 +266,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-[#e2e8f0] font-sans selection:bg-sky-500 selection:text-black flex flex-col">
-      
+      <ConnectivityBanner />
 
-      
       {selectedPageId === 'login' ? (
         <LoginPage 
           onBack={() => navigateToPage('home')}

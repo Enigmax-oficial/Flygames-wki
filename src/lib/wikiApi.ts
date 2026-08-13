@@ -99,10 +99,31 @@ const defaultPresets = [
 ];
 
 const imageMap = new Map<string, { url: string; label: string }>();
-
 defaultPresets.forEach((item) => imageMap.set(item.url, item));
 
 export const PRESET_IMAGES = Array.from(imageMap.values());
+
+// Connectivity warning notification debouncer
+let lastWarningTimestamp = 0;
+const WARNING_DEBOUNCE_MS = 15000;
+
+export function notifyConnectivityWarning(message = "Can't reach the server — some features may be unavailable"): void {
+  const now = Date.now();
+  if (now - lastWarningTimestamp < WARNING_DEBOUNCE_MS) {
+    return;
+  }
+  lastWarningTimestamp = now;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(
+      new CustomEvent('wiki_connectivity_warning', {
+        detail: {
+          message,
+          timestamp: now,
+        },
+      })
+    );
+  }
+}
 
 export class WikiApi {
   // Category Methods
@@ -119,7 +140,7 @@ export class WikiApi {
         }
       }
     } catch (e) {
-      console.error('Error fetching categories', e);
+      console.warn('Error fetching categories', e);
     }
     return PRESET_CATEGORIES;
   }
@@ -211,68 +232,76 @@ export class WikiApi {
   }
 
   static async fetchPagesFromSql(): Promise<WikiPage[]> {
-    const res = await fetch('/api/pages');
-    if (!res.ok) {
-      const text = await res.text();
-      let data: any = {};
-      try { data = JSON.parse(text); } catch {}
-      throw new Error(data.error || `Failed to fetch pages from Cloudflare D1 (status ${res.status}): ${text}`);
+    try {
+      const res = await fetch('/api/pages');
+      if (!res.ok) {
+        notifyConnectivityWarning();
+        return this.cachedPages;
+      }
+      const data = (await res.json()) as { results?: Array<{ id: string; title: string; slug: string; content: string; category?: string; image_url?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string; views?: number; view_count?: number }> };
+      const rows = data.results || (Array.isArray(data) ? (data as any) : []);
+      const pages: WikiPage[] = rows.map((r: any) => ({
+        id: r.slug || r.id,
+        title: r.title,
+        namespace: 'minecraft:' + (r.slug || r.id).replace(/-/g, '_'),
+        category: r.category || 'guides',
+        description: r.content ? r.content.substring(0, 150) : '',
+        addonVersion: '1.0.0',
+        icon: '✨',
+        tags: [r.slug || r.id],
+        lastUpdated: r.updated_at || r.updatedAt || new Date().toISOString(),
+        content: r.content,
+        imageUrl: r.image_url || undefined,
+        renderImageUrl: r.image_url || undefined,
+        image_url: r.image_url || undefined,
+        createdAt: r.created_at || r.createdAt,
+        updatedAt: r.updated_at || r.updatedAt,
+        templateId: 'standard',
+        views: r.views || r.view_count || 0,
+      } as unknown as WikiPage));
+      this.cachedPages = pages;
+      window.dispatchEvent(new Event('wiki_data_updated'));
+      return pages;
+    } catch {
+      notifyConnectivityWarning();
+      return this.cachedPages;
     }
-    const data = await res.json() as { results?: Array<{ id: string; title: string; slug: string; content: string; category?: string; image_url?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }> };
-    const rows = data.results || (Array.isArray(data) ? data : []);
-    const pages: WikiPage[] = rows.map(r => ({
-      id: r.slug || r.id,
-      title: r.title,
-      namespace: 'minecraft:' + (r.slug || r.id).replace(/-/g, '_'),
-      category: r.category || 'guides',
-      description: r.content ? r.content.substring(0, 150) : '',
-      addonVersion: '1.0.0',
-      icon: '✨',
-      tags: [r.slug || r.id],
-      lastUpdated: r.updated_at || r.updatedAt || new Date().toISOString(),
-      content: r.content,
-      imageUrl: r.image_url || undefined,
-      renderImageUrl: r.image_url || undefined,
-      image_url: r.image_url || undefined,
-      createdAt: r.created_at || r.createdAt,
-      updatedAt: r.updated_at || r.updatedAt,
-      templateId: 'standard',
-    } as unknown as WikiPage));
-    this.cachedPages = pages;
-    window.dispatchEvent(new Event('wiki_data_updated'));
-    return pages;
   }
 
   static async fetchPageBySlug(slug: string): Promise<WikiPage | null> {
-    const res = await fetch(`/api/pages/${encodeURIComponent(slug)}`);
-    if (res.status === 404) {
-      return null;
+    try {
+      const res = await fetch(`/api/pages/${encodeURIComponent(slug)}`);
+      if (res.status === 404) {
+        return null;
+      }
+      if (!res.ok) {
+        notifyConnectivityWarning();
+        return this.cachedPages.find(p => p.id === slug) || null;
+      }
+      const r = (await res.json()) as any;
+      return {
+        id: r.slug || r.id,
+        title: r.title,
+        namespace: 'minecraft:' + (r.slug || r.id).replace(/-/g, '_'),
+        category: r.category || 'guides',
+        description: r.content ? r.content.substring(0, 150) : '',
+        addonVersion: '1.0.0',
+        icon: '✨',
+        tags: [r.slug || r.id],
+        lastUpdated: r.updated_at || r.updatedAt || new Date().toISOString(),
+        content: r.content,
+        imageUrl: r.image_url || undefined,
+        renderImageUrl: r.image_url || undefined,
+        image_url: r.image_url || undefined,
+        createdAt: r.created_at || r.createdAt,
+        updatedAt: r.updated_at || r.updatedAt,
+        templateId: 'standard',
+        views: r.views || r.view_count || 0,
+      } as unknown as WikiPage;
+    } catch {
+      notifyConnectivityWarning();
+      return this.cachedPages.find(p => p.id === slug) || null;
     }
-    if (!res.ok) {
-      const text = await res.text();
-      let data: any = {};
-      try { data = JSON.parse(text); } catch {}
-      throw new Error(data.error || `Failed to fetch page '${slug}' from Cloudflare D1 (status ${res.status})`);
-    }
-    const r = await res.json() as any;
-    return {
-      id: r.slug || r.id,
-      title: r.title,
-      namespace: 'minecraft:' + (r.slug || r.id).replace(/-/g, '_'),
-      category: r.category || 'guides',
-      description: r.content ? r.content.substring(0, 150) : '',
-      addonVersion: '1.0.0',
-      icon: '✨',
-      tags: [r.slug || r.id],
-      lastUpdated: r.updated_at || r.updatedAt || new Date().toISOString(),
-      content: r.content,
-      imageUrl: r.image_url || undefined,
-      renderImageUrl: r.image_url || undefined,
-      image_url: r.image_url || undefined,
-      createdAt: r.created_at || r.createdAt,
-      updatedAt: r.updated_at || r.updatedAt,
-      templateId: 'standard',
-    } as unknown as WikiPage;
   }
 
   static async createPage(page: WikiPage, userEmail?: string): Promise<WikiPage> {
@@ -299,39 +328,38 @@ export class WikiApi {
       image_url: imageUrl,
     };
 
-    const res = await fetch("/api/pages", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "X-User-Email": emailToSave
-      },
-      body: JSON.stringify(requestBody)
-    });
-
-    const text = await res.text();
-    let data: any = {};
     try {
-      data = text ? JSON.parse(text) : {};
-    } catch (e) {
-      throw new Error(`Server returned non-JSON response (${res.status}): ${text || res.statusText}`);
+      const res = await fetch("/api/pages", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "X-User-Email": emailToSave
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!res.ok) {
+        notifyConnectivityWarning();
+        return page;
+      }
+
+      const text = await res.text();
+      const data = text ? JSON.parse(text) : {};
+      const savedPage: WikiPage = {
+        ...page,
+        id: data.slug || data.id || page.id,
+        title: data.title || page.title,
+        description: data.content || page.description,
+        lastUpdated: data.updated_at || new Date().toISOString(),
+      };
+
+      this.cachedPages = [savedPage, ...this.cachedPages.filter(p => p.id !== savedPage.id)];
+      window.dispatchEvent(new Event('wiki_data_updated'));
+      return savedPage;
+    } catch {
+      notifyConnectivityWarning();
+      return page;
     }
-
-    if (!res.ok) {
-      throw new Error(data.error || `Server error (status ${res.status})`);
-    }
-
-    const savedRecord = data;
-    const savedPage: WikiPage = {
-      ...page,
-      id: savedRecord.slug || savedRecord.id || page.id,
-      title: savedRecord.title || page.title,
-      description: savedRecord.content || page.description,
-      lastUpdated: savedRecord.updated_at || new Date().toISOString(),
-    };
-
-    this.cachedPages = [savedPage, ...this.cachedPages.filter(p => p.id !== savedPage.id)];
-    window.dispatchEvent(new Event('wiki_data_updated'));
-    return savedPage;
   }
 
   static async deletePage(pageId: string, slug?: string): Promise<boolean> {
@@ -339,16 +367,14 @@ export class WikiApi {
       const identifier = slug || pageId;
       const res = await fetch(`/api/pages/${encodeURIComponent(identifier)}`, { method: "DELETE" });
       if (!res.ok && res.status !== 204) {
-        const text = await res.text();
-        let data: any = {};
-        try { data = text ? JSON.parse(text) : {}; } catch {}
-        throw new Error(data.error || `Server delete error (status ${res.status})`);
+        notifyConnectivityWarning();
+        return false;
       }
       this.cachedPages = this.cachedPages.filter(p => p.id !== pageId && p.id !== slug);
       window.dispatchEvent(new Event('wiki_data_updated'));
       return true;
-    } catch (err) {
-      console.error("Failed to delete page:", err);
+    } catch {
+      notifyConnectivityWarning();
       return false;
     }
   }
@@ -413,21 +439,24 @@ export class WikiApi {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (email) headers['X-User-Email'] = email;
 
-    const res = await fetch('/api/favorites', { headers });
-    if (!res.ok) {
-      const text = await res.text();
-      let data: any = {};
-      try { data = JSON.parse(text); } catch {}
-      throw new Error(data.error || `Failed to fetch favorites from Cloudflare D1 (status ${res.status}): ${text}`);
-    }
-    const data = (await res.json()) as any;
-    if (data.success && Array.isArray(data.favorites)) {
-      const serverPageIds = data.favorites.map((f: any) => f.id || f.page_id).filter(Boolean);
-      this.cachedFavorites = Array.from(new Set(serverPageIds));
-      window.dispatchEvent(new Event('wiki_favorites_updated'));
+    try {
+      const res = await fetch('/api/favorites', { headers });
+      if (!res.ok) {
+        notifyConnectivityWarning();
+        return this.cachedFavorites;
+      }
+      const data = (await res.json()) as any;
+      if (data.success && Array.isArray(data.favorites)) {
+        const serverPageIds = data.favorites.flatMap((f: any) => [f.id, f.slug, f.page_id]).filter(Boolean);
+        this.cachedFavorites = Array.from(new Set(serverPageIds));
+        window.dispatchEvent(new Event('wiki_favorites_updated'));
+        return this.cachedFavorites;
+      }
+      return this.cachedFavorites;
+    } catch {
+      notifyConnectivityWarning();
       return this.cachedFavorites;
     }
-    return [];
   }
 
   static async toggleFavorite(pageId: string): Promise<boolean> {
@@ -454,24 +483,27 @@ export class WikiApi {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (email) headers['X-User-Email'] = email;
 
-    const res = await fetch('/api/favorites', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ page_id: pageId }),
-    });
+    try {
+      const res = await fetch('/api/favorites', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ page_id: pageId }),
+      });
 
-    if (!res.ok) {
-      const text = await res.text();
-      let data: any = {};
-      try { data = JSON.parse(text); } catch {}
-      throw new Error(data.error || `Failed to add favorite to Cloudflare D1 (status ${res.status}): ${text}`);
-    }
+      if (!res.ok) {
+        notifyConnectivityWarning();
+        return false;
+      }
 
-    if (!this.cachedFavorites.includes(pageId)) {
-      this.cachedFavorites = [...this.cachedFavorites, pageId];
-      window.dispatchEvent(new Event('wiki_favorites_updated'));
+      if (!this.cachedFavorites.includes(pageId)) {
+        this.cachedFavorites = [...this.cachedFavorites, pageId];
+        window.dispatchEvent(new Event('wiki_favorites_updated'));
+      }
+      return true;
+    } catch {
+      notifyConnectivityWarning();
+      return false;
     }
-    return true;
   }
 
   static async removeFavorite(pageId: string): Promise<boolean> {
@@ -486,21 +518,24 @@ export class WikiApi {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (email) headers['X-User-Email'] = email;
 
-    const res = await fetch(`/api/favorites/${encodeURIComponent(pageId)}`, {
-      method: 'DELETE',
-      headers,
-    });
+    try {
+      const res = await fetch(`/api/favorites/${encodeURIComponent(pageId)}`, {
+        method: 'DELETE',
+        headers,
+      });
 
-    if (!res.ok) {
-      const text = await res.text();
-      let data: any = {};
-      try { data = JSON.parse(text); } catch {}
-      throw new Error(data.error || `Failed to remove favorite from Cloudflare D1 (status ${res.status}): ${text}`);
+      if (!res.ok) {
+        notifyConnectivityWarning();
+        return false;
+      }
+
+      this.cachedFavorites = this.cachedFavorites.filter(id => id !== pageId);
+      window.dispatchEvent(new Event('wiki_favorites_updated'));
+      return true;
+    } catch {
+      notifyConnectivityWarning();
+      return false;
     }
-
-    this.cachedFavorites = this.cachedFavorites.filter(id => id !== pageId);
-    window.dispatchEvent(new Event('wiki_favorites_updated'));
-    return false;
   }
 }
 

@@ -24,8 +24,10 @@ export default {
     }
 
     try {
-      // Auth endpoints (/auth/signup, /auth/register, /auth/login, /auth/google, etc.)
+      // Auth & Admin Auth endpoints (/auth/*, /api/auth/*, /api/admin/verify, /admin/verify)
       if (
+        pathname.startsWith('/auth/') ||
+        pathname.startsWith('/api/auth/') ||
         pathname === '/auth/signup' ||
         pathname === '/api/auth/signup' ||
         pathname === '/auth/register' ||
@@ -33,7 +35,9 @@ export default {
         pathname === '/auth/login' ||
         pathname === '/api/auth/login' ||
         pathname === '/auth/google' ||
-        pathname === '/api/auth/google'
+        pathname === '/api/auth/google' ||
+        pathname === '/api/admin/verify' ||
+        pathname === '/admin/verify'
       ) {
         return await handleAuthRequest(request, url, env, corsHeaders);
       }
@@ -70,37 +74,6 @@ export default {
           engine: 'Cloudflare D1',
           timestamp: new Date().toISOString(),
         }, 200, corsHeaders);
-      }
-
-      // Admin Verify endpoint
-      if (pathname === '/api/admin/verify' || pathname === '/admin/verify') {
-        if (request.method !== 'POST') {
-          return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders);
-        }
-        let body: any = {};
-        try {
-          body = await request.json();
-        } catch {}
-        const username = (body.username || '').trim().toLowerCase();
-        const password = (body.password || '').trim();
-        const email = (body.email || '').trim().toLowerCase();
-
-        const allowedUsers = (env.ADMIN_USERNAMES || 'adm,admin,administrator')
-          .split(',')
-          .map((u) => u.trim().toLowerCase());
-        const allowedEmails = (env.ADMIN_EMAILS || '')
-          .split(',')
-          .map((e) => e.trim().toLowerCase())
-          .filter(Boolean);
-
-        const isUserValid = allowedUsers.includes(username);
-        const isPassValid = env.ADMIN_PASSWORD ? password === env.ADMIN_PASSWORD : false;
-        const isEmailValid = allowedEmails.length > 0 && allowedEmails.includes(email);
-
-        if ((isUserValid && isPassValid) || isEmailValid) {
-          return jsonResponse({ success: true, message: 'Authentication successful via Cloudflare D1.' }, 200, corsHeaders);
-        }
-        return jsonResponse({ success: false, message: 'Incorrect administrator username or password.' }, 401, corsHeaders);
       }
 
       // Admin database stats

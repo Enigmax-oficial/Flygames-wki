@@ -1,11 +1,13 @@
 import { hashPassword, verifyPassword } from '../src/auth/password';
 import { Env } from './types';
+import { ensureSchema } from './routes/pages';
 
 const JWT_SECRET = 'minecraft-wiki-secret-key-2026';
 
 export interface UserPayload {
   id: string;
   email: string;
+  is_admin?: number;
 }
 
 function str2ab(str: string): Uint8Array {
@@ -84,7 +86,7 @@ export async function verifyToken(token: string): Promise<UserPayload | null> {
       return null;
     }
 
-    return { id: payload.id, email: payload.email };
+    return { id: payload.id, email: payload.email, is_admin: payload.is_admin };
   } catch {
     return null;
   }
@@ -116,24 +118,44 @@ export async function authenticateRequest(request: Request, env?: Env): Promise<
     const cleanEmail = emailHeader.trim().toLowerCase();
     try {
       let existingUser = await env.mysql
-        .prepare('SELECT id, email FROM users WHERE email = ?')
+        .prepare('SELECT id, email, is_admin FROM users WHERE email = ?')
         .bind(cleanEmail)
-        .first<{ id: string; email: string }>();
+        .first<{ id: string; email: string; is_admin?: number }>();
 
       if (existingUser) {
-        return { id: existingUser.id, email: existingUser.email };
+        return { id: existingUser.id, email: existingUser.email, is_admin: existingUser.is_admin || 0 };
       } else {
         const newId = 'usr_' + crypto.randomUUID();
         const now = new Date().toISOString();
         await env.mysql
-          .prepare('INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+          .prepare('INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)')
           .bind(newId, cleanEmail, 'session:header', now, now)
           .run();
-        return { id: newId, email: cleanEmail };
+        return { id: newId, email: cleanEmail, is_admin: 0 };
       }
     } catch {
-      return { id: 'usr_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'), email: cleanEmail };
+      return { id: 'usr_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'), email: cleanEmail, is_admin: 0 };
     }
+  }
+
+  return null;
+}
+
+export async function authenticateAdmin(request: Request, env: Env): Promise<UserPayload | null> {
+  const user = await authenticateRequest(request, env);
+  if (!user) return null;
+
+  try {
+    const dbUser = await env.mysql
+      .prepare('SELECT id, email, is_admin FROM users WHERE id = ? OR email = ?')
+      .bind(user.id, user.email)
+      .first<{ id: string; email: string; is_admin: number }>();
+
+    if (dbUser && dbUser.is_admin === 1) {
+      return { id: dbUser.id, email: dbUser.email, is_admin: 1 };
+    }
+  } catch (err) {
+    console.warn('authenticateAdmin error:', err);
   }
 
   return null;
@@ -145,6 +167,7 @@ export async function handleAuthRequest(
   env: Env,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
+  await ensureSchema(env);
   const pathname = url.pathname;
 
   // Helper for JSON response
@@ -154,6 +177,147 @@ export async function handleAuthRequest(
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   };
+
+  // POST /auth/admin/bootstrap or /api/auth/admin/bootstrap
+  if (pathname === '/auth/admin/bootstrap' || pathname === '/api/auth/admin/bootstrap') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      return jsonRes({ error: 'Invalid JSON body' }, 400);
+    }
+
+    const { email, password } = body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return jsonRes({ error: 'Valid email address is required' }, 400);
+    }
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return jsonRes({ error: 'Password must be at least 6 characters long' }, 400);
+    }
+
+    // Check if ANY admin already exists in the system
+    const adminCountRes = await env.mysql
+      .prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1')
+      .first<{ count: number }>();
+
+    const adminCount = adminCountRes?.count || 0;
+    if (adminCount >= 1) {
+      return jsonRes({ error: 'Admin account already initialized. Bootstrap is locked.' }, 403);
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const hashed = await hashPassword(password);
+    const now = new Date().toISOString();
+
+    // Check if user already exists
+    const existing = await env.mysql
+      .prepare('SELECT id FROM users WHERE email = ?')
+      .bind(cleanEmail)
+      .first<{ id: string }>();
+
+    let userId = existing?.id;
+    if (existing) {
+      await env.mysql
+        .prepare('UPDATE users SET password_hash = ?, is_admin = 1, updated_at = ? WHERE email = ?')
+        .bind(hashed, now, cleanEmail)
+        .run();
+    } else {
+      userId = 'usr_' + crypto.randomUUID();
+      await env.mysql
+        .prepare(
+          'INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)'
+        )
+        .bind(userId, cleanEmail, hashed, now, now)
+        .run();
+    }
+
+    const finalUserId = userId || 'usr_admin';
+    const token = await createToken({ id: finalUserId, email: cleanEmail, is_admin: 1 });
+
+    return jsonRes(
+      {
+        success: true,
+        message: 'Initial administrator registered successfully.',
+        token,
+        user: {
+          id: finalUserId,
+          email: cleanEmail,
+          is_admin: 1,
+          created_at: now,
+        },
+      },
+      201
+    );
+  }
+
+  // POST /auth/admin/create or /api/auth/admin/create
+  if (pathname === '/auth/admin/create' || pathname === '/api/auth/admin/create') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+
+    const currentAdmin = await authenticateAdmin(request, env);
+    if (!currentAdmin) {
+      return jsonRes({ error: 'Unauthorized: Administrator privileges required' }, 403);
+    }
+
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      return jsonRes({ error: 'Invalid JSON body' }, 400);
+    }
+
+    const { email, password } = body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return jsonRes({ error: 'Valid email address is required' }, 400);
+    }
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return jsonRes({ error: 'Password must be at least 6 characters long' }, 400);
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const hashed = await hashPassword(password);
+    const now = new Date().toISOString();
+
+    const existing = await env.mysql
+      .prepare('SELECT id FROM users WHERE email = ?')
+      .bind(cleanEmail)
+      .first<{ id: string }>();
+
+    let userId = existing?.id;
+    if (existing) {
+      await env.mysql
+        .prepare('UPDATE users SET password_hash = ?, is_admin = 1, updated_at = ? WHERE email = ?')
+        .bind(hashed, now, cleanEmail)
+        .run();
+    } else {
+      userId = 'usr_' + crypto.randomUUID();
+      await env.mysql
+        .prepare(
+          'INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)'
+        )
+        .bind(userId, cleanEmail, hashed, now, now)
+        .run();
+    }
+
+    return jsonRes(
+      {
+        success: true,
+        message: 'Admin account created successfully.',
+        user: {
+          id: userId,
+          email: cleanEmail,
+          is_admin: 1,
+        },
+      },
+      201
+    );
+  }
 
   // POST /auth/google or /api/auth/google
   if (pathname === '/auth/google' || pathname === '/api/auth/google') {
@@ -193,22 +357,23 @@ export async function handleAuthRequest(
 
     // Check if user exists in D1 database
     let existingUser = await env.mysql
-      .prepare('SELECT id, email, created_at FROM users WHERE email = ?')
+      .prepare('SELECT id, email, is_admin, created_at FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; email: string; created_at: string }>();
+      .first<{ id: string; email: string; is_admin?: number; created_at: string }>();
 
     let userId = existingUser?.id;
+    const isAdmin = existingUser?.is_admin || 0;
 
     if (!existingUser) {
       userId = 'usr_' + crypto.randomUUID();
       await env.mysql
         .prepare(
-          'INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
+          'INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)'
         )
         .bind(userId, cleanEmail, 'oauth:google', now, now)
         .run();
 
-      existingUser = { id: userId, email: cleanEmail, created_at: now };
+      existingUser = { id: userId, email: cleanEmail, is_admin: 0, created_at: now };
     } else {
       await env.mysql
         .prepare('UPDATE users SET updated_at = ? WHERE id = ?')
@@ -219,7 +384,7 @@ export async function handleAuthRequest(
     const createdAt = existingUser ? existingUser.created_at : now;
     const finalUserId = userId || 'usr_' + crypto.randomUUID();
 
-    const token = await createToken({ id: finalUserId, email: cleanEmail });
+    const token = await createToken({ id: finalUserId, email: cleanEmail, is_admin: isAdmin });
 
     return jsonRes({
       success: true,
@@ -228,6 +393,7 @@ export async function handleAuthRequest(
         id: finalUserId,
         email: cleanEmail,
         name,
+        is_admin: isAdmin,
         created_at: createdAt,
       },
     });
@@ -277,12 +443,12 @@ export async function handleAuthRequest(
 
     await env.mysql
       .prepare(
-        'INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
+        'INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)'
       )
       .bind(userId, cleanEmail, hashed, now, now)
       .run();
 
-    const token = await createToken({ id: userId, email: cleanEmail });
+    const token = await createToken({ id: userId, email: cleanEmail, is_admin: 0 });
 
     // Explicitly return safe fields only (id, email, created_at) - never password_hash
     return jsonRes(
@@ -292,6 +458,7 @@ export async function handleAuthRequest(
         user: {
           id: userId,
           email: cleanEmail,
+          is_admin: 0,
           created_at: now,
         },
       },
@@ -321,9 +488,9 @@ export async function handleAuthRequest(
 
     // Internal select of password_hash strictly for verification
     const user = await env.mysql
-      .prepare('SELECT id, email, password_hash FROM users WHERE email = ?')
+      .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; email: string; password_hash: string }>();
+      .first<{ id: string; email: string; password_hash: string; is_admin?: number }>();
 
     if (!user) {
       return jsonRes({ error: 'Invalid email or password' }, 401);
@@ -334,7 +501,8 @@ export async function handleAuthRequest(
       return jsonRes({ error: 'Invalid email or password' }, 401);
     }
 
-    const token = await createToken({ id: user.id, email: user.email });
+    const isAdmin = user.is_admin || 0;
+    const token = await createToken({ id: user.id, email: user.email, is_admin: isAdmin });
 
     // Explicitly return safe fields only - NO password_hash in response
     return jsonRes({
@@ -343,7 +511,64 @@ export async function handleAuthRequest(
       user: {
         id: user.id,
         email: user.email,
+        is_admin: isAdmin,
       },
+    });
+  }
+
+  // POST /api/admin/verify, /admin/verify, /auth/admin/login, /api/auth/admin/login
+  if (
+    pathname === '/api/admin/verify' ||
+    pathname === '/admin/verify' ||
+    pathname === '/auth/admin/login' ||
+    pathname === '/api/auth/admin/login'
+  ) {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {}
+
+    const identifier = (body.email || body.username || '').trim().toLowerCase();
+    const password = (body.password || '').trim();
+
+    if (!identifier || !password) {
+      return jsonRes({ success: false, message: 'Administrator email and password required.' }, 400);
+    }
+
+    // Lookup user in D1 database
+    const user = await env.mysql
+      .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE email = ? OR email LIKE ?')
+      .bind(identifier, `%${identifier}%`)
+      .first<{ id: string; email: string; password_hash: string; is_admin: number }>();
+
+    if (!user) {
+      return jsonRes({ success: false, message: 'Administrator account not found.' }, 401);
+    }
+
+    const isMatch = await verifyPassword(password, user.password_hash);
+    if (!isMatch) {
+      return jsonRes({ success: false, message: 'Incorrect administrator password.' }, 401);
+    }
+
+    if (user.is_admin !== 1) {
+      return jsonRes({ success: false, message: 'Account does not have administrator privileges.' }, 403);
+    }
+
+    const token = await createToken({ id: user.id, email: user.email, is_admin: 1 });
+
+    return jsonRes({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        is_admin: 1,
+      },
+      message: 'Administrator authentication successful.',
     });
   }
 
@@ -356,6 +581,7 @@ export async function handleFavoritesRequest(
   env: Env,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
+  await ensureSchema(env);
   const pathname = url.pathname;
 
   const jsonRes = (data: any, status = 200) => {
@@ -377,13 +603,13 @@ export async function handleFavoritesRequest(
   ) {
     const { results } = await env.mysql
       .prepare(
-        `SELECT f.id as favorite_id, f.created_at as favorited_at, p.id, p.title, p.slug, p.content, p.image_url, p.created_at, p.updated_at
+        `SELECT f.id as favorite_id, f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.content, p.image_url, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
          FROM favorites f
-         JOIN pages p ON f.page_id = p.id
-         WHERE f.user_id = ?
+         JOIN pages p ON (f.page_id = p.id OR f.page_id = p.slug)
+         WHERE f.user_id = ? OR f.user_id = ?
          ORDER BY f.created_at DESC`
       )
-      .bind(currentUser.id)
+      .bind(currentUser.id, currentUser.email)
       .all();
 
     return jsonRes({
@@ -413,9 +639,9 @@ export async function handleFavoritesRequest(
 
     // Check page existence (by id or slug)
     const pageExists = await env.mysql
-      .prepare('SELECT id FROM pages WHERE id = ? OR slug = ?')
+      .prepare('SELECT id, slug FROM pages WHERE id = ? OR slug = ?')
       .bind(targetPageId, targetPageId)
-      .first<{ id: string }>();
+      .first<{ id: string; slug: string }>();
 
     if (!pageExists) {
       return jsonRes({ error: 'Page not found' }, 404);
@@ -434,12 +660,12 @@ export async function handleFavoritesRequest(
         .run();
     } catch (err: any) {
       if (err.message && err.message.includes('UNIQUE constraint failed')) {
-        return jsonRes({ message: 'Already favorited', favorite_id: favId });
+        return jsonRes({ success: true, message: 'Already favorited', favorite_id: favId });
       }
       throw err;
     }
 
-    return jsonRes({ success: true, favorite_id: favId, page_id: targetPageId }, 201);
+    return jsonRes({ success: true, favorite_id: favId, page_id: actualPageId, slug: pageExists.slug }, 201);
   }
 
   // DELETE /favorites/:pageId or /api/favorites/:pageId
@@ -455,8 +681,10 @@ export async function handleFavoritesRequest(
     }
 
     await env.mysql
-      .prepare('DELETE FROM favorites WHERE user_id = ? AND (page_id = ? OR page_id IN (SELECT id FROM pages WHERE slug = ?))')
-      .bind(currentUser.id, targetPageId, targetPageId)
+      .prepare(
+        'DELETE FROM favorites WHERE (user_id = ? OR user_id = ?) AND (page_id = ? OR page_id IN (SELECT id FROM pages WHERE slug = ? OR id = ?))'
+      )
+      .bind(currentUser.id, currentUser.email, targetPageId, targetPageId, targetPageId)
       .run();
 
     return jsonRes({ success: true, message: 'Removed from favorites' });

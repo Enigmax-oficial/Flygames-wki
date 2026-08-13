@@ -224,14 +224,10 @@ async function handleWorkerRequestDirectly(req: any, res: any) {
 
 // Run database operations, auth, comments, and favorites endpoints directly inside the Cloudflare Worker in-process
 app.all([
-  '/auth/signup',
-  '/auth/register',
-  '/auth/login',
-  '/api/auth/signup',
-  '/api/auth/register',
-  '/api/auth/login',
-  '/auth/google',
-  '/api/auth/google',
+  '/auth',
+  '/auth/*',
+  '/api/auth',
+  '/api/auth/*',
   '/favorites',
   '/favorites/*',
   '/api/favorites',

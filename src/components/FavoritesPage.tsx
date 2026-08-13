@@ -64,7 +64,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
     setFavoriteIds(prev => prev.filter(id => id !== pageId));
   };
 
-  const favoritedPages = pages.filter(p => favoriteIds.includes(p.id));
+  const favoritedPages = pages.filter(p => favoriteIds.includes(p.id) || (Boolean((p as any).slug) && favoriteIds.includes((p as any).slug)));
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
