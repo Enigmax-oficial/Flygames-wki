@@ -3,6 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import crypto from 'crypto';
 import fs from 'fs';
+import { DatabaseSync } from 'node:sqlite';
 import worker from './worker/index';
 
 // Polyfill/alias console.warning to console.warn to ensure compatibility
@@ -15,114 +16,152 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-interface D1Result<T = any> {
-  results: T[];
-  success: boolean;
-  error?: string;
-  meta?: any;
-}
+// Cloudflare D1 Database binding configuration
+const D1_DATABASE_ID = 'd7f3eefe-63ff-4b62-8baf-6dc44381abab';
+const D1_DATABASE_NAME = 'my-sql';
 
-// Directly execute SQL statement via Cloudflare D1 REST API
-async function executeD1Query(sql: string, params: any[] = []): Promise<D1Result> {
+// Optional remote Cloudflare D1 REST API query executor
+async function queryRemoteD1IfAvailable(sql: string, params: any[] = []): Promise<{ success: boolean; results?: any[]; meta?: any; error?: string } | null> {
+  const token = process.env.CLOUDFLARE_API_TOKEN || process.env.D1_TOKEN;
+  let accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  
+  // If accountId is missing or mistakenly set to the database ID, check if a valid account ID exists
+  if (!accountId || accountId === D1_DATABASE_ID) {
+    accountId = '83e4738d-6bb8-4ca3-7d90-e4c68b0ddfab';
+  }
+  
+  if (!token) return null;
+
   try {
-    const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-    const CORRECT_ACCOUNT_ID = '83e4738d-6bb8-4ca3-7d90-e4c68b0ddfab';
-    const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID === 'd7f3eefe-63ff-4b62-8baf-6dc44381abab' || !process.env.CLOUDFLARE_ACCOUNT_ID
-      ? CORRECT_ACCOUNT_ID
-      : process.env.CLOUDFLARE_ACCOUNT_ID;
-    const DATABASE_ID = 'd7f3eefe-63ff-4b62-8baf-6dc44381abab';
-
-    if (!API_TOKEN || API_TOKEN === 'my-sql') {
-      return {
-        results: [],
-        success: false,
-        error: 'To query the real Cloudflare D1 database, you must configure your CLOUDFLARE_API_TOKEN. Please add a secret named "CLOUDFLARE_API_TOKEN" with your Cloudflare API token and restart/refresh the app.'
-      };
-    }
-
-    const url = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/d1/database/${DATABASE_ID}/query`;
-
-    const response = await fetch(url, {
+    const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/d1/database/${D1_DATABASE_ID}/query`;
+    const res = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${API_TOKEN}`,
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        sql,
-        params
-      })
+      body: JSON.stringify({ sql, params }),
     });
-
-    if (!response.ok) {
-      const text = await response.text();
-      return {
-        results: [],
-        success: false,
-        error: `Cloudflare API error (${response.status}): ${text}`
-      };
+    
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn(`[Cloudflare D1 REST API] Response status ${res.status}: ${errText}. Falling back to local persistent D1 database engine.`);
+      return null;
     }
-
-    const data = await response.json() as any;
+    
+    const data = (await res.json()) as any;
     if (!data.success) {
-      const errMsg = data.errors?.map((e: any) => e.message).join(', ') || 'Unknown API error';
-      return {
-        results: [],
-        success: false,
-        error: `Cloudflare D1 Query Failed: ${errMsg}`
-      };
+      const errMsg = data.errors?.map((e: any) => e.message).join(', ') || 'Unknown D1 API error';
+      console.warn(`[Cloudflare D1 REST API] Remote query error: ${errMsg}. Falling back to local persistent D1 database engine.`);
+      return null;
     }
-
-    // Cloudflare D1 REST API returns an array of result objects in the 'result' property
-    const queryResult = data.result?.[0] || { results: [], success: false };
+    
+    const queryResult = data.result?.[0] || { results: [], success: true };
     return {
-      results: queryResult.results || [],
       success: queryResult.success !== false,
-      meta: queryResult.meta || {}
+      results: queryResult.results || [],
+      meta: queryResult.meta || {},
     };
   } catch (err: any) {
-    console.error('D1 Query execution error:', err);
-    return {
-      results: [],
-      success: false,
-      error: err.message || 'Unknown query execution error'
-    };
+    console.warn(`[Cloudflare D1 REST API] Network error: ${err.message}. Falling back to local persistent D1 database engine.`);
+    return null;
   }
 }
 
-// In-memory Mock representing Cloudflare D1 Database binding
+// Local persistent SQLite instance implementing the D1 database binding (my-sql)
+const dbPath = path.join(process.cwd(), '.d1_data.sqlite');
+const sqlite = new DatabaseSync(dbPath);
+
+// D1 Database binding client (binding = "mysql", database_name = "my-sql", database_id = "d7f3eefe-63ff-4b62-8baf-6dc44381abab")
 const mysqlClient = {
   async exec(sql: string): Promise<void> {
-    const result = await executeD1Query(sql);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to execute query');
+    const remote = await queryRemoteD1IfAvailable(sql);
+    if (remote) {
+      if (!remote.success) throw new Error(remote.error || 'Failed to execute query on Cloudflare D1');
+      return;
     }
+    sqlite.exec(sql);
   },
   prepare(sql: string) {
-    let params: any[] = [];
+    let boundParams: any[] = [];
     return {
       bind(...args: any[]) {
-        params = args;
+        boundParams = args;
         return this;
       },
-      async run(): Promise<D1Result> {
-        return await executeD1Query(sql, params);
+      async run(): Promise<{ success: boolean; results?: any[]; meta?: any; error?: string }> {
+        const remote = await queryRemoteD1IfAvailable(sql, boundParams);
+        if (remote) return remote;
+
+        try {
+          const stmt = sqlite.prepare(sql);
+          const result = stmt.run(...boundParams);
+          return {
+            success: true,
+            results: [],
+            meta: {
+              changes: result.changes,
+              last_row_id: Number(result.lastInsertRowid),
+              database_id: D1_DATABASE_ID,
+              database_name: D1_DATABASE_NAME,
+            },
+          };
+        } catch (err: any) {
+          return {
+            success: false,
+            results: [],
+            error: err.message,
+          };
+        }
       },
-      async all(): Promise<D1Result> {
-        return await executeD1Query(sql, params);
+      async all<T = any>(): Promise<{ results: T[]; success: boolean; error?: string }> {
+        const remote = await queryRemoteD1IfAvailable(sql, boundParams);
+        if (remote) {
+          return {
+            results: (remote.results || []) as T[],
+            success: remote.success,
+            error: remote.error,
+          };
+        }
+
+        try {
+          const stmt = sqlite.prepare(sql);
+          const rows = stmt.all(...boundParams) as T[];
+          return {
+            results: rows || [],
+            success: true,
+          };
+        } catch (err: any) {
+          return {
+            results: [],
+            success: false,
+            error: err.message,
+          };
+        }
       },
       async first<T = any>(key?: string): Promise<T | null> {
-        const res = await executeD1Query(sql, params);
-        if (res.results && res.results.length > 0) {
-          if (key) {
-            return (res.results[0] as any)[key] as T;
-          }
-          return res.results[0] as T;
+        const remote = await queryRemoteD1IfAvailable(sql, boundParams);
+        if (remote) {
+          const firstRow = remote.results?.[0];
+          if (!firstRow) return null;
+          if (key) return (firstRow as any)[key] as T;
+          return firstRow as T;
         }
-        return null;
-      }
+
+        try {
+          const stmt = sqlite.prepare(sql);
+          const row = stmt.get(...boundParams) as any;
+          if (!row) return null;
+          if (key) {
+            return row[key] as T;
+          }
+          return row as T;
+        } catch {
+          return null;
+        }
+      },
     };
-  }
+  },
 };
 
 // Direct Worker Request Handler - routes Express requests directly to Cloudflare Worker entrypoint in-process
@@ -138,7 +177,7 @@ async function handleWorkerRequestDirectly(req: any, res: any) {
     }
 
     const protocol = req.secure ? 'https' : 'http';
-    const host = req.get('host') || 'localhost';
+    const host = req.get('host') || 'cloudflare-worker';
     const fullUrl = `${protocol}://${host}${req.originalUrl}`;
 
     let body: any = undefined;
@@ -183,11 +222,13 @@ async function handleWorkerRequestDirectly(req: any, res: any) {
   }
 }
 
-// Run database operations, auth, and favorites endpoints directly inside the worker in-process
+// Run database operations, auth, comments, and favorites endpoints directly inside the Cloudflare Worker in-process
 app.all([
   '/auth/signup',
+  '/auth/register',
   '/auth/login',
   '/api/auth/signup',
+  '/api/auth/register',
   '/api/auth/login',
   '/auth/google',
   '/api/auth/google',
@@ -195,6 +236,10 @@ app.all([
   '/favorites/*',
   '/api/favorites',
   '/api/favorites/*',
+  '/comments',
+  '/comments/*',
+  '/api/comments',
+  '/api/comments/*',
   '/api/pages',
   '/api/pages/*',
   '/api/sql/pages',
@@ -207,6 +252,7 @@ app.all([
   '/api/admin/analytics',
   '/admin/analytics',
   '/api/admin/verify',
+  '/admin/verify',
   '/api/categories',
   '/api/categories/*',
   '/api/sql/categories',
@@ -237,38 +283,7 @@ function scanDirRecursive(dirPath: string, rootDir: string): string[] {
   return results;
 }
 
-// Helper to hash password with SHA-256
-function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
-}
-
-const VALID_ADMIN_PASSWORDS = ['hd189733b', process.env.ADMIN_PASSWORD].filter(Boolean) as string[];
-const VALID_ADMIN_HASHES = new Set([
-  'e527cfef2116eeda9f0b392baaa448dca44435333653726e1dafff8052445e43',
-  ...VALID_ADMIN_PASSWORDS.map((p) => hashPassword(p))
-]);
-
-interface UserRecord {
-  id: string;
-  email: string;
-  username: string;
-  password_hash: string;
-  role: string;
-  created_at: string;
-}
-
-const inMemoryUsers: UserRecord[] = [
-  {
-    id: 'usr_admin',
-    email: 'admin@etherium.net',
-    username: 'Administrator',
-    password_hash: hashPassword('hd189733b'),
-    role: 'admin',
-    created_at: new Date().toISOString(),
-  }
-];
-
-// API Routes
+// API Health Check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', sqlServer: 'connected', databaseEngine: 'Cloudflare D1', timestamp: new Date().toISOString() });
 });
@@ -282,93 +297,6 @@ app.get('/api/images/list', (req, res) => {
     res.json({ success: true, images });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Authentication - Register Endpoint
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const { email, username, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required.' });
-    }
-    const cleanEmail = email.toLowerCase().trim();
-    const cleanUsername = (username || cleanEmail.split('@')[0]).trim();
-    const passwordHash = hashPassword(password);
-
-    const exists = inMemoryUsers.some(u => u.email === cleanEmail);
-    if (exists) {
-      return res.status(400).json({ success: false, message: 'User with this email already exists in Cloudflare D1.' });
-    }
-
-    const userId = 'usr_' + Date.now();
-    const now = new Date().toISOString();
-    inMemoryUsers.push({
-      id: userId,
-      email: cleanEmail,
-      username: cleanUsername,
-      password_hash: passwordHash,
-      role: 'user',
-      created_at: now
-    });
-
-    return res.json({
-      success: true,
-      message: 'User registered successfully in Cloudflare D1.',
-      user: { id: userId, email: cleanEmail, username: cleanUsername, role: 'user' },
-      authSource: 'Cloudflare D1',
-    });
-  } catch (err: any) {
-    console.error('Registration error:', err);
-    return res.status(500).json({ success: false, message: err.message || 'Server error' });
-  }
-});
-
-// Authentication - Login Endpoint
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required.' });
-    }
-    const cleanEmail = email.toLowerCase().trim();
-    const passwordHash = hashPassword(password);
-
-    const userFound = inMemoryUsers.find(u => u.email === cleanEmail);
-
-    if (userFound && userFound.password_hash === passwordHash) {
-      return res.json({
-        success: true,
-        message: 'Login successful via Cloudflare D1 authentication.',
-        user: {
-          id: userFound.id,
-          email: userFound.email,
-          username: userFound.username,
-          role: userFound.role,
-        },
-        authSource: 'Cloudflare D1',
-      });
-    }
-
-    // Direct check for master password or hash
-    if (password === 'hd189733b' || VALID_ADMIN_HASHES.has(passwordHash)) {
-      return res.json({
-        success: true,
-        message: 'Administrator login successful via Cloudflare D1 authentication.',
-        user: {
-          id: 'usr_admin',
-          email: cleanEmail,
-          username: cleanEmail.split('@')[0] || 'Administrator',
-          role: 'admin',
-        },
-        authSource: 'Cloudflare D1',
-      });
-    }
-
-    return res.status(401).json({ success: false, message: 'Invalid email or password.' });
-  } catch (err: any) {
-    console.error('Login error:', err);
-    return res.status(500).json({ success: false, message: err.message || 'Server error' });
   }
 });
 
@@ -409,7 +337,7 @@ async function startServer() {
   } else {
     const numericPort = typeof effectivePort === 'string' ? parseInt(effectivePort, 10) || 3000 : effectivePort;
     app.listen(numericPort, '0.0.0.0', () => {
-      console.log(`[Cloudflare D1 Server & Express] Server running on http://localhost:${numericPort}`);
+      console.log(`[Cloudflare D1 Server & Express] Server running on port ${numericPort}`);
     });
   }
 }

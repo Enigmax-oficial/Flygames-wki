@@ -211,43 +211,72 @@ export class WikiApi {
   }
 
   static async fetchPagesFromSql(): Promise<WikiPage[]> {
-    try {
-      const res = await fetch('/api/pages');
-      if (res.ok) {
-        const data = await res.json() as { results?: Array<{ id: string; title: string; slug: string; content: string; category?: string; image_url?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }> };
-        const rows = data.results || (Array.isArray(data) ? data : []);
-        const pages: WikiPage[] = rows.map(r => ({
-          id: r.slug || r.id,
-          title: r.title,
-          namespace: 'minecraft:' + (r.slug || r.id).replace(/-/g, '_'),
-          category: r.category || 'guides',
-          description: r.content ? r.content.substring(0, 150) : '',
-          addonVersion: '1.0.0',
-          icon: '✨',
-          tags: [r.slug || r.id],
-          lastUpdated: r.updated_at || r.updatedAt || new Date().toISOString(),
-          content: r.content,
-          imageUrl: r.image_url || undefined,
-          renderImageUrl: r.image_url || undefined,
-          image_url: r.image_url || undefined,
-          createdAt: r.created_at || r.createdAt,
-          updatedAt: r.updated_at || r.updatedAt,
-          templateId: 'standard',
-        } as unknown as WikiPage));
-        this.cachedPages = pages;
-        window.dispatchEvent(new Event('wiki_data_updated'));
-        console.log(`✅ [WikiApi] Loaded ${pages.length} pages from Cloudflare D1 Worker API`);
-        return pages;
-      }
-    } catch (e) {
-      console.warn('[WikiApi] Failed to fetch pages from Cloudflare D1 API:', e);
+    const res = await fetch('/api/pages');
+    if (!res.ok) {
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch {}
+      throw new Error(data.error || `Failed to fetch pages from Cloudflare D1 (status ${res.status}): ${text}`);
     }
+    const data = await res.json() as { results?: Array<{ id: string; title: string; slug: string; content: string; category?: string; image_url?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }> };
+    const rows = data.results || (Array.isArray(data) ? data : []);
+    const pages: WikiPage[] = rows.map(r => ({
+      id: r.slug || r.id,
+      title: r.title,
+      namespace: 'minecraft:' + (r.slug || r.id).replace(/-/g, '_'),
+      category: r.category || 'guides',
+      description: r.content ? r.content.substring(0, 150) : '',
+      addonVersion: '1.0.0',
+      icon: '✨',
+      tags: [r.slug || r.id],
+      lastUpdated: r.updated_at || r.updatedAt || new Date().toISOString(),
+      content: r.content,
+      imageUrl: r.image_url || undefined,
+      renderImageUrl: r.image_url || undefined,
+      image_url: r.image_url || undefined,
+      createdAt: r.created_at || r.createdAt,
+      updatedAt: r.updated_at || r.updatedAt,
+      templateId: 'standard',
+    } as unknown as WikiPage));
+    this.cachedPages = pages;
+    window.dispatchEvent(new Event('wiki_data_updated'));
+    return pages;
+  }
 
-    return this.getPages();
+  static async fetchPageBySlug(slug: string): Promise<WikiPage | null> {
+    const res = await fetch(`/api/pages/${encodeURIComponent(slug)}`);
+    if (res.status === 404) {
+      return null;
+    }
+    if (!res.ok) {
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch {}
+      throw new Error(data.error || `Failed to fetch page '${slug}' from Cloudflare D1 (status ${res.status})`);
+    }
+    const r = await res.json() as any;
+    return {
+      id: r.slug || r.id,
+      title: r.title,
+      namespace: 'minecraft:' + (r.slug || r.id).replace(/-/g, '_'),
+      category: r.category || 'guides',
+      description: r.content ? r.content.substring(0, 150) : '',
+      addonVersion: '1.0.0',
+      icon: '✨',
+      tags: [r.slug || r.id],
+      lastUpdated: r.updated_at || r.updatedAt || new Date().toISOString(),
+      content: r.content,
+      imageUrl: r.image_url || undefined,
+      renderImageUrl: r.image_url || undefined,
+      image_url: r.image_url || undefined,
+      createdAt: r.created_at || r.createdAt,
+      updatedAt: r.updated_at || r.updatedAt,
+      templateId: 'standard',
+    } as unknown as WikiPage;
   }
 
   static async createPage(page: WikiPage, userEmail?: string): Promise<WikiPage> {
-    const emailToSave = userEmail || page.creatorEmail || localStorage.getItem('etherium_user_email') || 'ruanpablolopesbritor@gmail.com';
+    const emailToSave = userEmail || page.creatorEmail || localStorage.getItem('etherium_user_email') || 'editor@wiki.local';
     page.creatorEmail = emailToSave;
 
     const pageSlug = page.id || page.title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-');
@@ -359,38 +388,17 @@ export class WikiApi {
     }
   }
 
-  static getLocalFavorites(): string[] {
-    if (!this.isUserLoggedIn()) {
-      return [];
-    }
-    try {
-      const stored = localStorage.getItem('etherium_favorites');
-      if (stored) {
-        return JSON.parse(stored);
-      }
-    } catch (e) {
-      console.warn('Failed to parse local favorites:', e);
-    }
+  static getFavorites(): string[] {
     return this.cachedFavorites;
   }
 
-  static saveLocalFavorites(favs: string[]) {
-    if (!this.isUserLoggedIn()) {
-      return;
-    }
-    this.cachedFavorites = Array.from(new Set(favs));
-    try {
-      localStorage.setItem('etherium_favorites', JSON.stringify(this.cachedFavorites));
-    } catch (e) {
-      console.warn('Failed to save local favorites:', e);
-    }
-    window.dispatchEvent(new Event('wiki_favorites_updated'));
+  static getLocalFavorites(): string[] {
+    return this.getFavorites();
   }
 
   static isFavorite(pageId: string): boolean {
     if (!this.isUserLoggedIn()) return false;
-    const favs = this.getLocalFavorites();
-    return favs.includes(pageId);
+    return this.cachedFavorites.includes(pageId);
   }
 
   static async fetchFavorites(): Promise<string[]> {
@@ -405,21 +413,21 @@ export class WikiApi {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (email) headers['X-User-Email'] = email;
 
-    try {
-      const res = await fetch('/api/favorites', { headers });
-      if (res.ok) {
-        const data = (await res.json()) as any;
-        if (data.success && Array.isArray(data.favorites)) {
-          const serverPageIds = data.favorites.map((f: any) => f.id || f.page_id).filter(Boolean);
-          const combined = Array.from(new Set([...serverPageIds, ...this.getLocalFavorites()]));
-          this.saveLocalFavorites(combined);
-          return combined;
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to fetch favorites from server, using local fallback:', err);
+    const res = await fetch('/api/favorites', { headers });
+    if (!res.ok) {
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch {}
+      throw new Error(data.error || `Failed to fetch favorites from Cloudflare D1 (status ${res.status}): ${text}`);
     }
-    return this.getLocalFavorites();
+    const data = (await res.json()) as any;
+    if (data.success && Array.isArray(data.favorites)) {
+      const serverPageIds = data.favorites.map((f: any) => f.id || f.page_id).filter(Boolean);
+      this.cachedFavorites = Array.from(new Set(serverPageIds));
+      window.dispatchEvent(new Event('wiki_favorites_updated'));
+      return this.cachedFavorites;
+    }
+    return [];
   }
 
   static async toggleFavorite(pageId: string): Promise<boolean> {
@@ -439,11 +447,6 @@ export class WikiApi {
       return false;
     }
 
-    const current = this.getLocalFavorites();
-    if (!current.includes(pageId)) {
-      this.saveLocalFavorites([...current, pageId]);
-    }
-
     const email = localStorage.getItem('etherium_user_email');
     const token = localStorage.getItem('etherium_auth_token');
 
@@ -451,14 +454,22 @@ export class WikiApi {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (email) headers['X-User-Email'] = email;
 
-    try {
-      await fetch('/api/favorites', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ page_id: pageId }),
-      });
-    } catch (err) {
-      console.warn('Background favorite add failed, local fallback saved:', err);
+    const res = await fetch('/api/favorites', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ page_id: pageId }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch {}
+      throw new Error(data.error || `Failed to add favorite to Cloudflare D1 (status ${res.status}): ${text}`);
+    }
+
+    if (!this.cachedFavorites.includes(pageId)) {
+      this.cachedFavorites = [...this.cachedFavorites, pageId];
+      window.dispatchEvent(new Event('wiki_favorites_updated'));
     }
     return true;
   }
@@ -468,9 +479,6 @@ export class WikiApi {
       return false;
     }
 
-    const current = this.getLocalFavorites();
-    this.saveLocalFavorites(current.filter(id => id !== pageId));
-
     const email = localStorage.getItem('etherium_user_email');
     const token = localStorage.getItem('etherium_auth_token');
 
@@ -478,14 +486,20 @@ export class WikiApi {
     if (token) headers['Authorization'] = `Bearer ${token}`;
     if (email) headers['X-User-Email'] = email;
 
-    try {
-      await fetch(`/api/favorites/${encodeURIComponent(pageId)}`, {
-        method: 'DELETE',
-        headers,
-      });
-    } catch (err) {
-      console.warn('Background favorite remove failed, local fallback updated:', err);
+    const res = await fetch(`/api/favorites/${encodeURIComponent(pageId)}`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch {}
+      throw new Error(data.error || `Failed to remove favorite from Cloudflare D1 (status ${res.status}): ${text}`);
     }
+
+    this.cachedFavorites = this.cachedFavorites.filter(id => id !== pageId);
+    window.dispatchEvent(new Event('wiki_favorites_updated'));
     return false;
   }
 }

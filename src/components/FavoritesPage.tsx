@@ -48,7 +48,7 @@ export const FavoritesPage: React.FC<FavoritesPageProps> = ({
     loadFavs();
 
     const handleUpdate = () => {
-      setFavoriteIds(WikiApi.getLocalFavorites());
+      setFavoriteIds(WikiApi.getFavorites());
     };
 
     window.addEventListener('wiki_favorites_updated', handleUpdate);

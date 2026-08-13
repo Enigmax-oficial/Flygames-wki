@@ -35,6 +35,9 @@ export async function ensureSchema(env: Env): Promise<void> {
     await env.mysql.exec(
       'CREATE TABLE IF NOT EXISTS favorites (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, page_id TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE (user_id, page_id));'
     );
+    await env.mysql.exec(
+      'CREATE TABLE IF NOT EXISTS comments (id TEXT PRIMARY KEY, page_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, comment TEXT NOT NULL, created_at TEXT NOT NULL);'
+    );
     try {
       await env.mysql.exec('ALTER TABLE pages ADD COLUMN category TEXT;');
     } catch (e) {
@@ -282,6 +285,72 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
     return jsonResponse({ error: 'Not found' }, 404, corsHeaders);
   } catch (err: unknown) {
     console.error('Database or routing error in handlePagesRequest:', err);
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    return jsonResponse({ error: message }, 500, corsHeaders);
+  }
+}
+
+export async function handleCommentsRequest(request: Request, url: URL, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
+  await ensureSchema(env);
+  const method = request.method;
+
+  try {
+    // GET /api/comments?pageId=... or /comments?pageId=...
+    if (method === 'GET') {
+      const pageId = url.searchParams.get('pageId') || url.searchParams.get('page_id');
+      if (!pageId) {
+        return jsonResponse({ error: 'pageId query parameter required' }, 400, corsHeaders);
+      }
+
+      const { results } = await env.mysql
+        .prepare('SELECT id, page_id as pageId, user_name as userName, user_email as userEmail, comment, created_at as createdAt FROM comments WHERE page_id = ? ORDER BY created_at ASC')
+        .bind(pageId)
+        .all();
+
+      return jsonResponse({ success: true, comments: results || [] }, 200, corsHeaders);
+    }
+
+    // POST /api/comments or /comments
+    if (method === 'POST') {
+      let body: any = {};
+      try {
+        body = await request.json();
+      } catch {
+        return jsonResponse({ error: 'Invalid JSON body' }, 400, corsHeaders);
+      }
+
+      const pageId = (body.pageId || body.page_id || '').trim();
+      const userName = (body.userName || body.user_name || '').trim();
+      const userEmail = (body.userEmail || body.user_email || '').trim().toLowerCase();
+      const comment = (body.comment || '').trim();
+
+      if (!pageId || !userName || !userEmail || !comment) {
+        return jsonResponse({ error: 'pageId, userName, userEmail, and comment are required' }, 400, corsHeaders);
+      }
+
+      const commentId = 'cmt_' + crypto.randomUUID();
+      const now = new Date().toISOString();
+
+      await env.mysql
+        .prepare('INSERT INTO comments (id, page_id, user_name, user_email, comment, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+        .bind(commentId, pageId, userName, userEmail, comment, now)
+        .run();
+
+      const newComment = {
+        id: commentId,
+        pageId,
+        userName,
+        userEmail,
+        comment,
+        createdAt: now,
+      };
+
+      return jsonResponse({ success: true, comment: newComment }, 201, corsHeaders);
+    }
+
+    return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders);
+  } catch (err: unknown) {
+    console.error('Comments request error:', err);
     const message = err instanceof Error ? err.message : 'Internal Server Error';
     return jsonResponse({ error: message }, 500, corsHeaders);
   }

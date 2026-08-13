@@ -247,13 +247,11 @@ export default function App() {
     };
     window.addEventListener('wiki_data_updated', handleUpdate);
 
-    // Synchronize local states with Cloudflare D1 server DB on application mount
+    // Synchronize states with Cloudflare D1 server DB on application mount
     WikiApi.fetchPagesFromSql().then((fetched) => {
-      if (fetched && fetched.length > 0) {
-        setPages(fetched);
-      }
+      setPages(fetched);
     }).catch(err => {
-      console.warn("Failed to synchronize with Cloudflare D1 on mount:", err);
+      console.error("Failed to synchronize with Cloudflare D1 on mount:", err);
     });
 
     return () => window.removeEventListener('wiki_data_updated', handleUpdate);

@@ -50,21 +50,23 @@ export const WikiComments: React.FC<WikiCommentsProps> = ({
 
   const commentsEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Load comments from Local Storage
-  const loadLocalComments = () => {
+  // Load comments from D1 Database
+  const loadComments = async () => {
     try {
-      const saved = localStorage.getItem('wiki_comments_local');
-      if (saved) {
-        const allComments: Comment[] = JSON.parse(saved);
-        const filtered = allComments.filter(c => c.pageId === pageId);
-        // Sort chronologically
-        filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-        setComments(filtered);
+      const res = await fetch(`/api/comments?pageId=${encodeURIComponent(pageId)}`);
+      if (res.ok) {
+        const data = await res.json() as any;
+        if (data.success && Array.isArray(data.comments)) {
+          setComments(data.comments);
+        } else {
+          setComments([]);
+        }
       } else {
         setComments([]);
       }
     } catch (e) {
-      console.error('Failed to read local comments', e);
+      console.error('Failed to read comments from D1:', e);
+      setComments([]);
     }
     setIsLoading(false);
   };
@@ -72,7 +74,7 @@ export const WikiComments: React.FC<WikiCommentsProps> = ({
   useEffect(() => {
     setIsLoading(true);
     setError(null);
-    loadLocalComments();
+    loadComments();
   }, [pageId]);
 
   // Scroll to bottom
@@ -115,30 +117,39 @@ export const WikiComments: React.FC<WikiCommentsProps> = ({
     };
 
     try {
-      // Save to Local Storage
-      const saved = localStorage.getItem('wiki_comments_local');
-      const allComments: Comment[] = saved ? JSON.parse(saved) : [];
-      const newComment: Comment = {
-        id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(commentData),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        let data: any = {};
+        try { data = JSON.parse(text); } catch {}
+        throw new Error(data.error || 'Failed to post comment to D1');
+      }
+
+      const data = await res.json() as any;
+      const newComment: Comment = data.comment || {
+        id: `cmt_${Date.now()}`,
         ...commentData,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      allComments.push(newComment);
-      localStorage.setItem('wiki_comments_local', JSON.stringify(allComments));
       
-      // Refresh local state
+      // Refresh state
       setComments(prev => [...prev, newComment]);
 
       // Reset form states
       setInputText('');
       setGuestName('');
       setGuestEmail('');
-      setSuccess('Comment successfully posted and registered!');
+      setSuccess('Comment successfully posted to Cloudflare D1!');
       setTimeout(() => setSuccess(null), 4000);
 
     } catch (err: any) {
-      console.error('Failed to save comment:', err);
-      setError('Failed to post comment. Storage error.');
+      console.error('Failed to save comment to D1:', err);
+      setError(err.message || 'Failed to post comment to Cloudflare D1.');
     } finally {
       setIsPosting(false);
     }

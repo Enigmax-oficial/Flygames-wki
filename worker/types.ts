@@ -3,6 +3,9 @@ import { D1Database, Fetcher } from '@cloudflare/workers-types';
 export interface Env {
   mysql: D1Database;
   ASSETS?: Fetcher;
+  ADMIN_PASSWORD?: string;
+  ADMIN_USERNAMES?: string;
+  ADMIN_EMAILS?: string;
 }
 
 export interface PageRecord {

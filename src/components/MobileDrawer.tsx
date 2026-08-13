@@ -47,14 +47,14 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onOpenSearch,
   userEmail,
 }) => {
-  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getLocalFavorites());
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getFavorites());
 
   useEffect(() => {
     const handleFavUpdate = () => {
-      setFavoriteIds(WikiApi.getLocalFavorites());
+      setFavoriteIds(WikiApi.getFavorites());
     };
     window.addEventListener('wiki_favorites_updated', handleFavUpdate);
-    WikiApi.fetchFavorites().then(favs => setFavoriteIds(favs));
+    WikiApi.fetchFavorites().then(favs => setFavoriteIds(favs)).catch(() => {});
     return () => window.removeEventListener('wiki_favorites_updated', handleFavUpdate);
   }, []);
 

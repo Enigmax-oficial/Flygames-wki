@@ -233,8 +233,13 @@ export async function handleAuthRequest(
     });
   }
 
-  // POST /auth/signup or /api/auth/signup
-  if (pathname === '/auth/signup' || pathname === '/api/auth/signup') {
+  // POST /auth/signup, /api/auth/signup, /auth/register, /api/auth/register
+  if (
+    pathname === '/auth/signup' ||
+    pathname === '/api/auth/signup' ||
+    pathname === '/auth/register' ||
+    pathname === '/api/auth/register'
+  ) {
     if (request.method !== 'POST') {
       return jsonRes({ error: 'Method not allowed' }, 405);
     }

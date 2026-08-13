@@ -69,13 +69,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     const trimmedUser = usernameInput.trim();
     const trimmedPass = passwordInput.trim();
 
-    if (trimmedUser === 'adm' && trimmedPass === 'hd189733b') {
-      setIsAdminAuthenticated(true);
-      sessionStorage.setItem('admin_auth_verified', 'true');
-      setIsVerifying(false);
-      return;
-    }
-
     try {
       const res = await fetch('/api/admin/verify', {
         method: 'POST',
@@ -91,12 +84,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         setAuthError(data.message || 'Incorrect administrator username or password.');
       }
     } catch {
-      if (trimmedUser === 'adm' && trimmedPass === 'hd189733b') {
-        setIsAdminAuthenticated(true);
-        sessionStorage.setItem('admin_auth_verified', 'true');
-      } else {
-        setAuthError('Incorrect administrator username or password.');
-      }
+      setAuthError('Failed to verify administrator credentials. Please try again.');
     } finally {
       setIsVerifying(false);
     }

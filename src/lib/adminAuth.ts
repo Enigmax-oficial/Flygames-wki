@@ -2,7 +2,7 @@ const SECRET_KEY = 'AETHERIA_ADMIN_KEY_2026';
 
 // Encrypted hex representation of authorized admin email
 const ENCRYPTED_ADMIN_EMAILS = [
-  '3330352635332b2d302d2b3d2c3d3d392c2d304070555b202c3866263d24' // ruanpablolopesbritor@gmail.com
+  '3330352635332b2d302d2b3d2c3d3d392c2d304070555b202c3866263d24'
 ];
 
 export function decryptAdminEmail(hex: string): string {
@@ -18,8 +18,19 @@ export function decryptAdminEmail(hex: string): string {
 export function isAuthorizedAdminEmail(email: string | null | undefined): boolean {
   if (!email || typeof email !== 'string') return false;
   const clean = email.toLowerCase().trim();
-  return (
-    clean === 'ruanpablolopesbritor@gmail.com' ||
-    clean === 'ruanpablolopesbritoruan@gmail.com'
-  );
+
+  // Check against env configured emails if provided
+  const envEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+    .split(',')
+    .map((e: string) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (envEmails.includes(clean)) return true;
+
+  // Check decrypted authorized hashes
+  for (const enc of ENCRYPTED_ADMIN_EMAILS) {
+    if (clean === decryptAdminEmail(enc).toLowerCase()) return true;
+  }
+
+  return false;
 }

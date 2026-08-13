@@ -1,5 +1,5 @@
 import { Env } from './types';
-import { handlePagesRequest, jsonResponse, ensureSchema } from './routes/pages';
+import { handlePagesRequest, handleCommentsRequest, jsonResponse, ensureSchema } from './routes/pages';
 import { handleAuthRequest, handleFavoritesRequest } from './auth';
 
 export default {
@@ -24,10 +24,12 @@ export default {
     }
 
     try {
-      // Auth endpoints (/auth/signup, /auth/login, /auth/google, etc.)
+      // Auth endpoints (/auth/signup, /auth/register, /auth/login, /auth/google, etc.)
       if (
         pathname === '/auth/signup' ||
         pathname === '/api/auth/signup' ||
+        pathname === '/auth/register' ||
+        pathname === '/api/auth/register' ||
         pathname === '/auth/login' ||
         pathname === '/api/auth/login' ||
         pathname === '/auth/google' ||
@@ -44,6 +46,14 @@ export default {
         pathname.startsWith('/api/favorites/')
       ) {
         return await handleFavoritesRequest(request, url, env, corsHeaders);
+      }
+
+      // Comments endpoints (/comments, /api/comments)
+      if (
+        pathname === '/comments' ||
+        pathname === '/api/comments'
+      ) {
+        return await handleCommentsRequest(request, url, env, corsHeaders);
       }
       // Health check endpoint
       if (pathname === '/health' || pathname === '/api/health') {
@@ -71,13 +81,21 @@ export default {
         try {
           body = await request.json();
         } catch {}
-        const username = (body.username || '').trim();
+        const username = (body.username || '').trim().toLowerCase();
         const password = (body.password || '').trim();
         const email = (body.email || '').trim().toLowerCase();
 
-        const isUserValid = username === 'adm' || username === 'admin' || username === 'Administrator';
-        const isPassValid = password === 'hd189733b';
-        const isEmailValid = email === 'ruanpablolopesbritor@gmail.com' || email === 'ruanpablolopesbritoruan@gmail.com';
+        const allowedUsers = (env.ADMIN_USERNAMES || 'adm,admin,administrator')
+          .split(',')
+          .map((u) => u.trim().toLowerCase());
+        const allowedEmails = (env.ADMIN_EMAILS || '')
+          .split(',')
+          .map((e) => e.trim().toLowerCase())
+          .filter(Boolean);
+
+        const isUserValid = allowedUsers.includes(username);
+        const isPassValid = env.ADMIN_PASSWORD ? password === env.ADMIN_PASSWORD : false;
+        const isEmailValid = allowedEmails.length > 0 && allowedEmails.includes(email);
 
         if ((isUserValid && isPassValid) || isEmailValid) {
           return jsonResponse({ success: true, message: 'Authentication successful via Cloudflare D1.' }, 200, corsHeaders);
