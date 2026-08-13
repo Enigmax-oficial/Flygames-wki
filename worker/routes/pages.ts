@@ -63,14 +63,15 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
 
     // GET /pages/:slug
     if (method === 'GET' && pathParts.length === 2) {
-      const slug = pathParts[1];
+      const slugOrId = pathParts[1];
+      const cleanedSlug = generateSlug(slugOrId);
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, created_at, updated_at FROM pages WHERE slug = ?'
-      ).bind(slug);
+        'SELECT id, title, slug, content, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
+      ).bind(slugOrId, cleanedSlug, slugOrId);
 
       const page = await stmt.first<PageRecord>();
       if (!page) {
-        return jsonResponse({ error: 'Page not found' }, 404, corsHeaders);
+        return jsonResponse({ error: `Page not found: '${slugOrId}'` }, 404, corsHeaders);
       }
 
       return jsonResponse(page, 200, corsHeaders);
@@ -103,7 +104,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       // Check if slug exists
       const existing = await env.mysql.prepare('SELECT id FROM pages WHERE slug = ?').bind(slug).first();
       if (existing) {
-        return jsonResponse({ error: 'Slug already exists', field: 'slug' }, 409, corsHeaders);
+        return jsonResponse({ error: `Slug already exists: '${slug}'`, field: 'slug' }, 409, corsHeaders);
       }
 
       const id = 'page_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
@@ -132,7 +133,8 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
 
     // PUT /pages/:slug
     if (method === 'PUT' && pathParts.length === 2) {
-      const slug = pathParts[1];
+      const slugOrId = pathParts[1];
+      const cleanedSlug = generateSlug(slugOrId);
       let body: PageInput;
       try {
         body = await request.json() as PageInput;
@@ -140,9 +142,9 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         return jsonResponse({ error: 'Invalid JSON body', field: 'body' }, 400, corsHeaders);
       }
 
-      const existing = await env.mysql.prepare('SELECT id, title, slug, content, created_at FROM pages WHERE slug = ?').bind(slug).first<PageRecord>();
+      const existing = await env.mysql.prepare('SELECT id, title, slug, content, created_at FROM pages WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
       if (!existing) {
-        return jsonResponse({ error: 'Page not found' }, 404, corsHeaders);
+        return jsonResponse({ error: `Page not found: '${slugOrId}'` }, 404, corsHeaders);
       }
 
       const title = body.title !== undefined ? body.title.trim() : existing.title;
@@ -159,14 +161,14 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       if (newSlug !== existing.slug) {
         const conflict = await env.mysql.prepare('SELECT id FROM pages WHERE slug = ?').bind(newSlug).first();
         if (conflict) {
-          return jsonResponse({ error: 'Slug already exists', field: 'slug' }, 409, corsHeaders);
+          return jsonResponse({ error: `Slug already exists: '${newSlug}'`, field: 'slug' }, 409, corsHeaders);
         }
       }
 
       const now = new Date().toISOString();
       const updateStmt = env.mysql.prepare(
-        'UPDATE pages SET title = ?, slug = ?, content = ?, updated_at = ? WHERE slug = ?'
-      ).bind(title, newSlug, content, now, slug);
+        'UPDATE pages SET title = ?, slug = ?, content = ?, updated_at = ? WHERE id = ?'
+      ).bind(title, newSlug, content, now, existing.id);
 
       const { success, error } = await updateStmt.run();
       if (!success) {
@@ -187,13 +189,14 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
 
     // DELETE /pages/:slug
     if (method === 'DELETE' && pathParts.length === 2) {
-      const slug = pathParts[1];
-      const existing = await env.mysql.prepare('SELECT id FROM pages WHERE slug = ?').bind(slug).first();
+      const slugOrId = pathParts[1];
+      const cleanedSlug = generateSlug(slugOrId);
+      const existing = await env.mysql.prepare('SELECT id, slug FROM pages WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
       if (!existing) {
-        return jsonResponse({ error: 'Page not found' }, 404, corsHeaders);
+        return jsonResponse({ error: `Page not found: '${slugOrId}'` }, 404, corsHeaders);
       }
 
-      const deleteStmt = env.mysql.prepare('DELETE FROM pages WHERE slug = ?').bind(slug);
+      const deleteStmt = env.mysql.prepare('DELETE FROM pages WHERE id = ?').bind(existing.id);
       const { success, error } = await deleteStmt.run();
       if (!success) {
         throw new Error(error || 'Failed to delete page from D1');
