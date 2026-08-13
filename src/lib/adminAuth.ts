@@ -16,10 +16,10 @@ export function decryptAdminEmail(hex: string): string {
 }
 
 export function isAuthorizedAdminEmail(email: string | null | undefined): boolean {
+  if (!email || typeof email !== 'string') return false;
   if (typeof window !== 'undefined' && sessionStorage.getItem('admin_auth_verified') === 'true') {
     return true;
   }
-  if (!email || typeof email !== 'string') return false;
   const clean = email.toLowerCase().trim();
 
   if (clean === 'adm' || clean === 'adm@wiki.local' || clean === 'admin') return true;

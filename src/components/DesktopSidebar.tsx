@@ -55,7 +55,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
   if (!isOpen) return null;
 
-  const isAdmin = isAuthorizedAdminEmail(userEmail);
+  const isAdmin = Boolean(userEmail) && isAuthorizedAdminEmail(userEmail);
   const dynamicCategories = WikiApi.getCategories();
 
   const renderSidebarIcon = (catId: string, iconStr: string) => {

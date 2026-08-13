@@ -73,7 +73,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const displayEmail = userEmail || '';
   
   // Administrator condition
-  const isAdmin = isAuthorizedAdminEmail(displayEmail);
+  const isAdmin = Boolean(userEmail) && isAuthorizedAdminEmail(displayEmail);
 
   const handleSaveName = () => {
     if (newName.trim() && onUpdateUserName) {

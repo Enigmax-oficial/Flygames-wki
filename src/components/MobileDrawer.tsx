@@ -60,7 +60,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const isAdmin = isAuthorizedAdminEmail(userEmail);
+  const isAdmin = Boolean(userEmail) && isAuthorizedAdminEmail(userEmail);
 
   const dynamicCategories = WikiApi.getCategories();
 

@@ -24,6 +24,7 @@ import {
   FileJson,
   BarChart3,
   Eye,
+  EyeOff,
   Heart,
   TrendingUp,
   RefreshCw,
@@ -60,6 +61,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Encrypted Credentials & Auth State
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
     return sessionStorage.getItem('admin_auth_verified') === 'true';
   });
@@ -120,6 +122,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [newAdminConfirmPassword, setNewAdminConfirmPassword] = useState('');
+  const [showNewAdminPassword, setShowNewAdminPassword] = useState(false);
+  const [showConfirmAdminPassword, setShowConfirmAdminPassword] = useState(false);
   const [createAdminSuccess, setCreateAdminSuccess] = useState('');
   const [createAdminError, setCreateAdminError] = useState('');
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
@@ -626,13 +630,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <Lock className="w-3.5 h-3.5 text-slate-400" />
                 <span>Senha de Acesso</span>
               </label>
-              <input
-                type="password"
-                placeholder="Ex: admin"
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest placeholder:text-slate-600 placeholder:tracking-normal"
-              />
+              <div className="relative">
+                <input
+                  type={showLoginPassword ? 'text' : 'password'}
+                  placeholder="Ex: admin"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  className="w-full px-4 py-2.5 pr-10 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest placeholder:text-slate-600 placeholder:tracking-normal"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
+                  title={showLoginPassword ? 'Ocultar senha' : 'Revelar senha'}
+                >
+                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -2696,14 +2710,24 @@ wikiApi.createPage({
                     <Lock className="w-3.5 h-3.5 text-amber-400" />
                     <span>Senha de Administrador <span className="text-rose-400">*</span></span>
                   </label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Mínimo 6 caracteres"
-                    value={newAdminPassword}
-                    onChange={(e) => setNewAdminPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600 tracking-widest placeholder:tracking-normal"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewAdminPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Mínimo 6 caracteres"
+                      value={newAdminPassword}
+                      onChange={(e) => setNewAdminPassword(e.target.value)}
+                      className="w-full px-4 py-2.5 pr-10 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600 tracking-widest placeholder:tracking-normal"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewAdminPassword(!showNewAdminPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
+                      title={showNewAdminPassword ? 'Ocultar senha' : 'Revelar senha'}
+                    >
+                      {showNewAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div>
@@ -2711,14 +2735,24 @@ wikiApi.createPage({
                     <Lock className="w-3.5 h-3.5 text-amber-400" />
                     <span>Confirmar Senha <span className="text-rose-400">*</span></span>
                   </label>
-                  <input
-                    type="password"
-                    required
-                    placeholder="Repita a senha"
-                    value={newAdminConfirmPassword}
-                    onChange={(e) => setNewAdminConfirmPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600 tracking-widest placeholder:tracking-normal"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmAdminPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Repita a senha"
+                      value={newAdminConfirmPassword}
+                      onChange={(e) => setNewAdminConfirmPassword(e.target.value)}
+                      className="w-full px-4 py-2.5 pr-10 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600 tracking-widest placeholder:tracking-normal"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmAdminPassword(!showConfirmAdminPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
+                      title={showConfirmAdminPassword ? 'Ocultar senha' : 'Revelar senha'}
+                    >
+                      {showConfirmAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
