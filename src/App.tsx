@@ -218,7 +218,7 @@ export default function App() {
 
   // (Redundant localStorage sync removed to avoid poisoning state)
 
-  const handleLoginSuccess = (userName: string, email: string) => {
+  const handleLoginSuccess = (userName: string, email: string, isAdmin: boolean = false, redirectTarget?: string) => {
     const finalEmail = email;
     setUser(userName);
     setUserEmail(finalEmail);
@@ -236,8 +236,15 @@ export default function App() {
     try {
       localStorage.removeItem('etherium_user');
       localStorage.removeItem('etherium_user_email');
+      localStorage.removeItem('etherium_admin_token');
+      localStorage.removeItem('etherium_auth_token');
+      sessionStorage.removeItem('admin_auth_verified');
+      sessionStorage.removeItem('admin_initial_setup');
     } catch (e) {
       console.warn('LocalStorage remove user failed:', e);
+    }
+    if (selectedPageId === 'admin-panel') {
+      navigateToPage('home');
     }
   };
 
@@ -271,9 +278,13 @@ export default function App() {
       {selectedPageId === 'login' ? (
         <LoginPage 
           onBack={() => navigateToPage('home')}
-          onLoginSuccess={(name, email) => {
-            handleLoginSuccess(name, email);
-            navigateToPage('home');
+          onLoginSuccess={(name, email, isAdmin, target) => {
+            handleLoginSuccess(name, email, isAdmin, target);
+            if (target === 'admin-panel' || isAdmin) {
+              navigateToPage('admin-panel');
+            } else {
+              navigateToPage('home');
+            }
           }}
         />
       ) : (

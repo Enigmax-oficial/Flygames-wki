@@ -128,16 +128,18 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             </a>
           )}
 
-          <button
-            onClick={() => {
-              onSelectPage('admin-panel');
-              onClose();
-            }}
-            className="w-full py-2.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-xs flex items-center gap-2"
-          >
-            <Crown className="w-4 h-4 text-amber-400" />
-            <span>Admin Control Panel</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => {
+                onSelectPage('admin-panel');
+                onClose();
+              }}
+              className="w-full py-2.5 px-3 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold rounded-xl text-xs flex items-center gap-2"
+            >
+              <Crown className="w-4 h-4 text-amber-400" />
+              <span>Admin Control Panel</span>
+            </button>
+          )}
 
           <div className="flex items-center gap-2">
             <button

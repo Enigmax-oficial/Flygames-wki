@@ -198,20 +198,22 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             </button>
           )}
 
-          <button
-            onClick={() => onSelectPage('admin-panel')}
-            className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between transition-all ${
-              selectedPageId === 'admin-panel'
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-                : 'hover:bg-[#111827] text-amber-400 hover:text-amber-300 border border-transparent'
-            }`}
-          >
-            <span className="flex items-center gap-2.5">
-              <Crown className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>Admin Panel</span>
-            </span>
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase font-mono font-bold">Manage</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => onSelectPage('admin-panel')}
+              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-between transition-all ${
+                selectedPageId === 'admin-panel'
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                  : 'hover:bg-[#111827] text-amber-400 hover:text-amber-300 border border-transparent'
+              }`}
+            >
+              <span className="flex items-center gap-2.5">
+                <Crown className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>Admin Panel</span>
+              </span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 uppercase font-mono font-bold">Manage</span>
+            </button>
+          )}
         </div>
 
         {/* 3. Category Selectors Grid */}

@@ -90,6 +90,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             localStorage.setItem('etherium_admin_token', data.token);
           } catch {}
         }
+        setActiveTab('admin-users');
       } else {
         setAuthError(data.message || 'Incorrect administrator username or password.');
       }
@@ -107,8 +108,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setAuthError('');
   };
 
-  // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'analytics' | 'api-playground' | 'assets' | 'database' | 'admin-users'>('create-page');
+  // Navigation Tab State (defaults to admin account creation and management)
+  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'analytics' | 'api-playground' | 'assets' | 'database' | 'admin-users'>('admin-users');
   const [pageSortBy, setPageSortBy] = useState<'default' | 'views'>('default');
 
   // Admin Accounts Management State
