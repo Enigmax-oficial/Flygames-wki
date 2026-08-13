@@ -69,8 +69,11 @@ export default function App() {
   const handlePageCreated = async (newPage: WikiPage) => {
     try {
       const savedPage = await WikiApi.createPage(newPage, userEmail || undefined);
-      setPages((prev) => [savedPage, ...prev.filter(p => p.id !== savedPage.id)]);
-      navigateToPage(savedPage.id);
+      setPages((prev) => {
+        const updated = [savedPage, ...prev.filter(p => p.id !== savedPage.id)];
+        navigateToPage(savedPage.id, updated);
+        return updated;
+      });
     } catch (err: any) {
       alert("Failed to save page through server pipeline: " + err.message);
     }
@@ -153,7 +156,7 @@ export default function App() {
   }, [parseRoute]);
 
   // Navigate function that updates location hash (giving each page a unique URL link)
-  const navigateToPage = (pageId: string) => {
+  const navigateToPage = (pageId: string, customPagesList?: WikiPage[]) => {
     if (pageId === 'home') {
       window.history.pushState(null, '', '/portal'); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId('home');
@@ -170,7 +173,8 @@ export default function App() {
       return;
     }
 
-    const page = pages.find((p) => p.id === pageId);
+    const pagesToSearch = customPagesList || pages;
+    const page = pagesToSearch.find((p) => p.id === pageId);
     if (page) {
       window.history.pushState(null, '', `/${page.category}/${page.id}`); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId(page.id);

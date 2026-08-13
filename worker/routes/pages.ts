@@ -29,6 +29,11 @@ export async function ensureSchema(env: Env): Promise<void> {
     await env.mysql.exec(
       'CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
     );
+    try {
+      await env.mysql.exec('ALTER TABLE pages ADD COLUMN category TEXT;');
+    } catch (e) {
+      // Ignore if column already exists
+    }
     schemaInitialized = true;
   } catch (err) {
     console.error('Failed to ensure D1 pages table schema:', err);
@@ -50,7 +55,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const offset = Math.max(parseInt(offsetParam || '0', 10) || 0, 0);
 
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, created_at, updated_at FROM pages ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+        'SELECT id, title, slug, content, category, created_at, updated_at FROM pages ORDER BY updated_at DESC LIMIT ? OFFSET ?'
       ).bind(limit, offset);
 
       const { results, success, error } = await stmt.all<PageRecord>();
@@ -66,7 +71,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const slugOrId = pathParts[1];
       const cleanedSlug = generateSlug(slugOrId);
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
+        'SELECT id, title, slug, content, category, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
       ).bind(slugOrId, cleanedSlug, slugOrId);
 
       const page = await stmt.first<PageRecord>();
@@ -88,6 +93,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
 
       const title = (body.title || '').trim();
       const content = (body.content || '').trim();
+      const category = (body.category || 'guides').trim();
 
       if (!title) {
         return jsonResponse({ error: 'Title is required', field: 'title' }, 400, corsHeaders);
@@ -111,11 +117,11 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const now = new Date().toISOString();
 
       // Diagnostic log immediately before INSERT executes
-      console.log(`[DIAGNOSTIC] INSERTing into pages: ID="${id}", TITLE="${title}", SLUG="${slug}", CONTENT="${content}"`);
+      console.log(`[DIAGNOSTIC] INSERTing into pages: ID="${id}", TITLE="${title}", SLUG="${slug}", CATEGORY="${category}", CONTENT="${content}"`);
 
       const insertStmt = env.mysql.prepare(
-        'INSERT INTO pages (id, title, slug, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
-      ).bind(id, title, slug, content, now, now);
+        'INSERT INTO pages (id, title, slug, content, category, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      ).bind(id, title, slug, content, category, now, now);
 
       const { success, error } = await insertStmt.run();
       if (!success) {
@@ -127,6 +133,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         title,
         slug,
         content,
+        category,
         created_at: now,
         updated_at: now,
       };
@@ -145,13 +152,14 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         return jsonResponse({ error: 'Invalid JSON body', field: 'body' }, 400, corsHeaders);
       }
 
-      const existing = await env.mysql.prepare('SELECT id, title, slug, content, created_at FROM pages WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
+      const existing = await env.mysql.prepare('SELECT id, title, slug, content, category, created_at FROM pages WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
       if (!existing) {
         return jsonResponse({ error: `Page not found: '${slugOrId}'` }, 404, corsHeaders);
       }
 
       const title = body.title !== undefined ? body.title.trim() : existing.title;
       const content = body.content !== undefined ? body.content.trim() : existing.content;
+      const category = body.category !== undefined ? body.category.trim() : (existing.category || 'guides');
       const newSlug = body.slug !== undefined && body.slug.trim() ? generateSlug(body.slug) : existing.slug;
 
       if (body.title !== undefined && !title) {
@@ -170,8 +178,8 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
 
       const now = new Date().toISOString();
       const updateStmt = env.mysql.prepare(
-        'UPDATE pages SET title = ?, slug = ?, content = ?, updated_at = ? WHERE id = ?'
-      ).bind(title, newSlug, content, now, existing.id);
+        'UPDATE pages SET title = ?, slug = ?, content = ?, category = ?, updated_at = ? WHERE id = ?'
+      ).bind(title, newSlug, content, category, now, existing.id);
 
       const { success, error } = await updateStmt.run();
       if (!success) {
@@ -183,6 +191,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         title,
         slug: newSlug,
         content,
+        category,
         created_at: existing.created_at,
         updated_at: now,
       };

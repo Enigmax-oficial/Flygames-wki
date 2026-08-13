@@ -214,21 +214,21 @@ export class WikiApi {
     try {
       const res = await fetch('/api/pages');
       if (res.ok) {
-        const data = await res.json() as { results?: Array<{ id: string; title: string; slug: string; content: string; created_at: string; updated_at: string }> };
+        const data = await res.json() as { results?: Array<{ id: string; title: string; slug: string; content: string; category?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }> };
         const rows = data.results || (Array.isArray(data) ? data : []);
         const pages: WikiPage[] = rows.map(r => ({
           id: r.slug || r.id,
           title: r.title,
           namespace: 'minecraft:' + (r.slug || r.id).replace(/-/g, '_'),
-          category: 'guides',
+          category: r.category || 'guides',
           description: r.content ? r.content.substring(0, 150) : '',
           addonVersion: '1.0.0',
           icon: '✨',
           tags: [r.slug || r.id],
-          lastUpdated: r.updated_at || new Date().toISOString(),
+          lastUpdated: r.updated_at || r.updatedAt || new Date().toISOString(),
           content: r.content,
-          createdAt: r.created_at,
-          updatedAt: r.updated_at,
+          createdAt: r.created_at || r.createdAt,
+          updatedAt: r.updated_at || r.updatedAt,
           templateId: 'standard',
         } as unknown as WikiPage));
         this.cachedPages = pages;
@@ -260,6 +260,7 @@ export class WikiApi {
         title: page.title,
         slug: pageSlug,
         content: pageContent,
+        category: page.category || 'guides',
       })
     });
 
