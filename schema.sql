@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS pages (
   slug TEXT NOT NULL UNIQUE,
   content TEXT NOT NULL,
   image_url TEXT,
+  view_count INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
@@ -31,3 +32,6 @@ CREATE TABLE IF NOT EXISTS favorites (
   UNIQUE (user_id, page_id)
 );
 CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
+
+ALTER TABLE pages ADD COLUMN view_count INTEGER NOT NULL DEFAULT 0;
+

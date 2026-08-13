@@ -406,16 +406,17 @@ export async function handleFavoritesRequest(
       return jsonRes({ error: 'page_id is required' }, 400);
     }
 
-    // Check page existence
+    // Check page existence (by id or slug)
     const pageExists = await env.mysql
-      .prepare('SELECT id FROM pages WHERE id = ?')
-      .bind(targetPageId)
+      .prepare('SELECT id FROM pages WHERE id = ? OR slug = ?')
+      .bind(targetPageId, targetPageId)
       .first<{ id: string }>();
 
     if (!pageExists) {
       return jsonRes({ error: 'Page not found' }, 404);
     }
 
+    const actualPageId = pageExists.id;
     const favId = 'fav_' + crypto.randomUUID();
     const now = new Date().toISOString();
 
@@ -424,7 +425,7 @@ export async function handleFavoritesRequest(
         .prepare(
           'INSERT INTO favorites (id, user_id, page_id, created_at) VALUES (?, ?, ?, ?)'
         )
-        .bind(favId, currentUser.id, targetPageId, now)
+        .bind(favId, currentUser.id, actualPageId, now)
         .run();
     } catch (err: any) {
       if (err.message && err.message.includes('UNIQUE constraint failed')) {
@@ -449,8 +450,8 @@ export async function handleFavoritesRequest(
     }
 
     await env.mysql
-      .prepare('DELETE FROM favorites WHERE user_id = ? AND page_id = ?')
-      .bind(currentUser.id, targetPageId)
+      .prepare('DELETE FROM favorites WHERE user_id = ? AND (page_id = ? OR page_id IN (SELECT id FROM pages WHERE slug = ?))')
+      .bind(currentUser.id, targetPageId, targetPageId)
       .run();
 
     return jsonRes({ success: true, message: 'Removed from favorites' });

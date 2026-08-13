@@ -11,6 +11,7 @@ import { LoginPage } from './components/LoginPage';
 import { PageCreatorModal } from './components/PageCreatorModal';
 import { AccountModal } from './components/AccountModal';
 import { AdminPanel } from './components/AdminPanel';
+import { FavoritesPage } from './components/FavoritesPage';
 import { LoadingScreen } from './components/LoadingScreen';
 import { WikiApi } from './lib/wikiApi';
 
@@ -123,6 +124,9 @@ export default function App() {
     if (rawHash === 'admin-panel') {
       return { pageId: 'admin-panel', category: 'all' as CategoryType | 'all' };
     }
+    if (rawHash === 'favorites' || rawHash === 'my-favorites') {
+      return { pageId: 'favorites', category: 'favorites' as CategoryType | 'all' };
+    }
 
     const parts = rawHash.split('/').filter(Boolean);
 
@@ -181,6 +185,12 @@ export default function App() {
     if (pageId === 'admin-panel') {
       window.history.pushState(null, '', '/admin-panel'); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId('admin-panel');
+      return;
+    }
+    if (pageId === 'favorites' || pageId === 'my-favorites') {
+      window.history.pushState(null, '', '/favorites'); window.dispatchEvent(new Event('popstate'));
+      setSelectedPageId('favorites');
+      setSelectedCategory('favorites');
       return;
     }
 
@@ -275,6 +285,7 @@ export default function App() {
         addonVersion="v1.4.0"
         onOpenSearch={handleOpenSearch}
         onOpenAdminPanel={() => navigateToPage('admin-panel')}
+        onOpenFavorites={() => navigateToPage('favorites')}
         onToggleMobileDrawer={() => setIsMobileDrawerOpen(true)}
         onToggleDesktopSidebar={toggleDesktopSidebar}
         isDesktopSidebarOpen={isDesktopSidebarOpen}
@@ -323,6 +334,14 @@ export default function App() {
               onPageCreated={handlePageCreated}
               onClosePanel={() => navigateToPage('home')}
               onSelectPage={(id) => navigateToPage(id)}
+            />
+          ) : selectedPageId === 'favorites' || selectedCategory === 'favorites' ? (
+            <FavoritesPage
+              pages={pages}
+              onSelectPage={(id) => navigateToPage(id)}
+              onGoHome={() => navigateToPage('home')}
+              onOpenLogin={() => navigateToPage('login')}
+              userEmail={userEmail}
             />
           ) : selectedPageId === 'home' || !activePage ? (
             selectedCategory !== 'all' ? (

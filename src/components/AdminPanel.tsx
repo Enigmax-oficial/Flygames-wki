@@ -104,6 +104,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Navigation Tab State
   const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'analytics' | 'api-playground' | 'assets' | 'database'>('create-page');
+  const [pageSortBy, setPageSortBy] = useState<'default' | 'views'>('default');
 
   // Data Analytics State
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -1435,7 +1436,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <span>Registry Stats</span>
               </h3>
 
-              <div className="grid grid-cols-2 gap-3 text-center">
+              <div className="grid grid-cols-3 gap-3 text-center">
                 <div className="bg-[#0b0f19] border border-[#1e293b] p-3 rounded-xl">
                   <span className="block text-xl font-black text-amber-400">{pages.length}</span>
                   <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mt-0.5 block">Total Pages</span>
@@ -1445,6 +1446,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     {pages.filter(p => p.tags.includes('Custom')).length}
                   </span>
                   <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mt-0.5 block">Custom Pages</span>
+                </div>
+                <div className="bg-[#0b0f19] border border-[#1e293b] p-3 rounded-xl">
+                  <span className="block text-xl font-black text-sky-400">
+                    {pages.reduce((acc, p) => acc + (p.views ?? p.view_count ?? 0), 0)}
+                  </span>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold mt-0.5 block">Total Views</span>
                 </div>
               </div>
             </div>
@@ -1456,9 +1463,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <Layers className="w-4 h-4 text-sky-400" />
                   <span>All Wiki Pages & Add-ons</span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-400 bg-[#0b0f19] px-2 py-0.5 rounded border border-[#1e293b]">
-                  {pages.length} Active
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPageSortBy(pageSortBy === 'default' ? 'views' : 'default')}
+                    className={`text-[10px] px-2 py-0.5 rounded border font-mono transition cursor-pointer flex items-center gap-1 ${
+                      pageSortBy === 'views'
+                        ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+                        : 'bg-[#0b0f19] text-slate-400 border-[#1e293b] hover:text-white'
+                    }`}
+                  >
+                    <Eye className="w-3 h-3" />
+                    <span>{pageSortBy === 'views' ? 'Most Viewed' : 'Sort: Default'}</span>
+                  </button>
+                  <span className="text-[10px] font-mono text-slate-400 bg-[#0b0f19] px-2 py-0.5 rounded border border-[#1e293b]">
+                    {pages.length} Active
+                  </span>
+                </div>
               </h3>
 
               <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
@@ -1467,7 +1487,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     No active wiki pages found.
                   </div>
                 ) : (
-                  pages.map((cp) => (
+                  [...pages]
+                    .sort((a, b) => {
+                      if (pageSortBy === 'views') {
+                        return (b.views ?? b.view_count ?? 0) - (a.views ?? a.view_count ?? 0);
+                      }
+                      return 0;
+                    })
+                    .map((cp) => (
                     <div
                       key={cp.id}
                       className="p-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl flex items-center justify-between gap-3 group relative hover:border-slate-700 transition-colors"
@@ -1481,9 +1508,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                           <h4 className="text-xs font-bold text-slate-200 group-hover:text-sky-300 transition-colors truncate">
                             {cp.title}
                           </h4>
-                          <span className="text-[9px] text-[#64748b] font-mono block mt-0.5 truncate">
-                            {cp.namespace || `aetheria:${cp.category}/${cp.id}`}
-                          </span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-[9px] text-[#64748b] font-mono truncate">
+                              {cp.namespace || `aetheria:${cp.category}/${cp.id}`}
+                            </span>
+                            <span className="text-[9px] text-sky-400 font-mono flex items-center gap-0.5 shrink-0" title="Page view count">
+                              <Eye className="w-2.5 h-2.5" />
+                              {cp.views ?? cp.view_count ?? 0} views
+                            </span>
+                          </div>
                         </div>
                       </div>
                       

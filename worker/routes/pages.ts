@@ -68,7 +68,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const slugOrId = pathParts[1];
       const cleanedSlug = generateSlug(slugOrId);
       await env.mysql.prepare(
-        'UPDATE pages SET views = COALESCE(views, 0) + 1 WHERE slug = ? OR slug = ? OR id = ?'
+        'UPDATE pages SET views = COALESCE(views, 0) + 1, view_count = COALESCE(view_count, 0) + 1 WHERE slug = ? OR slug = ? OR id = ?'
       ).bind(slugOrId, cleanedSlug, slugOrId).run();
       return jsonResponse({ success: true }, 200, corsHeaders);
     }
@@ -81,7 +81,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const offset = Math.max(parseInt(offsetParam || '0', 10) || 0, 0);
 
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, created_at, updated_at FROM pages ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, COALESCE(view_count, 0) as view_count, created_at, updated_at FROM pages ORDER BY updated_at DESC LIMIT ? OFFSET ?'
       ).bind(limit, offset);
 
       const { results, success, error } = await stmt.all<PageRecord>();
@@ -97,7 +97,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const slugOrId = pathParts[1];
       const cleanedSlug = generateSlug(slugOrId);
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
+        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, COALESCE(view_count, 0) as view_count, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
       ).bind(slugOrId, cleanedSlug, slugOrId);
 
       const page = await stmt.first<PageRecord>();
