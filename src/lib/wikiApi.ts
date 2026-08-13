@@ -269,7 +269,6 @@ export class WikiApi {
       category: page.category || 'guides',
       image_url: imageUrl,
     };
-    console.log('[DIAGNOSTIC] createPage request body:', JSON.stringify(requestBody));
 
     const res = await fetch("/api/pages", {
       method: "POST",

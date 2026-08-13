@@ -357,7 +357,6 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                     required
                     value={title}
                     onChange={(e) => {
-                      console.log('[DIAGNOSTIC] title onChange value:', e.target.value);
                       setTitle(e.target.value);
                       const slug = e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_');
                       if (slug) setNamespace(`aetheria:${slug}`);

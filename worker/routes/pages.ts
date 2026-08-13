@@ -92,7 +92,6 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       let body: PageInput;
       try {
         body = await request.json() as PageInput;
-        console.log('[DIAGNOSTIC] server received title from request.json():', body.title);
       } catch {
         return jsonResponse({ error: 'Invalid JSON body', field: 'body' }, 400, corsHeaders);
       }
@@ -138,7 +137,6 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const now = new Date().toISOString();
 
       console.log(`[DIAGNOSTIC] INSERTing into pages: ID="${id}", TITLE="${title}", SLUG="${finalSlug}", CATEGORY="${category}", IMAGE="${imageUrl}"`);
-      console.log('[DIAGNOSTIC] server about to bind title:', title);
 
       const insertStmt = env.mysql.prepare(
         'INSERT INTO pages (id, title, slug, content, category, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
