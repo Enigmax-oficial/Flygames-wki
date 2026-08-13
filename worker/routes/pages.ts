@@ -110,6 +110,9 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const id = 'page_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
       const now = new Date().toISOString();
 
+      // Diagnostic log immediately before INSERT executes
+      console.log(`[DIAGNOSTIC] INSERTing into pages: ID="${id}", TITLE="${title}", SLUG="${slug}", CONTENT="${content}"`);
+
       const insertStmt = env.mysql.prepare(
         'INSERT INTO pages (id, title, slug, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
       ).bind(id, title, slug, content, now, now);
