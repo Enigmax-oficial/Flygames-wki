@@ -11,3 +11,23 @@ CREATE TABLE IF NOT EXISTS pages (
 CREATE INDEX IF NOT EXISTS idx_pages_slug ON pages(slug);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_pages_title_unique ON pages(title);
 CREATE INDEX IF NOT EXISTS idx_pages_updated ON pages(updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS users (
+  id TEXT PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+CREATE TABLE IF NOT EXISTS favorites (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  page_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE,
+  UNIQUE (user_id, page_id)
+);
+CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);

@@ -1,5 +1,6 @@
 import { Env } from './types';
 import { handlePagesRequest, jsonResponse, ensureSchema } from './routes/pages';
+import { handleAuthRequest, handleFavoritesRequest } from './auth';
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -23,6 +24,25 @@ export default {
     }
 
     try {
+      // Auth endpoints (/auth/signup, /auth/login, /api/auth/signup, /api/auth/login)
+      if (
+        pathname === '/auth/signup' ||
+        pathname === '/api/auth/signup' ||
+        pathname === '/auth/login' ||
+        pathname === '/api/auth/login'
+      ) {
+        return await handleAuthRequest(request, url, env, corsHeaders);
+      }
+
+      // Favorites endpoints (/favorites, /api/favorites, /favorites/*, /api/favorites/*)
+      if (
+        pathname === '/favorites' ||
+        pathname.startsWith('/favorites/') ||
+        pathname === '/api/favorites' ||
+        pathname.startsWith('/api/favorites/')
+      ) {
+        return await handleFavoritesRequest(request, url, env, corsHeaders);
+      }
       // Health check endpoint
       if (pathname === '/health' || pathname === '/api/health') {
         let dbStatus = 'degraded';

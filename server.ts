@@ -207,8 +207,16 @@ async function proxyToWorker(req: any, res: any) {
   }
 }
 
-// Proxy D1 database operations and pages endpoints directly to the real Cloudflare D1 local Worker
+// Proxy D1 database operations, auth, and favorites endpoints directly to the real Cloudflare D1 local Worker
 app.all([
+  '/auth/signup',
+  '/auth/login',
+  '/api/auth/signup',
+  '/api/auth/login',
+  '/favorites',
+  '/favorites/*',
+  '/api/favorites',
+  '/api/favorites/*',
   '/api/pages',
   '/api/pages/*',
   '/api/sql/pages',
