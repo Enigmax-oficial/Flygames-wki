@@ -146,16 +146,18 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       try {
         result = await insertStmt.run();
       } catch (err: any) {
-        if (err.message && (err.message.includes('UNIQUE constraint failed: pages.title') || err.message.includes('UNIQUE constraint failed'))) {
+        const errMsg = String(err?.message || '');
+        if (errMsg.includes('UNIQUE constraint failed: pages.title') || errMsg.includes('UNIQUE constraint failed')) {
           return jsonResponse({ error: `A page with this title already exists: '${title}'`, field: 'title' }, 409, corsHeaders);
         }
         throw err;
       }
       if (!result.success) {
-        if (result.error && (result.error.includes('UNIQUE constraint failed: pages.title') || result.error.includes('UNIQUE constraint failed'))) {
+        const resErr = String(result.error || '');
+        if (resErr.includes('UNIQUE constraint failed: pages.title') || resErr.includes('UNIQUE constraint failed')) {
           return jsonResponse({ error: `A page with this title already exists: '${title}'`, field: 'title' }, 409, corsHeaders);
         }
-        throw new Error(result.error || 'Failed to insert page into D1');
+        throw new Error(String(result.error) || 'Failed to insert page into D1');
       }
 
       const newPage: PageRecord = {

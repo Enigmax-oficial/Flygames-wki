@@ -66,12 +66,27 @@ export default function App() {
   const [isCreatePageOpen, setIsCreatePageOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-  const handlePageCreated = async (newPage: WikiPage) => {
-    const savedPage = await WikiApi.createPage(newPage, userEmail || undefined);
+  const handlePageCreated = (newPage: WikiPage) => {
+    const pageId = newPage.id || newPage.title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-');
+    const pageWithId = { ...newPage, id: pageId };
+
+    // Immediately update local state and navigate/redirect
     setPages((prev) => {
-      const updated = [savedPage, ...prev.filter(p => p.id !== savedPage.id)];
-      navigateToPage(savedPage.id, updated);
+      const updated = [pageWithId, ...prev.filter(p => p.id !== pageId)];
+      navigateToPage(pageId, updated);
       return updated;
+    });
+
+    // Save to database in the background asynchronously
+    WikiApi.createPage(newPage, userEmail || undefined).then((savedPage) => {
+      if (savedPage && savedPage.id && savedPage.id !== pageId) {
+        setPages((prev) => {
+          const updated = [savedPage, ...prev.filter(p => p.id !== savedPage.id && p.id !== pageId)];
+          return updated;
+        });
+      }
+    }).catch((err) => {
+      console.warn("Background D1 page creation sync failed:", err);
     });
   };
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(() => {
