@@ -103,12 +103,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
-  // Quick fill default adm credentials
-  const fillDefaultCredentials = () => {
-    setUsernameInput('adm');
-    setPasswordInput('admin');
-    setAuthError('');
-  };
 
   // Navigation Tab State (defaults to admin account creation and management)
   const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'analytics' | 'api-playground' | 'assets' | 'database' | 'admin-users'>('admin-users');
@@ -583,31 +577,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </p>
         </div>
 
-        {/* Initial Credentials Callout */}
-        <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-left space-y-2">
-          <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
-            <Key className="w-4 h-4 shrink-0" />
-            <span>Credenciais Iniciais do Sistema:</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-            <div className="bg-[#0b0f19] px-2.5 py-1.5 rounded-lg border border-slate-800">
-              <span className="text-slate-500 text-[10px] block font-sans">Usuário Inicial:</span>
-              <strong className="text-amber-300 font-bold">adm</strong>
-            </div>
-            <div className="bg-[#0b0f19] px-2.5 py-1.5 rounded-lg border border-slate-800">
-              <span className="text-slate-500 text-[10px] block font-sans">Senha Inicial:</span>
-              <strong className="text-amber-300 font-bold">admin</strong>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={fillDefaultCredentials}
-            className="w-full mt-1 py-1.5 px-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Preencher Automaticamente (adm / admin)</span>
-          </button>
-        </div>
 
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
           <div className="space-y-3 text-left">

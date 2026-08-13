@@ -574,7 +574,9 @@ export async function handleAuthRequest(
       body = await request.json();
     } catch {}
 
-    const identifier = (body.email || body.username || '').trim().toLowerCase();
+    const usernameParam = (body.username || '').trim().toLowerCase();
+    const emailParam = (body.email || '').trim().toLowerCase();
+    const identifier = usernameParam || emailParam;
     const password = (body.password || '').trim();
 
     if (!identifier || !password) {
