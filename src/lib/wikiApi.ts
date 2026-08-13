@@ -262,19 +262,22 @@ export class WikiApi {
 
     const imageUrl = page.imageUrl || page.renderImageUrl || (page as any).image_url || '';
 
+    const requestBody = {
+      title: page.title,
+      slug: pageSlug,
+      content: pageContent,
+      category: page.category || 'guides',
+      image_url: imageUrl,
+    };
+    console.log('[DIAGNOSTIC] createPage request body:', JSON.stringify(requestBody));
+
     const res = await fetch("/api/pages", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
         "X-User-Email": emailToSave
       },
-      body: JSON.stringify({
-        title: page.title,
-        slug: pageSlug,
-        content: pageContent,
-        category: page.category || 'guides',
-        image_url: imageUrl,
-      })
+      body: JSON.stringify(requestBody)
     });
 
     const text = await res.text();

@@ -108,6 +108,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSaving) return;
+    setIsSaving(true);
 
     if (inputMode === 'json') {
       try {
@@ -124,7 +125,6 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
           author: parsed.author || 'JSON Contributor',
           ...parsed
         };
-        setIsSaving(true);
         try {
           await onPageCreated(newPage);
           onClose();
@@ -133,11 +133,15 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
         }
       } catch (err: any) {
         setJsonError(err.message || 'Invalid JSON format');
+        setIsSaving(false);
       }
       return;
     }
 
-    if (!title.trim()) return;
+    if (!title.trim()) {
+      setIsSaving(false);
+      return;
+    }
 
     let builder: PageCreator;
     switch (category) {
@@ -353,6 +357,7 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
                     required
                     value={title}
                     onChange={(e) => {
+                      console.log('[DIAGNOSTIC] title onChange value:', e.target.value);
                       setTitle(e.target.value);
                       const slug = e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '_');
                       if (slug) setNamespace(`aetheria:${slug}`);
