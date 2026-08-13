@@ -11,10 +11,24 @@ if (!(console as any).warning) {
 }
 
 // Spawn wrangler dev in the background to connect to the real Cloudflare D1 remote database on port 3001
+const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+
+if (!API_TOKEN) {
+  console.warn('\n⚠️  CLOUDFLARE_API_TOKEN is NOT defined in your environment variables.');
+  console.warn('👉 Please configure CLOUDFLARE_API_TOKEN in the Settings/Secrets panel of the AI Studio UI to establish a real connection to your Cloudflare D1 database.\n');
+} else {
+  console.log('✅ CLOUDFLARE_API_TOKEN detected. Starting Cloudflare D1 server connection...');
+}
+
 console.log('Starting Cloudflare D1 server connection (wrangler dev on port 3001 with remote D1)...');
 const wranglerProcess = spawn('npx', ['wrangler', 'dev', '--port', '3001', '--remote'], {
   stdio: 'inherit',
   shell: true,
+  env: {
+    ...process.env,
+    CLOUDFLARE_API_TOKEN: API_TOKEN,
+    CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID,
+  },
 });
 
 wranglerProcess.on('error', (err) => {
@@ -42,6 +56,13 @@ app.use(express.json({ limit: '10mb' }));
 
 // Helper to proxy requests to Cloudflare D1 Worker running on port 3001
 async function proxyToWorker(req: any, res: any) {
+  if (!process.env.CLOUDFLARE_API_TOKEN) {
+    return res.status(401).json({
+      error: 'Cloudflare Authentication Required',
+      message: 'To query the real Cloudflare D1 database, you must configure your CLOUDFLARE_API_TOKEN. Please open the Settings menu (or Secrets) in the AI Studio UI, add a secret named "CLOUDFLARE_API_TOKEN" with your Cloudflare API token, and restart/refresh the app.'
+    });
+  }
+
   const targetUrl = `http://127.0.0.1:3001${req.originalUrl}`;
   console.log(`[PROXY] Proxying request ${req.method} ${req.originalUrl} to ${targetUrl}`);
   fs.appendFileSync('proxy.log', `[PROXY] ${req.method} ${req.originalUrl}\n`);
@@ -286,6 +307,10 @@ app.post('/api/auth/login', async (req, res) => {
 // All database operations and page endpoints are proxied directly to the real Cloudflare D1 local worker (proxyToWorker) above.
 
 async function waitForD1Worker(maxAttempts = 30): Promise<boolean> {
+  if (!process.env.CLOUDFLARE_API_TOKEN) {
+    console.warn('⚠️ Cloudflare D1 local worker connection bypassed because CLOUDFLARE_API_TOKEN is not configured.');
+    return false;
+  }
   console.log('Waiting for Cloudflare D1 local worker on port 3001 to start...');
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
