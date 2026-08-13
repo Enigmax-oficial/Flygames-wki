@@ -50,6 +50,11 @@ export async function ensureSchema(env: Env): Promise<void> {
     } catch (e) {
       // Ignore if column already exists
     }
+    try {
+      await env.mysql.exec('ALTER TABLE pages ADD COLUMN view_count INTEGER DEFAULT 0;');
+    } catch (e) {
+      // Ignore if column already exists
+    }
     schemaInitialized = true;
   } catch (err) {
     console.error('Failed to ensure D1 pages table schema:', err);

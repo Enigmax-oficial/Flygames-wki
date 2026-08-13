@@ -3,124 +3,187 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import crypto from 'crypto';
 import fs from 'fs';
-import { spawn } from 'child_process';
+import worker from './worker/index';
 
 // Polyfill/alias console.warning to console.warn to ensure compatibility
 if (!(console as any).warning) {
   (console as any).warning = console.warn;
 }
 
-// Spawn wrangler dev in the background to connect to the real Cloudflare D1 remote database on port 3001
-const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
-// Auto-correct CLOUDFLARE_ACCOUNT_ID if it matches the D1 database_id or is empty
-const CORRECT_ACCOUNT_ID = '83e4738d-6bb8-4ca3-7d90-e4c68b0ddfab';
-const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID === 'd7f3eefe-63ff-4b62-8baf-6dc44381abab' || !process.env.CLOUDFLARE_ACCOUNT_ID
-  ? CORRECT_ACCOUNT_ID
-  : process.env.CLOUDFLARE_ACCOUNT_ID;
-
-if (!API_TOKEN) {
-  console.warn('\n⚠️  CLOUDFLARE_API_TOKEN is NOT defined in your environment variables.');
-  console.warn('👉 Please configure CLOUDFLARE_API_TOKEN in the Settings/Secrets panel of the AI Studio UI to establish a real connection to your Cloudflare D1 database.\n');
-} else {
-  console.log('✅ CLOUDFLARE_API_TOKEN detected. Starting Cloudflare D1 server connection...');
-}
-
-console.log(`Starting Cloudflare D1 server connection (wrangler dev on port 3001 with remote D1 using account ${ACCOUNT_ID})...`);
-const wranglerProcess = spawn('npx', ['wrangler', 'dev', '--port', '3001', '--remote'], {
-  stdio: 'inherit',
-  shell: true,
-  env: {
-    ...process.env,
-    CLOUDFLARE_API_TOKEN: API_TOKEN,
-    CLOUDFLARE_ACCOUNT_ID: ACCOUNT_ID,
-  },
-});
-
-wranglerProcess.on('error', (err) => {
-  console.error('Failed to start wrangler process:', err);
-});
-
-process.on('exit', () => {
-  wranglerProcess.kill();
-});
-process.on('SIGINT', () => {
-  wranglerProcess.kill();
-  process.exit();
-});
-process.on('SIGTERM', () => {
-  wranglerProcess.kill();
-  process.exit();
-});
-
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
+interface D1Result<T = any> {
+  results: T[];
+  success: boolean;
+  error?: string;
+  meta?: any;
+}
 
-
-// Helper to proxy requests to Cloudflare D1 Worker running on port 3001
-async function proxyToWorker(req: any, res: any) {
-  if (!process.env.CLOUDFLARE_API_TOKEN) {
-    return res.status(401).json({
-      error: 'Cloudflare Authentication Required',
-      message: 'To query the real Cloudflare D1 database, you must configure your CLOUDFLARE_API_TOKEN. Please open the Settings menu (or Secrets) in the AI Studio UI, add a secret named "CLOUDFLARE_API_TOKEN" with your Cloudflare API token, and restart/refresh the app.'
-    });
-  }
-
-  const targetUrl = `http://localhost:3001${req.originalUrl}`;
-  console.log(`[PROXY] Proxying request ${req.method} ${req.originalUrl} to ${targetUrl}`);
-  fs.appendFileSync('proxy.log', `[PROXY] ${req.method} ${req.originalUrl}\n`);
+// Directly execute SQL statement via Cloudflare D1 REST API
+async function executeD1Query(sql: string, params: any[] = []): Promise<D1Result> {
   try {
-    const headers: Record<string, string> = {};
-    for (const [key, val] of Object.entries(req.headers)) {
-      const lowerKey = key.toLowerCase();
-      if (['host', 'content-length', 'transfer-encoding', 'connection'].includes(lowerKey)) {
-        continue;
-      }
-      if (typeof val === 'string') {
-        headers[key] = val;
-      } else if (Array.isArray(val)) {
-        headers[key] = val.join(', ');
-      }
-    }
-    
-    headers['host'] = 'localhost:3001';
+    const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+    const CORRECT_ACCOUNT_ID = '83e4738d-6bb8-4ca3-7d90-e4c68b0ddfab';
+    const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID === 'd7f3eefe-63ff-4b62-8baf-6dc44381abab' || !process.env.CLOUDFLARE_ACCOUNT_ID
+      ? CORRECT_ACCOUNT_ID
+      : process.env.CLOUDFLARE_ACCOUNT_ID;
+    const DATABASE_ID = 'd7f3eefe-63ff-4b62-8baf-6dc44381abab';
 
-    const options: RequestInit = {
-      method: req.method,
-      headers,
+    if (!API_TOKEN || API_TOKEN === 'my-sql') {
+      return {
+        results: [],
+        success: false,
+        error: 'To query the real Cloudflare D1 database, you must configure your CLOUDFLARE_API_TOKEN. Please add a secret named "CLOUDFLARE_API_TOKEN" with your Cloudflare API token and restart/refresh the app.'
+      };
+    }
+
+    const url = `https://api.cloudflare.com/client/v4/accounts/${ACCOUNT_ID}/d1/database/${DATABASE_ID}/query`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_TOKEN}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sql,
+        params
+      })
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      return {
+        results: [],
+        success: false,
+        error: `Cloudflare API error (${response.status}): ${text}`
+      };
+    }
+
+    const data = await response.json() as any;
+    if (!data.success) {
+      const errMsg = data.errors?.map((e: any) => e.message).join(', ') || 'Unknown API error';
+      return {
+        results: [],
+        success: false,
+        error: `Cloudflare D1 Query Failed: ${errMsg}`
+      };
+    }
+
+    // Cloudflare D1 REST API returns an array of result objects in the 'result' property
+    const queryResult = data.result?.[0] || { results: [], success: false };
+    return {
+      results: queryResult.results || [],
+      success: queryResult.success !== false,
+      meta: queryResult.meta || {}
     };
-
-    if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body && Object.keys(req.body).length > 0) {
-      options.body = JSON.stringify(req.body);
-      headers['content-type'] = 'application/json';
-    }
-
-    const response = await fetch(targetUrl, options);
-
-    res.status(response.status);
-    
-    // Strip hop-by-hop and encoding/length headers when piping decompressed text
-    const headersToSkip = new Set(['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive']);
-    response.headers.forEach((value, name) => {
-      if (!headersToSkip.has(name.toLowerCase())) {
-        res.setHeader(name, value);
-      }
-    });
-
-    const bodyText = await response.text();
-    res.send(bodyText);
   } catch (err: any) {
-    console.error('Database connection error:', err);
-    res.status(503).json({
-      error: 'Database Service Unavailable',
-      message: 'Unable to establish a connection with the database server.'
-    });
+    console.error('D1 Query execution error:', err);
+    return {
+      results: [],
+      success: false,
+      error: err.message || 'Unknown query execution error'
+    };
   }
 }
 
-// Proxy D1 database operations, auth, and favorites endpoints directly to the real Cloudflare D1 local Worker
+// In-memory Mock representing Cloudflare D1 Database binding
+const mysqlClient = {
+  async exec(sql: string): Promise<void> {
+    const result = await executeD1Query(sql);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to execute query');
+    }
+  },
+  prepare(sql: string) {
+    let params: any[] = [];
+    return {
+      bind(...args: any[]) {
+        params = args;
+        return this;
+      },
+      async run(): Promise<D1Result> {
+        return await executeD1Query(sql, params);
+      },
+      async all(): Promise<D1Result> {
+        return await executeD1Query(sql, params);
+      },
+      async first<T = any>(key?: string): Promise<T | null> {
+        const res = await executeD1Query(sql, params);
+        if (res.results && res.results.length > 0) {
+          if (key) {
+            return (res.results[0] as any)[key] as T;
+          }
+          return res.results[0] as T;
+        }
+        return null;
+      }
+    };
+  }
+};
+
+// Direct Worker Request Handler - routes Express requests directly to Cloudflare Worker entrypoint in-process
+async function handleWorkerRequestDirectly(req: any, res: any) {
+  try {
+    const headers = new Headers();
+    for (const [key, val] of Object.entries(req.headers)) {
+      if (Array.isArray(val)) {
+        val.forEach(v => headers.append(key, v));
+      } else if (typeof val === 'string') {
+        headers.set(key, val);
+      }
+    }
+
+    const protocol = req.secure ? 'https' : 'http';
+    const host = req.get('host') || 'localhost';
+    const fullUrl = `${protocol}://${host}${req.originalUrl}`;
+
+    let body: any = undefined;
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      if (req.body && Object.keys(req.body).length > 0) {
+        body = JSON.stringify(req.body);
+      }
+    }
+
+    const webRequest = new Request(fullUrl, {
+      method: req.method,
+      headers: headers,
+      body: body,
+    });
+
+    const env = {
+      mysql: mysqlClient,
+      ASSETS: null,
+    };
+
+    const webResponse = await worker.fetch(webRequest, env as any, {
+      waitUntil: (promise: Promise<any>) => {
+        promise.catch(err => console.error('Error in waitUntil:', err));
+      },
+      passThroughOnException: () => {},
+    } as any);
+
+    res.status(webResponse.status);
+    
+    const headersToSkip = new Set(['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'keep-alive']);
+    webResponse.headers.forEach((val, key) => {
+      if (!headersToSkip.has(key.toLowerCase())) {
+        res.setHeader(key, val);
+      }
+    });
+
+    const responseText = await webResponse.text();
+    res.send(responseText);
+  } catch (err: any) {
+    console.error('Worker request execution error:', err);
+    res.status(500).json({ success: false, error: err.message || 'Worker Execution Error' });
+  }
+}
+
+// Run database operations, auth, and favorites endpoints directly inside the worker in-process
 app.all([
   '/auth/signup',
   '/auth/login',
@@ -148,7 +211,7 @@ app.all([
   '/api/categories/*',
   '/api/sql/categories',
   '/api/sql/categories/*'
-], proxyToWorker);
+], handleWorkerRequestDirectly);
 
 // Helper to scan a directory recursively for functional images
 function scanDirRecursive(dirPath: string, rootDir: string): string[] {
@@ -309,29 +372,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// All database operations and page endpoints are proxied directly to the real Cloudflare D1 local worker (proxyToWorker) above.
-
-async function waitForD1Worker(maxAttempts = 30): Promise<boolean> {
-  if (!process.env.CLOUDFLARE_API_TOKEN) {
-    console.warn('⚠️ Cloudflare D1 local worker connection bypassed because CLOUDFLARE_API_TOKEN is not configured.');
-    return false;
-  }
-  console.log('Waiting for Cloudflare D1 local worker on port 3001 to start...');
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const res = await fetch('http://localhost:3001/api/health');
-      if (res.ok) {
-        console.log('✅ Cloudflare D1 local worker is ONLINE and healthy.');
-        return true;
-      }
-    } catch {
-      // Ignore and retry
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500));
-  }
-  console.warn('⚠️ Cloudflare D1 local worker did not become ready in time.');
-  return true; // Return true anyway to prevent failing hard if it takes longer
-}
+// All database operations and page endpoints are executed directly inside the real Cloudflare D1 database via REST query interface in-process.
 
 async function startServer() {
   const publicPath = path.join(process.cwd(), 'public');
@@ -357,9 +398,6 @@ async function startServer() {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
-
-  // Wait for Cloudflare D1 worker to boot before serving requests
-  await waitForD1Worker();
 
   const effectivePort = process.env.PORT || PORT;
 
