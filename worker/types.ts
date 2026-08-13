@@ -11,6 +11,7 @@ export interface PageRecord {
   slug: string;
   content: string;
   category?: string;
+  image_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -20,4 +21,6 @@ export interface PageInput {
   slug?: string;
   content?: string;
   category?: string;
+  image_url?: string;
+  imageUrl?: string;
 }

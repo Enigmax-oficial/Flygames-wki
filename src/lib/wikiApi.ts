@@ -214,7 +214,7 @@ export class WikiApi {
     try {
       const res = await fetch('/api/pages');
       if (res.ok) {
-        const data = await res.json() as { results?: Array<{ id: string; title: string; slug: string; content: string; category?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }> };
+        const data = await res.json() as { results?: Array<{ id: string; title: string; slug: string; content: string; category?: string; image_url?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string }> };
         const rows = data.results || (Array.isArray(data) ? data : []);
         const pages: WikiPage[] = rows.map(r => ({
           id: r.slug || r.id,
@@ -227,6 +227,9 @@ export class WikiApi {
           tags: [r.slug || r.id],
           lastUpdated: r.updated_at || r.updatedAt || new Date().toISOString(),
           content: r.content,
+          imageUrl: r.image_url || undefined,
+          renderImageUrl: r.image_url || undefined,
+          image_url: r.image_url || undefined,
           createdAt: r.created_at || r.createdAt,
           updatedAt: r.updated_at || r.updatedAt,
           templateId: 'standard',
@@ -248,7 +251,16 @@ export class WikiApi {
     page.creatorEmail = emailToSave;
 
     const pageSlug = page.id || page.title.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-');
-    const pageContent = (page as any).content || page.description || '';
+    
+    const sectionsText = page.sections ? page.sections.map((s: any) => `## ${s.title}\n\n${s.content}`).join('\n\n') : '';
+    const bulletsText = page.behaviorBullets ? page.behaviorBullets.map((b: string) => `- ${b}`).join('\n') : '';
+    const pageContent = [
+      page.description || '',
+      bulletsText ? `### Key Mechanics\n${bulletsText}` : '',
+      sectionsText
+    ].filter(Boolean).join('\n\n') || (page as any).content || page.title;
+
+    const imageUrl = page.imageUrl || page.renderImageUrl || (page as any).image_url || '';
 
     const res = await fetch("/api/pages", {
       method: "POST",
@@ -261,6 +273,7 @@ export class WikiApi {
         slug: pageSlug,
         content: pageContent,
         category: page.category || 'guides',
+        image_url: imageUrl,
       })
     });
 

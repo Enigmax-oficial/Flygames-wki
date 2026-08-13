@@ -27,10 +27,15 @@ export async function ensureSchema(env: Env): Promise<void> {
   if (schemaInitialized) return;
   try {
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
+      'CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT NOT NULL, image_url TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
     );
     try {
       await env.mysql.exec('ALTER TABLE pages ADD COLUMN category TEXT;');
+    } catch (e) {
+      // Ignore if column already exists
+    }
+    try {
+      await env.mysql.exec('ALTER TABLE pages ADD COLUMN image_url TEXT;');
     } catch (e) {
       // Ignore if column already exists
     }
@@ -55,7 +60,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const offset = Math.max(parseInt(offsetParam || '0', 10) || 0, 0);
 
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, category, created_at, updated_at FROM pages ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+        'SELECT id, title, slug, content, category, image_url, created_at, updated_at FROM pages ORDER BY updated_at DESC LIMIT ? OFFSET ?'
       ).bind(limit, offset);
 
       const { results, success, error } = await stmt.all<PageRecord>();
@@ -71,7 +76,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const slugOrId = pathParts[1];
       const cleanedSlug = generateSlug(slugOrId);
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, category, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
+        'SELECT id, title, slug, content, category, image_url, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
       ).bind(slugOrId, cleanedSlug, slugOrId);
 
       const page = await stmt.first<PageRecord>();
@@ -94,6 +99,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const title = (body.title || '').trim();
       const content = (body.content || '').trim();
       const category = (body.category || 'guides').trim();
+      const imageUrl = (body.image_url || body.imageUrl || '').trim();
 
       if (!title) {
         return jsonResponse({ error: 'Title is required', field: 'title' }, 400, corsHeaders);
@@ -102,26 +108,33 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         return jsonResponse({ error: 'Content is required', field: 'content' }, 400, corsHeaders);
       }
 
-      const slug = (body.slug || '').trim() ? generateSlug(body.slug!) : generateSlug(title);
+      let slug = (body.slug || '').trim() ? generateSlug(body.slug!) : generateSlug(title);
       if (!slug) {
-        return jsonResponse({ error: 'Generated slug is invalid', field: 'slug' }, 400, corsHeaders);
+        slug = 'page-' + Math.random().toString(36).substring(2, 8);
       }
 
-      // Check if slug exists
-      const existing = await env.mysql.prepare('SELECT id FROM pages WHERE slug = ?').bind(slug).first();
-      if (existing) {
-        return jsonResponse({ error: `Slug already exists: '${slug}'`, field: 'slug' }, 409, corsHeaders);
+      // Check if slug exists, auto-suffix if conflict to prevent "Slug already exists" errors
+      let finalSlug = slug;
+      let counter = 1;
+      while (true) {
+        const existing = await env.mysql.prepare('SELECT id FROM pages WHERE slug = ?').bind(finalSlug).first();
+        if (!existing) break;
+        finalSlug = `${slug}-${Math.random().toString(36).substring(2, 6)}`;
+        counter++;
+        if (counter > 10) {
+          finalSlug = `${slug}-${Date.now()}`;
+          break;
+        }
       }
 
       const id = 'page_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
       const now = new Date().toISOString();
 
-      // Diagnostic log immediately before INSERT executes
-      console.log(`[DIAGNOSTIC] INSERTing into pages: ID="${id}", TITLE="${title}", SLUG="${slug}", CATEGORY="${category}", CONTENT="${content}"`);
+      console.log(`[DIAGNOSTIC] INSERTing into pages: ID="${id}", TITLE="${title}", SLUG="${finalSlug}", CATEGORY="${category}", IMAGE="${imageUrl}"`);
 
       const insertStmt = env.mysql.prepare(
-        'INSERT INTO pages (id, title, slug, content, category, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      ).bind(id, title, slug, content, category, now, now);
+        'INSERT INTO pages (id, title, slug, content, category, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      ).bind(id, title, finalSlug, content, category, imageUrl || null, now, now);
 
       const { success, error } = await insertStmt.run();
       if (!success) {
@@ -131,9 +144,10 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const newPage: PageRecord = {
         id,
         title,
-        slug,
+        slug: finalSlug,
         content,
         category,
+        image_url: imageUrl || undefined,
         created_at: now,
         updated_at: now,
       };
@@ -152,7 +166,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         return jsonResponse({ error: 'Invalid JSON body', field: 'body' }, 400, corsHeaders);
       }
 
-      const existing = await env.mysql.prepare('SELECT id, title, slug, content, category, created_at FROM pages WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
+      const existing = await env.mysql.prepare('SELECT id, title, slug, content, category, image_url, created_at FROM pages WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
       if (!existing) {
         return jsonResponse({ error: `Page not found: '${slugOrId}'` }, 404, corsHeaders);
       }
@@ -160,6 +174,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const title = body.title !== undefined ? body.title.trim() : existing.title;
       const content = body.content !== undefined ? body.content.trim() : existing.content;
       const category = body.category !== undefined ? body.category.trim() : (existing.category || 'guides');
+      const imageUrl = body.image_url !== undefined ? body.image_url.trim() : (body.imageUrl !== undefined ? body.imageUrl.trim() : (existing.image_url || ''));
       const newSlug = body.slug !== undefined && body.slug.trim() ? generateSlug(body.slug) : existing.slug;
 
       if (body.title !== undefined && !title) {
@@ -169,17 +184,18 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         return jsonResponse({ error: 'Content cannot be empty', field: 'content' }, 400, corsHeaders);
       }
 
-      if (newSlug !== existing.slug) {
-        const conflict = await env.mysql.prepare('SELECT id FROM pages WHERE slug = ?').bind(newSlug).first();
+      let finalNewSlug = newSlug;
+      if (finalNewSlug !== existing.slug) {
+        const conflict = await env.mysql.prepare('SELECT id FROM pages WHERE slug = ?').bind(finalNewSlug).first();
         if (conflict) {
-          return jsonResponse({ error: `Slug already exists: '${newSlug}'`, field: 'slug' }, 409, corsHeaders);
+          finalNewSlug = `${newSlug}-${Math.random().toString(36).substring(2, 6)}`;
         }
       }
 
       const now = new Date().toISOString();
       const updateStmt = env.mysql.prepare(
-        'UPDATE pages SET title = ?, slug = ?, content = ?, category = ?, updated_at = ? WHERE id = ?'
-      ).bind(title, newSlug, content, category, now, existing.id);
+        'UPDATE pages SET title = ?, slug = ?, content = ?, category = ?, image_url = ?, updated_at = ? WHERE id = ?'
+      ).bind(title, finalNewSlug, content, category, imageUrl || null, now, existing.id);
 
       const { success, error } = await updateStmt.run();
       if (!success) {
@@ -189,9 +205,10 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const updatedPage: PageRecord = {
         id: existing.id,
         title,
-        slug: newSlug,
+        slug: finalNewSlug,
         content,
         category,
+        image_url: imageUrl || undefined,
         created_at: existing.created_at,
         updated_at: now,
       };
