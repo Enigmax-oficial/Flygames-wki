@@ -12,6 +12,11 @@ if (!(console as any).warning) {
 
 // Spawn wrangler dev in the background to connect to the real Cloudflare D1 remote database on port 3001
 const API_TOKEN = process.env.CLOUDFLARE_API_TOKEN;
+// Auto-correct CLOUDFLARE_ACCOUNT_ID if it matches the D1 database_id or is empty
+const CORRECT_ACCOUNT_ID = '83e4738d-6bb8-4ca3-7d90-e4c68b0ddfab';
+const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID === 'd7f3eefe-63ff-4b62-8baf-6dc44381abab' || !process.env.CLOUDFLARE_ACCOUNT_ID
+  ? CORRECT_ACCOUNT_ID
+  : process.env.CLOUDFLARE_ACCOUNT_ID;
 
 if (!API_TOKEN) {
   console.warn('\n⚠️  CLOUDFLARE_API_TOKEN is NOT defined in your environment variables.');
@@ -20,14 +25,14 @@ if (!API_TOKEN) {
   console.log('✅ CLOUDFLARE_API_TOKEN detected. Starting Cloudflare D1 server connection...');
 }
 
-console.log('Starting Cloudflare D1 server connection (wrangler dev on port 3001 with remote D1)...');
+console.log(`Starting Cloudflare D1 server connection (wrangler dev on port 3001 with remote D1 using account ${ACCOUNT_ID})...`);
 const wranglerProcess = spawn('npx', ['wrangler', 'dev', '--port', '3001', '--remote'], {
   stdio: 'inherit',
   shell: true,
   env: {
     ...process.env,
     CLOUDFLARE_API_TOKEN: API_TOKEN,
-    CLOUDFLARE_ACCOUNT_ID: process.env.CLOUDFLARE_ACCOUNT_ID,
+    CLOUDFLARE_ACCOUNT_ID: ACCOUNT_ID,
   },
 });
 
@@ -63,7 +68,7 @@ async function proxyToWorker(req: any, res: any) {
     });
   }
 
-  const targetUrl = `http://127.0.0.1:3001${req.originalUrl}`;
+  const targetUrl = `http://localhost:3001${req.originalUrl}`;
   console.log(`[PROXY] Proxying request ${req.method} ${req.originalUrl} to ${targetUrl}`);
   fs.appendFileSync('proxy.log', `[PROXY] ${req.method} ${req.originalUrl}\n`);
   try {
@@ -80,7 +85,7 @@ async function proxyToWorker(req: any, res: any) {
       }
     }
     
-    headers['host'] = '127.0.0.1:3001';
+    headers['host'] = 'localhost:3001';
 
     const options: RequestInit = {
       method: req.method,
@@ -314,7 +319,7 @@ async function waitForD1Worker(maxAttempts = 30): Promise<boolean> {
   console.log('Waiting for Cloudflare D1 local worker on port 3001 to start...');
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const res = await fetch('http://127.0.0.1:3001/api/health');
+      const res = await fetch('http://localhost:3001/api/health');
       if (res.ok) {
         console.log('✅ Cloudflare D1 local worker is ONLINE and healthy.');
         return true;
