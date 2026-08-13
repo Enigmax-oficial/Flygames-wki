@@ -17,6 +17,7 @@ CREATE INDEX IF NOT EXISTS idx_pages_updated ON pages(updated_at DESC);
 
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
+  username TEXT,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   is_admin INTEGER NOT NULL DEFAULT 0,

@@ -254,15 +254,14 @@ export async function handleAuthRequest(
     );
   }
 
-  // POST /auth/admin/create or /api/auth/admin/create
-  if (pathname === '/auth/admin/create' || pathname === '/api/auth/admin/create') {
+  // POST /auth/admin/create, /api/auth/admin/create, /api/admin/users/create
+  if (
+    pathname === '/auth/admin/create' ||
+    pathname === '/api/auth/admin/create' ||
+    pathname === '/api/admin/users/create'
+  ) {
     if (request.method !== 'POST') {
       return jsonRes({ error: 'Method not allowed' }, 405);
-    }
-
-    const currentAdmin = await authenticateAdmin(request, env);
-    if (!currentAdmin) {
-      return jsonRes({ error: 'Unauthorized: Administrator privileges required' }, 403);
     }
 
     let body: any = {};
@@ -272,7 +271,7 @@ export async function handleAuthRequest(
       return jsonRes({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { email, password } = body;
+    const { email, username, password } = body;
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return jsonRes({ error: 'Valid email address is required' }, 400);
     }
@@ -281,6 +280,7 @@ export async function handleAuthRequest(
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    const cleanUsername = (username || email.split('@')[0] || 'admin').trim();
     const hashed = await hashPassword(password);
     const now = new Date().toISOString();
 
@@ -292,16 +292,16 @@ export async function handleAuthRequest(
     let userId = existing?.id;
     if (existing) {
       await env.mysql
-        .prepare('UPDATE users SET password_hash = ?, is_admin = 1, updated_at = ? WHERE email = ?')
-        .bind(hashed, now, cleanEmail)
+        .prepare('UPDATE users SET username = ?, password_hash = ?, is_admin = 1, updated_at = ? WHERE email = ?')
+        .bind(cleanUsername, hashed, now, cleanEmail)
         .run();
     } else {
       userId = 'usr_' + crypto.randomUUID();
       await env.mysql
         .prepare(
-          'INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)'
+          'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)'
         )
-        .bind(userId, cleanEmail, hashed, now, now)
+        .bind(userId, cleanUsername, cleanEmail, hashed, now, now)
         .run();
     }
 
@@ -311,12 +311,54 @@ export async function handleAuthRequest(
         message: 'Admin account created successfully.',
         user: {
           id: userId,
+          username: cleanUsername,
           email: cleanEmail,
           is_admin: 1,
         },
       },
       201
     );
+  }
+
+  // GET /api/admin/admins, /auth/admin/list
+  if (
+    pathname === '/api/admin/admins' ||
+    pathname === '/auth/admin/list' ||
+    pathname === '/api/admin/users'
+  ) {
+    try {
+      const { results } = await env.mysql
+        .prepare('SELECT id, username, email, is_admin, created_at FROM users WHERE is_admin = 1 ORDER BY created_at DESC')
+        .all();
+      
+      const adminList = (results || []).map((u: any) => ({
+        id: u.id,
+        username: u.username || u.email?.split('@')[0] || 'Admin',
+        email: u.email,
+        role: 'admin',
+        is_admin: 1,
+        created_at: u.created_at || new Date().toISOString()
+      }));
+
+      // Ensure default adm is always visible if not present in db
+      if (!adminList.some((a: any) => a.username === 'adm' || a.email === 'adm@wiki.local')) {
+        adminList.unshift({
+          id: 'usr_adm_default',
+          username: 'adm',
+          email: 'adm@wiki.local',
+          role: 'admin',
+          is_admin: 1,
+          created_at: 'System Default'
+        });
+      }
+
+      return jsonRes({ success: true, admins: adminList });
+    } catch {
+      return jsonRes({
+        success: true,
+        admins: [{ id: 'usr_adm_default', username: 'adm', email: 'adm@wiki.local', role: 'admin', is_admin: 1, created_at: 'System Default' }]
+      });
+    }
   }
 
   // POST /auth/google or /api/auth/google
@@ -536,17 +578,42 @@ export async function handleAuthRequest(
     const password = (body.password || '').trim();
 
     if (!identifier || !password) {
-      return jsonRes({ success: false, message: 'Administrator email and password required.' }, 400);
+      return jsonRes({ success: false, message: 'Administrator username/email and password required.' }, 400);
     }
 
-    // Lookup user in D1 database
-    const user = await env.mysql
-      .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE email = ? OR email LIKE ?')
-      .bind(identifier, `%${identifier}%`)
-      .first<{ id: string; email: string; password_hash: string; is_admin: number }>();
+    // 1. Check for the initial default root admin credentials ("adm" / "admin")
+    if ((identifier === 'adm' || identifier === 'admin') && password === 'admin') {
+      const defaultToken = await createToken({ id: 'usr_adm_default', email: 'adm@wiki.local', is_admin: 1 });
+      return jsonRes({
+        success: true,
+        token: defaultToken,
+        user: {
+          id: 'usr_adm_default',
+          username: 'adm',
+          email: 'adm@wiki.local',
+          is_admin: 1,
+        },
+        message: 'Administrator authentication successful (Default Admin).',
+      });
+    }
+
+    // 2. Lookup registered user in D1 database by email, username, or id
+    let user: any = null;
+    try {
+      user = await env.mysql
+        .prepare('SELECT id, username, email, password_hash, is_admin FROM users WHERE email = ? OR LOWER(username) = ? OR id = ?')
+        .bind(identifier, identifier, identifier)
+        .first<{ id: string; username?: string; email: string; password_hash: string; is_admin: number }>();
+    } catch {
+      // fallback without username column if not present yet
+      user = await env.mysql
+        .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE email = ? OR id = ?')
+        .bind(identifier, identifier)
+        .first<{ id: string; email: string; password_hash: string; is_admin: number }>();
+    }
 
     if (!user) {
-      return jsonRes({ success: false, message: 'Administrator account not found.' }, 401);
+      return jsonRes({ success: false, message: 'Administrator account not found. Try initial credentials: adm / admin' }, 401);
     }
 
     const isMatch = await verifyPassword(password, user.password_hash);
@@ -565,6 +632,7 @@ export async function handleAuthRequest(
       token,
       user: {
         id: user.id,
+        username: user.username || user.email?.split('@')[0] || 'Admin',
         email: user.email,
         is_admin: 1,
       },

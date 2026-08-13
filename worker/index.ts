@@ -24,7 +24,7 @@ export default {
     }
 
     try {
-      // Auth & Admin Auth endpoints (/auth/*, /api/auth/*, /api/admin/verify, /admin/verify)
+      // Auth & Admin Auth endpoints (/auth/*, /api/auth/*, /api/admin/*)
       if (
         pathname.startsWith('/auth/') ||
         pathname.startsWith('/api/auth/') ||
@@ -37,7 +37,11 @@ export default {
         pathname === '/auth/google' ||
         pathname === '/api/auth/google' ||
         pathname === '/api/admin/verify' ||
-        pathname === '/admin/verify'
+        pathname === '/admin/verify' ||
+        pathname === '/api/admin/admins' ||
+        pathname === '/auth/admin/list' ||
+        pathname === '/api/admin/users' ||
+        pathname.startsWith('/api/admin/users/')
       ) {
         return await handleAuthRequest(request, url, env, corsHeaders);
       }
@@ -79,17 +83,37 @@ export default {
       // Admin database stats
       if (pathname === '/api/admin/database-stats' || pathname === '/admin/database-stats') {
         let pageCount = 0;
+        let usersList: any[] = [];
         try {
           await ensureSchema(env);
           const res = await env.mysql.prepare('SELECT COUNT(*) as count FROM pages').first<{ count: number }>();
           pageCount = res?.count || 0;
+          
+          const usersRes = await env.mysql.prepare('SELECT id, username, email, is_admin, created_at FROM users ORDER BY created_at DESC').all();
+          usersList = (usersRes.results || []).map((u: any) => ({
+            id: u.id,
+            username: u.username || u.email?.split('@')[0] || 'User',
+            email: u.email,
+            role: u.is_admin === 1 ? 'admin' : 'user',
+            created_at: u.created_at || 'Registered'
+          }));
         } catch {}
+
+        if (!usersList.some((u) => u.username === 'adm')) {
+          usersList.unshift({
+            id: 'usr_adm_default',
+            username: 'adm',
+            email: 'adm@wiki.local',
+            role: 'admin',
+            created_at: 'Initial System Admin'
+          });
+        }
 
         return jsonResponse({
           success: true,
           storedIn: 'Cloudflare D1',
           pagesCount: pageCount,
-          users: [{ username: 'adm', role: 'admin', created_at: new Date().toISOString() }],
+          users: usersList,
         }, 200, corsHeaders);
       }
 

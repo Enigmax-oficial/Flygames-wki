@@ -63,6 +63,11 @@ export async function ensureSchema(env: Env): Promise<void> {
     } catch (e) {
       // Ignore if column already exists
     }
+    try {
+      await env.mysql.exec('ALTER TABLE users ADD COLUMN username TEXT;');
+    } catch (e) {
+      // Ignore if column already exists
+    }
     schemaInitialized = true;
   } catch (err) {
     console.error('Failed to ensure D1 pages table schema:', err);

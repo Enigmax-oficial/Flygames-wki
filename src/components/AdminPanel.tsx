@@ -28,7 +28,14 @@ import {
   TrendingUp,
   RefreshCw,
   Search,
-  Flame
+  Flame,
+  ShieldCheck,
+  UserPlus,
+  Key,
+  Lock,
+  Mail,
+  User,
+  Shield
 } from 'lucide-react';
 import { WikiPage, CategoryType, PageTemplate } from '../types/wiki';
 import { WikiApi, DynamicCategory, PRESET_IMAGES } from '../lib/wikiApi';
@@ -50,9 +57,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onSelectPage
 }) => {
   
-  // Encrypted Credentials State
-  const isAuthorized = isAuthorizedAdminEmail(userEmail);
-
+  // Encrypted Credentials & Auth State
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
@@ -66,8 +71,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setAuthError('');
     setIsVerifying(true);
 
-    const trimmedUser = usernameInput.trim();
-    const trimmedPass = passwordInput.trim();
+    const trimmedUser = (usernameInput || 'adm').trim();
+    const trimmedPass = (passwordInput || 'admin').trim();
 
     try {
       const res = await fetch('/api/admin/verify', {
@@ -80,6 +85,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       if (data.success) {
         setIsAdminAuthenticated(true);
         sessionStorage.setItem('admin_auth_verified', 'true');
+        if (data.token) {
+          try {
+            localStorage.setItem('etherium_admin_token', data.token);
+          } catch {}
+        }
       } else {
         setAuthError(data.message || 'Incorrect administrator username or password.');
       }
@@ -90,9 +100,110 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   };
 
+  // Quick fill default adm credentials
+  const fillDefaultCredentials = () => {
+    setUsernameInput('adm');
+    setPasswordInput('admin');
+    setAuthError('');
+  };
+
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'analytics' | 'api-playground' | 'assets' | 'database'>('create-page');
+  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'analytics' | 'api-playground' | 'assets' | 'database' | 'admin-users'>('create-page');
   const [pageSortBy, setPageSortBy] = useState<'default' | 'views'>('default');
+
+  // Admin Accounts Management State
+  const [adminAccounts, setAdminAccounts] = useState<any[]>([]);
+  const [isAdminAccountsLoading, setIsAdminAccountsLoading] = useState(false);
+  const [adminAccountsError, setAdminAccountsError] = useState('');
+  const [newAdminUsername, setNewAdminUsername] = useState('');
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [newAdminConfirmPassword, setNewAdminConfirmPassword] = useState('');
+  const [createAdminSuccess, setCreateAdminSuccess] = useState('');
+  const [createAdminError, setCreateAdminError] = useState('');
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+
+  const fetchAdminAccounts = () => {
+    setIsAdminAccountsLoading(true);
+    setAdminAccountsError('');
+    fetch('/api/admin/admins')
+      .then((res) => res.json())
+      .then((data: any) => {
+        if (data.success && Array.isArray(data.admins)) {
+          setAdminAccounts(data.admins);
+        } else {
+          setAdminAccountsError(data.error || 'Failed to load administrator accounts.');
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch admin accounts:', err);
+        setAdminAccountsError('Could not connect to the administration API.');
+      })
+      .finally(() => {
+        setIsAdminAccountsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    if (activeTab === 'admin-users') {
+      fetchAdminAccounts();
+    }
+  }, [activeTab]);
+
+  const handleCreateAdminAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateAdminError('');
+    setCreateAdminSuccess('');
+
+    const u = newAdminUsername.trim();
+    const em = newAdminEmail.trim().toLowerCase();
+    const pw = newAdminPassword.trim();
+
+    if (!u || !em || !pw) {
+      setCreateAdminError('Please fill out all administrator registration fields.');
+      return;
+    }
+
+    if (!em.includes('@')) {
+      setCreateAdminError('Please enter a valid email address.');
+      return;
+    }
+
+    if (pw.length < 6) {
+      setCreateAdminError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newAdminConfirmPassword && pw !== newAdminConfirmPassword.trim()) {
+      setCreateAdminError('Passwords do not match.');
+      return;
+    }
+
+    setIsCreatingAdmin(true);
+    try {
+      const res = await fetch('/api/admin/users/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: u, email: em, password: pw })
+      });
+      const data = await res.json() as any;
+
+      if (data.success) {
+        setCreateAdminSuccess(`Administrator account "${u}" (${em}) created successfully! You can now log into the admin panel with these credentials.`);
+        setNewAdminUsername('');
+        setNewAdminEmail('');
+        setNewAdminPassword('');
+        setNewAdminConfirmPassword('');
+        fetchAdminAccounts();
+      } else {
+        setCreateAdminError(data.error || data.message || 'Failed to create administrator account.');
+      }
+    } catch (err: any) {
+      setCreateAdminError(err.message || 'Network error while creating administrator account.');
+    } finally {
+      setIsCreatingAdmin(false);
+    }
+  };
 
   // Data Analytics State
   const [analyticsData, setAnalyticsData] = useState<any>(null);
@@ -452,89 +563,116 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [catError, setCatError] = useState('');
   const [catSuccess, setCatSuccess] = useState('');
 
-  // Access check
-  if (!isAuthorized) {
+  // Authentication check for admin panel
+  if (!isAdminAuthenticated) {
     return (
-      <div className="max-w-3xl mx-auto p-8 bg-[#111827] border border-rose-500/20 rounded-2xl text-center space-y-4 shadow-xl my-10 font-sans">
-        <h2 className="text-xl font-bold text-white">Access Denied</h2>
-        <p className="text-sm text-slate-400 max-w-md mx-auto">
-          This administration panel is restricted exclusively to authorized administrator accounts.
-        </p>
-        <button 
-          onClick={onClosePanel}
-          className="mt-4 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
-        >
-          Return to Dashboard
-        </button>
-      </div>
-    );
-  }
-
-  // Password prompt check for authorized admin
-  if (isAuthorized && !isAdminAuthenticated) {
-    return (
-      <div className="max-w-md mx-auto p-8 bg-[#111827] border border-amber-500/30 rounded-2xl text-center space-y-6 shadow-2xl my-12 font-sans">
-        <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400">
-          <Crown className="w-7 h-7" />
+      <div className="max-w-md mx-auto p-6 sm:p-8 bg-[#111827] border border-amber-500/30 rounded-2xl text-center space-y-6 shadow-2xl my-10 font-sans text-slate-200">
+        <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400 shadow-inner">
+          <Crown className="w-8 h-8" />
         </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold text-white">Administrator Access Control</h2>
+        
+        <div className="space-y-1.5">
+          <h2 className="text-xl font-bold text-white tracking-tight">Painel de Acesso do Administrador</h2>
           <p className="text-xs text-slate-400">
-            Welcome, <span className="text-amber-400 font-mono">{userEmail}</span>. Please enter the administrator username and password to unlock the Admin Panel.
+            Acesso restrito ao painel de controle do Etherium Wiki.
           </p>
         </div>
 
+        {/* Initial Credentials Callout */}
+        <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-left space-y-2">
+          <div className="flex items-center gap-2 text-amber-400 text-xs font-bold">
+            <Key className="w-4 h-4 shrink-0" />
+            <span>Credenciais Iniciais do Sistema:</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+            <div className="bg-[#0b0f19] px-2.5 py-1.5 rounded-lg border border-slate-800">
+              <span className="text-slate-500 text-[10px] block font-sans">Usuário Inicial:</span>
+              <strong className="text-amber-300 font-bold">adm</strong>
+            </div>
+            <div className="bg-[#0b0f19] px-2.5 py-1.5 rounded-lg border border-slate-800">
+              <span className="text-slate-500 text-[10px] block font-sans">Senha Inicial:</span>
+              <strong className="text-amber-300 font-bold">admin</strong>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={fillDefaultCredentials}
+            className="w-full mt-1 py-1.5 px-3 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Preencher Automaticamente (adm / admin)</span>
+          </button>
+        </div>
+
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <div className="space-y-3">
+          <div className="space-y-3 text-left">
             <div>
-              <label className="block text-left text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
-                Admin Username
+              <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                <User className="w-3.5 h-3.5 text-slate-400" />
+                <span>Usuário ou E-mail</span>
               </label>
               <input
                 type="text"
-                placeholder="Username (e.g. adm)"
+                placeholder="Ex: adm ou seu_email@dominio.com"
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono text-center"
+                className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600"
                 autoFocus
               />
             </div>
             <div>
-              <label className="block text-left text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
-                Admin Password
+              <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-slate-400" />
+                <span>Senha de Acesso</span>
               </label>
               <input
                 type="password"
-                placeholder="Password"
+                placeholder="Ex: admin"
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest text-center"
+                className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest placeholder:text-slate-600 placeholder:tracking-normal"
               />
             </div>
           </div>
 
           {authError && (
-            <p className="text-xs text-rose-400 font-medium">{authError}</p>
+            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs flex items-center gap-2 text-left">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{authError}</span>
+            </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClosePanel}
               className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
             >
-              Cancel
+              Voltar ao Portal
             </button>
             <button
               type="submit"
               disabled={isVerifying}
-              className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl text-xs transition cursor-pointer disabled:opacity-50"
+              className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
             >
-              {isVerifying ? 'Verifying...' : 'Unlock Panel'}
+              {isVerifying ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                  <span>Entrando...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Acessar Painel</span>
+                </>
+              )}
             </button>
           </div>
         </form>
-        <p className="text-[10px] text-slate-500 font-mono">Secured with SHA-256 Encrypted Hash Verification & SQL Server Sync</p>
+        
+        <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-500 space-y-1">
+          <p>Após o login inicial, você poderá registrar seu próprio usuário e senha personalizados na aba de Administradores.</p>
+        </div>
       </div>
     );
   }
@@ -752,6 +890,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         >
           <Database className="w-4 h-4" />
           <span>Database Access</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('admin-users')}
+          className={`px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+            activeTab === 'admin-users'
+              ? 'border-amber-400 text-amber-400 bg-amber-500/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 text-amber-400" />
+          <span>Gestão de Administradores</span>
         </button>
       </div>
 
@@ -2408,6 +2558,266 @@ wikiApi.createPage({
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* 4. Tab 7: Admin Accounts Management */}
+      {activeTab === 'admin-users' && (
+        <div className="space-y-8 animate-in fade-in duration-300">
+          
+          {/* Top Info Banner */}
+          <div className="bg-[#111827] border border-amber-500/20 rounded-2xl p-6 shadow-xl space-y-4">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="space-y-1">
+                <h2 className="text-base font-extrabold text-white flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-amber-400" />
+                  <span>Gestão de Administradores & Novas Credenciais</span>
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Cadastre contas de administrador permanentes com nome de usuário, e-mail e senha de sua escolha.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={fetchAdminAccounts}
+                disabled={isAdminAccountsLoading}
+                className="px-3.5 py-1.5 bg-[#1e293b] hover:bg-[#283548] text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-slate-700 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isAdminAccountsLoading ? 'animate-spin text-amber-400' : ''}`} />
+                <span>Atualizar Lista</span>
+              </button>
+            </div>
+
+            {/* Workflow Guide Card */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 text-xs">
+              <div className="bg-[#0b0f19] p-3 rounded-xl border border-slate-800 space-y-1">
+                <div className="flex items-center gap-2 font-bold text-amber-400 text-[11px] uppercase">
+                  <span className="w-4 h-4 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px]">1</span>
+                  <span>Acesso Inicial</span>
+                </div>
+                <p className="text-slate-400 text-[11px]">
+                  Utilize o usuário <strong className="text-amber-300 font-mono">adm</strong> e senha <strong className="text-amber-300 font-mono">admin</strong> no primeiro acesso ao painel.
+                </p>
+              </div>
+
+              <div className="bg-[#0b0f19] p-3 rounded-xl border border-slate-800 space-y-1">
+                <div className="flex items-center gap-2 font-bold text-sky-400 text-[11px] uppercase">
+                  <span className="w-4 h-4 rounded-full bg-sky-500/20 flex items-center justify-center text-[10px]">2</span>
+                  <span>Criar Sua Conta</span>
+                </div>
+                <p className="text-slate-400 text-[11px]">
+                  Preencha o formulário abaixo com seu nome de usuário, e-mail e senha definitiva de administrador.
+                </p>
+              </div>
+
+              <div className="bg-[#0b0f19] p-3 rounded-xl border border-slate-800 space-y-1">
+                <div className="flex items-center gap-2 font-bold text-emerald-400 text-[11px] uppercase">
+                  <span className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">3</span>
+                  <span>Login Definitivo</span>
+                </div>
+                <p className="text-slate-400 text-[11px]">
+                  Depois de criar, você poderá desbloquear o painel usando seu novo usuário ou e-mail com sua nova senha.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Registration Form Card */}
+          <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 space-y-6 shadow-xl">
+            <div className="border-b border-[#1e293b] pb-3">
+              <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                <UserPlus className="w-4 h-4 text-amber-400" />
+                <span>Registrar Novo Administrador</span>
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                O novo administrador terá permissões totais para gerenciar páginas, categorias e configurações.
+              </p>
+            </div>
+
+            {createAdminSuccess && (
+              <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs flex items-start gap-3 animate-in fade-in">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Conta Criada com Sucesso!</p>
+                  <p className="text-emerald-400/90 mt-0.5">{createAdminSuccess}</p>
+                </div>
+              </div>
+            )}
+
+            {createAdminError && (
+              <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-start gap-3 animate-in fade-in">
+                <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold">Erro ao Criar Conta</p>
+                  <p className="text-rose-400/90 mt-0.5">{createAdminError}</p>
+                </div>
+              </div>
+            )}
+
+            <form onSubmit={handleCreateAdminAccount} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Nome de Usuário (Username) <span className="text-rose-400">*</span></span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ex: ruan_admin ou ruan"
+                    value={newAdminUsername}
+                    onChange={(e) => setNewAdminUsername(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">Identificador único de login.</span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Endereço de E-mail <span className="text-rose-400">*</span></span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="Ex: ruan@dominio.com"
+                    value={newAdminEmail}
+                    onChange={(e) => setNewAdminEmail(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600"
+                  />
+                  <span className="text-[10px] text-slate-500 mt-1 block">Usado para identificação e login alternativo.</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Senha de Administrador <span className="text-rose-400">*</span></span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Mínimo 6 caracteres"
+                    value={newAdminPassword}
+                    onChange={(e) => setNewAdminPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600 tracking-widest placeholder:tracking-normal"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Confirmar Senha <span className="text-rose-400">*</span></span>
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Repita a senha"
+                    value={newAdminConfirmPassword}
+                    onChange={(e) => setNewAdminConfirmPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600 tracking-widest placeholder:tracking-normal"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="submit"
+                  disabled={isCreatingAdmin}
+                  className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 shadow-lg flex items-center gap-2"
+                >
+                  {isCreatingAdmin ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                      <span>Registrando Administrador...</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="w-4 h-4" />
+                      <span>Criar Conta de Administrador</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Existing Admins Table Card */}
+          <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 space-y-4 shadow-xl">
+            <div className="flex justify-between items-center">
+              <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                <Crown className="w-4 h-4 text-amber-400" />
+                <span>Administradores Cadastrados no Sistema</span>
+              </h3>
+              <span className="text-[11px] font-mono text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
+                {adminAccounts.length} contas ativas
+              </span>
+            </div>
+
+            {adminAccountsError && (
+              <p className="text-xs text-rose-400">{adminAccountsError}</p>
+            )}
+
+            {isAdminAccountsLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-2">
+                <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs text-slate-400">Carregando lista de administradores...</span>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-[#1e293b] rounded-xl">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-[#0b0f19] border-b border-[#1e293b] text-slate-400 font-bold">
+                      <th className="p-3">Nome de Usuário</th>
+                      <th className="p-3">E-mail Cadastrado</th>
+                      <th className="p-3">Cargo / Função</th>
+                      <th className="p-3">Status de Acesso</th>
+                      <th className="p-3">Data de Registro</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1e293b] text-slate-300">
+                    {adminAccounts.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-4 text-center text-slate-500 italic">
+                          Nenhum administrador adicional cadastrado. O acesso padrão "adm" está ativo.
+                        </td>
+                      </tr>
+                    ) : (
+                      adminAccounts.map((admin, idx) => (
+                        <tr key={idx} className="hover:bg-[#151e2e] transition-colors">
+                          <td className="p-3 font-bold text-white flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 text-[10px]">
+                              👑
+                            </div>
+                            <span className="font-mono">{admin.username || 'adm'}</span>
+                          </td>
+                          <td className="p-3 font-mono text-slate-300">
+                            {admin.email}
+                          </td>
+                          <td className="p-3">
+                            <span className="px-2 py-0.5 bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded text-[10px] font-bold uppercase tracking-wider">
+                              {admin.role || 'Administrator'}
+                            </span>
+                          </td>
+                          <td className="p-3">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                              <span>Ativo & Autorizado</span>
+                            </span>
+                          </td>
+                          <td className="p-3 text-slate-400 font-mono text-[10px]">
+                            {admin.created_at ? new Date(admin.created_at).toLocaleString() : 'Padrão do Sistema'}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
         </div>
       )}
 
