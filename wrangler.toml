@@ -1,7 +1,6 @@
 name = "flygames"
 main = "worker/index.ts"
 compatibility_date = "2026-03-01"
-account_id = "83e4738d-6bb8-4ca3-7d90-e4c68b0ddfab"
 
 [assets]
 directory = "./dist"
