@@ -38,10 +38,16 @@ export default {
         pathname === '/api/auth/google' ||
         pathname === '/api/admin/verify' ||
         pathname === '/admin/verify' ||
+        pathname === '/api/admin/verify-google' ||
+        pathname === '/auth/admin/verify-google' ||
+        pathname === '/api/admin/status' ||
+        pathname === '/auth/admin/status' ||
         pathname === '/api/admin/admins' ||
         pathname === '/auth/admin/list' ||
         pathname === '/api/admin/users' ||
-        pathname.startsWith('/api/admin/users/')
+        pathname.startsWith('/api/admin/users/') ||
+        pathname === '/auth/admin/bootstrap' ||
+        pathname === '/api/auth/admin/bootstrap'
       ) {
         return await handleAuthRequest(request, url, env, corsHeaders);
       }
