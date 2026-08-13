@@ -18,6 +18,7 @@ interface HeaderProps {
   userEmail?: string | null;
   onLogout: () => void;
   addonVersion: string;
+  hasAdmin?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,8 +36,9 @@ export const Header: React.FC<HeaderProps> = ({
   userEmail,
   onLogout,
   addonVersion,
+  hasAdmin = true,
 }) => {
-  const isAdmin = Boolean(userEmail) && isAuthorizedAdminEmail(userEmail);
+  const isAdmin = !hasAdmin || (Boolean(userEmail) && isAuthorizedAdminEmail(userEmail));
   return (
     <header className="sticky top-0 z-30 bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1e293b] text-[#e2e8f0] px-4 sm:px-6 py-3 shadow-xl">
       <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-3">

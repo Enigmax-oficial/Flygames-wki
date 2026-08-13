@@ -28,6 +28,7 @@ interface DesktopSidebarProps {
   isOpen?: boolean;
   onToggleSidebar?: () => void;
   userEmail?: string | null;
+  hasAdmin?: boolean;
 }
 
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
@@ -40,6 +41,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   isOpen = true,
   onToggleSidebar,
   userEmail,
+  hasAdmin = true,
 }) => {
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getFavorites());
   const [sidebarSearchQuery, setSidebarSearchQuery] = useState('');
@@ -55,7 +57,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
   if (!isOpen) return null;
 
-  const isAdmin = Boolean(userEmail) && isAuthorizedAdminEmail(userEmail);
+  const isAdmin = !hasAdmin || (Boolean(userEmail) && isAuthorizedAdminEmail(userEmail));
   const dynamicCategories = WikiApi.getCategories();
 
   const renderSidebarIcon = (catId: string, iconStr: string) => {

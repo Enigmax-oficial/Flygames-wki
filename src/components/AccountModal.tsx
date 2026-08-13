@@ -37,6 +37,7 @@ interface AccountModalProps {
   onOpenAdminPanel?: () => void;
   pages?: WikiPage[];
   onSelectPage?: (pageId: string) => void;
+  hasAdmin?: boolean;
 }
 
 export const AccountModal: React.FC<AccountModalProps> = ({
@@ -50,6 +51,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onOpenAdminPanel,
   pages = [],
   onSelectPage,
+  hasAdmin = true,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'contributions' | 'bookmarks' | 'security'>('overview');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -73,7 +75,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const displayEmail = userEmail || '';
   
   // Administrator condition
-  const isAdmin = Boolean(userEmail) && isAuthorizedAdminEmail(displayEmail);
+  const isAdmin = !hasAdmin || (Boolean(userEmail) && isAuthorizedAdminEmail(displayEmail));
 
   const handleSaveName = () => {
     if (newName.trim() && onUpdateUserName) {

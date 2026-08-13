@@ -100,6 +100,19 @@ export default function App() {
     }
   });
 
+  const [hasAdmin, setHasAdmin] = useState<boolean>(true);
+
+  useEffect(() => {
+    fetch('/api/admin/status')
+      .then(res => res.json())
+      .then((data: any) => {
+        if (data.success) {
+          setHasAdmin(Boolean(data.hasAdmin));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const toggleDesktopSidebar = () => {
     setIsDesktopSidebarOpen((prev: boolean) => {
       const next = !prev;
@@ -304,6 +317,7 @@ export default function App() {
         user={user}
         userEmail={userEmail}
         onLogout={handleLogout}
+        hasAdmin={hasAdmin}
       />
       {/* Main Container Layout */}
       <div className="flex-1 flex max-w-[1600px] w-full mx-auto">
@@ -318,6 +332,7 @@ export default function App() {
           onSelectPage={(id) => navigateToPage(id)}
           onGoHome={() => navigateToPage('home')}
           userEmail={userEmail}
+          hasAdmin={hasAdmin}
         />
 
         {/* Mobile Navigation Drawer Overlay */}
@@ -332,6 +347,7 @@ export default function App() {
           onGoHome={() => navigateToPage('home')}
           onOpenSearch={handleOpenSearch}
           userEmail={userEmail}
+          hasAdmin={hasAdmin}
         />
 
         {/* Main Content View */}
@@ -437,6 +453,7 @@ export default function App() {
           }
         }}
         onOpenAdminPanel={() => navigateToPage('admin-panel')}
+        hasAdmin={hasAdmin}
       />
     </div>
   );

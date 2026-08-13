@@ -236,6 +236,12 @@ export async function handleAuthRequest(
     }
 
     const finalUserId = userId || 'usr_admin';
+    const cleanUsername = cleanEmail.split('@')[0] || 'admin';
+    await env.mysql
+      .prepare('INSERT OR REPLACE INTO adm (id, username, email, created_at) VALUES (?, ?, ?, ?)')
+      .bind(finalUserId, cleanUsername, cleanEmail, now)
+      .run();
+
     const token = await createToken({ id: finalUserId, email: cleanEmail, is_admin: 1 });
 
     return jsonRes(
@@ -289,14 +295,13 @@ export async function handleAuthRequest(
       .bind(cleanEmail)
       .first<{ id: string }>();
 
-    let userId = existing?.id;
+    let userId = existing?.id || ('usr_' + crypto.randomUUID());
     if (existing) {
       await env.mysql
         .prepare('UPDATE users SET username = ?, password_hash = ?, is_admin = 1, updated_at = ? WHERE email = ?')
         .bind(cleanUsername, hashed, now, cleanEmail)
         .run();
     } else {
-      userId = 'usr_' + crypto.randomUUID();
       await env.mysql
         .prepare(
           'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)'
@@ -304,6 +309,11 @@ export async function handleAuthRequest(
         .bind(userId, cleanUsername, cleanEmail, hashed, now, now)
         .run();
     }
+
+    await env.mysql
+      .prepare('INSERT OR REPLACE INTO adm (id, username, email, created_at) VALUES (?, ?, ?, ?)')
+      .bind(userId, cleanUsername, cleanEmail, now)
+      .run();
 
     return jsonRes(
       {
@@ -318,6 +328,19 @@ export async function handleAuthRequest(
       },
       201
     );
+  }
+
+  // GET /api/admin/status, /auth/admin/status
+  if (pathname === '/api/admin/status' || pathname === '/auth/admin/status') {
+    try {
+      const res = await env.mysql
+        .prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1')
+        .first<{ count: number }>();
+      const count = res?.count || 0;
+      return jsonRes({ success: true, hasAdmin: count > 0, adminCount: count });
+    } catch {
+      return jsonRes({ success: true, hasAdmin: false, adminCount: 0 });
+    }
   }
 
   // GET /api/admin/admins, /auth/admin/list

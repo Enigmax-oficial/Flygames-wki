@@ -33,6 +33,7 @@ interface MobileDrawerProps {
   onGoHome: () => void;
   onOpenSearch: (isVoice?: boolean) => void;
   userEmail?: string | null;
+  hasAdmin?: boolean;
 }
 
 export const MobileDrawer: React.FC<MobileDrawerProps> = ({
@@ -46,6 +47,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onGoHome,
   onOpenSearch,
   userEmail,
+  hasAdmin = true,
 }) => {
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getFavorites());
 
@@ -60,7 +62,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const isAdmin = Boolean(userEmail) && isAuthorizedAdminEmail(userEmail);
+  const isAdmin = !hasAdmin || (Boolean(userEmail) && isAuthorizedAdminEmail(userEmail));
 
   const dynamicCategories = WikiApi.getCategories();
 

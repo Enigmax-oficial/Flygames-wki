@@ -38,6 +38,9 @@ export async function ensureSchema(env: Env): Promise<void> {
     await env.mysql.exec(
       'CREATE TABLE IF NOT EXISTS comments (id TEXT PRIMARY KEY, page_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, comment TEXT NOT NULL, created_at TEXT NOT NULL);'
     );
+    await env.mysql.exec(
+      'CREATE TABLE IF NOT EXISTS adm (id TEXT PRIMARY KEY, username TEXT, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL);'
+    );
     try {
       await env.mysql.exec('ALTER TABLE pages ADD COLUMN category TEXT;');
     } catch (e) {

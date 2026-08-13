@@ -68,6 +68,74 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [authError, setAuthError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
+  const [hasAdmin, setHasAdmin] = useState<boolean | null>(null);
+  const [bootstrapEmail, setBootstrapEmail] = useState('');
+  const [bootstrapPassword, setBootstrapPassword] = useState('');
+  const [bootstrapConfirm, setBootstrapConfirm] = useState('');
+  const [bootstrapError, setBootstrapError] = useState('');
+  const [isBootstrapping, setIsBootstrapping] = useState(false);
+  const [showBootstrapPassword, setShowBootstrapPassword] = useState(false);
+  const [showBootstrapConfirm, setShowBootstrapConfirm] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/admin/status')
+      .then(res => res.json())
+      .then((data: any) => {
+        if (data.success) {
+          setHasAdmin(Boolean(data.hasAdmin));
+        } else {
+          setHasAdmin(false);
+        }
+      })
+      .catch(() => {
+        setHasAdmin(false);
+      });
+  }, []);
+
+  const handleBootstrapSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBootstrapError('');
+    if (!bootstrapEmail || !bootstrapPassword) {
+      setBootstrapError('Preencha o e-mail e a senha.');
+      return;
+    }
+    if (bootstrapPassword.length < 6) {
+      setBootstrapError('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    if (bootstrapPassword !== bootstrapConfirm) {
+      setBootstrapError('As senhas não coincidem.');
+      return;
+    }
+
+    setIsBootstrapping(true);
+    try {
+      const res = await fetch('/auth/admin/bootstrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: bootstrapEmail, password: bootstrapPassword })
+      });
+      const data = await res.json() as any;
+      if (data.success) {
+        setIsAdminAuthenticated(true);
+        sessionStorage.setItem('admin_auth_verified', 'true');
+        if (data.token) {
+          try {
+            localStorage.setItem('etherium_admin_token', data.token);
+          } catch {}
+        }
+        setHasAdmin(true);
+        setActiveTab('admin-users');
+      } else {
+        setBootstrapError(data.error || 'Falha ao criar conta permanente de administrador.');
+      }
+    } catch {
+      setBootstrapError('Erro de conexão ao criar conta de administrador.');
+    } finally {
+      setIsBootstrapping(false);
+    }
+  };
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
@@ -564,6 +632,136 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Authentication check for admin panel
   if (!isAdminAuthenticated) {
+    if (hasAdmin === null) {
+      return (
+        <div className="max-w-md mx-auto p-8 text-center text-slate-400 font-sans my-20">
+          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-xs">Verificando status do sistema...</p>
+        </div>
+      );
+    }
+
+    if (hasAdmin === false) {
+      return (
+        <div className="max-w-md mx-auto p-6 sm:p-8 bg-[#111827] border border-amber-500/30 rounded-2xl text-center space-y-6 shadow-2xl my-10 font-sans text-slate-200">
+          <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400 shadow-inner">
+            <Crown className="w-8 h-8" />
+          </div>
+          
+          <div className="space-y-1.5">
+            <h2 className="text-xl font-bold text-white tracking-tight">Primeiro Acesso: Criar Administrador</h2>
+            <p className="text-xs text-slate-400">
+              O sistema ainda não possui uma conta de administrador permanente. Crie o seu acesso de administrador principal abaixo.
+            </p>
+          </div>
+
+          <form onSubmit={handleBootstrapSubmit} className="space-y-4">
+            <div className="space-y-3 text-left">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-slate-400" />
+                  <span>E-mail do Administrador</span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="Ex: admin@seuemail.com"
+                  value={bootstrapEmail}
+                  onChange={(e) => setBootstrapEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Senha (mínimo 6 caracteres)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showBootstrapPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={bootstrapPassword}
+                    onChange={(e) => setBootstrapPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 pr-10 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest placeholder:text-slate-600 placeholder:tracking-normal"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowBootstrapPassword(!showBootstrapPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
+                  >
+                    {showBootstrapPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Confirmar Senha</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type={showBootstrapConfirm ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={bootstrapConfirm}
+                    onChange={(e) => setBootstrapConfirm(e.target.value)}
+                    className="w-full px-4 py-2.5 pr-10 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono tracking-widest placeholder:text-slate-600 placeholder:tracking-normal"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowBootstrapConfirm(!showBootstrapConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
+                  >
+                    {showBootstrapConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {bootstrapError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs flex items-center gap-2 text-left">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{bootstrapError}</span>
+              </div>
+            )}
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={onClosePanel}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+              >
+                Voltar ao Portal
+              </button>
+              <button
+                type="submit"
+                disabled={isBootstrapping}
+                className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-400 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
+              >
+                {isBootstrapping ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                    <span>Criando...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Criar Administrador</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-500 space-y-1">
+            <p>Esta etapa de configuração inicial ocorre apenas uma vez. Após criada, o painel só poderá ser acessado por contas de administrador cadastradas.</p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="max-w-md mx-auto p-6 sm:p-8 bg-[#111827] border border-amber-500/30 rounded-2xl text-center space-y-6 shadow-2xl my-10 font-sans text-slate-200">
         <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto text-amber-400 shadow-inner">
