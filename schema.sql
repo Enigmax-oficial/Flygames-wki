@@ -9,4 +9,5 @@ CREATE TABLE IF NOT EXISTS pages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_pages_slug ON pages(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pages_title_unique ON pages(title);
 CREATE INDEX IF NOT EXISTS idx_pages_updated ON pages(updated_at DESC);

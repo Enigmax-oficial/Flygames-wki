@@ -108,6 +108,12 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         return jsonResponse({ error: 'Content is required', field: 'content' }, 400, corsHeaders);
       }
 
+      // Check if title already exists
+      const existingTitle = await env.mysql.prepare('SELECT id FROM pages WHERE title = ?').bind(title).first();
+      if (existingTitle) {
+        return jsonResponse({ error: `A page with this title already exists: '${title}'`, field: 'title' }, 409, corsHeaders);
+      }
+
       let slug = (body.slug || '').trim() ? generateSlug(body.slug!) : generateSlug(title);
       if (!slug) {
         slug = 'page-' + Math.random().toString(36).substring(2, 8);
@@ -136,9 +142,20 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         'INSERT INTO pages (id, title, slug, content, category, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
       ).bind(id, title, finalSlug, content, category, imageUrl || null, now, now);
 
-      const { success, error } = await insertStmt.run();
-      if (!success) {
-        throw new Error(error || 'Failed to insert page into D1');
+      let result;
+      try {
+        result = await insertStmt.run();
+      } catch (err: any) {
+        if (err.message && (err.message.includes('UNIQUE constraint failed: pages.title') || err.message.includes('UNIQUE constraint failed'))) {
+          return jsonResponse({ error: `A page with this title already exists: '${title}'`, field: 'title' }, 409, corsHeaders);
+        }
+        throw err;
+      }
+      if (!result.success) {
+        if (result.error && (result.error.includes('UNIQUE constraint failed: pages.title') || result.error.includes('UNIQUE constraint failed'))) {
+          return jsonResponse({ error: `A page with this title already exists: '${title}'`, field: 'title' }, 409, corsHeaders);
+        }
+        throw new Error(result.error || 'Failed to insert page into D1');
       }
 
       const newPage: PageRecord = {

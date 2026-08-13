@@ -57,7 +57,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
           ) : (
             <div className="space-y-6 py-4">
               <p className="text-xs text-[#94a3b8] text-center max-w-xs mx-auto">
-                Sign in with your Google Account to access administrator tools and knowledge base features.
+                Sign in with your Google Account to access knowledge base features.
               </p>
 
               {/* Google Sign In Component via @react-oauth/google */}
