@@ -34,15 +34,15 @@ The `wrangler.toml` file does not define the `[[d1_databases]]` binding with the
 - Admin panel or API returns `Failed to save page through server pipeline: D1_ERROR: no such table: pages: SQLITE_ERROR` or `no such table: X`.
 
 ### Root Cause
-The D1 database exists and is properly bound in `wrangler.toml` (which is why query requests reach a live SQLite instance), but `schema.sql` was never executed against the `--remote` production D1 database. Simply creating the D1 database binding or writing `schema.sql` in the repository does not automatically provision or create tables inside the remote Cloudflare D1 instance.
+`D1_ERROR: no such table: X` almost always means the schema file exists in the repository but was never executed against the `--remote` database, as opposed to a code or binding bug. Simply creating the D1 database or writing `schema.sql` in the repo does not automatically create tables inside the remote Cloudflare D1 instance.
 
 ### Solution
-Execute the schema setup command targeting the production remote database explicitly:
+Execute the schema setup command explicitly targeting the remote database:
 - **Remote (Production)**:
   ```bash
   npx wrangler d1 execute minecraft-wiki-db --remote --file=./schema.sql
   ```
-  *(Note: Replace `minecraft-wiki-db` with the `database_name` defined under `[[d1_databases]]` in `wrangler.toml` if different).*
+  *(Note: Replace `minecraft-wiki-db` with the `database_name` defined under `[[d1_databases]]` in `wrangler.toml` if different, e.g. `my-sql`).*
 
 - **Verify Remote Table Provisioning**:
   ```bash

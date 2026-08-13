@@ -3,16 +3,92 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import crypto from 'crypto';
 import fs from 'fs';
-import { createPageRouter } from './src/admin/pageController';
-import { defaultPageService } from './src/admin/pageService.js';
+import { spawn } from 'child_process';
+
+// Spawn wrangler dev in the background to serve Cloudflare D1 local worker on port 3001
+console.log('Starting Cloudflare D1 local worker (wrangler dev on port 3001)...');
+const wranglerProcess = spawn('npx', ['wrangler', 'dev', '--port', '3001', '--local'], {
+  stdio: 'inherit',
+  shell: true,
+});
+
+wranglerProcess.on('error', (err) => {
+  console.error('Failed to start wrangler process:', err);
+});
+
+process.on('exit', () => {
+  wranglerProcess.kill();
+});
+process.on('SIGINT', () => {
+  wranglerProcess.kill();
+  process.exit();
+});
+process.on('SIGTERM', () => {
+  wranglerProcess.kill();
+  process.exit();
+});
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// Mount Admin Pages REST API (/admin/pages)
-app.use('/admin', createPageRouter());
+// Helper to proxy requests to Cloudflare D1 Worker running on port 3001
+async function proxyToWorker(req: any, res: any) {
+  const targetUrl = `http://127.0.0.1:3001${req.originalUrl}`;
+  try {
+    const headers: Record<string, string> = {};
+    for (const [key, val] of Object.entries(req.headers)) {
+      if (typeof val === 'string') {
+        headers[key] = val;
+      } else if (Array.isArray(val)) {
+        headers[key] = val.join(', ');
+      }
+    }
+    
+    headers['host'] = '127.0.0.1:3001';
+
+    const options: RequestInit = {
+      method: req.method,
+      headers,
+    };
+
+    if (['POST', 'PUT', 'PATCH'].includes(req.method) && req.body) {
+      options.body = JSON.stringify(req.body);
+    }
+
+    const response = await fetch(targetUrl, options);
+    res.status(response.status);
+    
+    response.headers.forEach((value, name) => {
+      res.setHeader(name, value);
+    });
+
+    const bodyText = await response.text();
+    res.send(bodyText);
+  } catch (err: any) {
+    console.error('Error proxying request to local D1 worker:', err);
+    res.status(500).json({ error: 'Failed to communicate with Cloudflare D1 local worker: ' + err.message });
+  }
+}
+
+// Proxy D1 database operations and pages endpoints directly to the real Cloudflare D1 local Worker
+app.all([
+  '/api/pages',
+  '/api/pages/*',
+  '/api/sql/pages',
+  '/api/sql/pages/*',
+  '/admin/pages',
+  '/admin/pages/*',
+  '/api/admin/pages',
+  '/api/admin/pages/*',
+  '/api/admin/database-stats',
+  '/api/admin/verify',
+  '/api/categories',
+  '/api/categories/*',
+  '/api/sql/categories',
+  '/api/sql/categories/*'
+], proxyToWorker);
 
 // Helper to scan a directory recursively for functional images
 function scanDirRecursive(dirPath: string, rootDir: string): string[] {
@@ -204,161 +280,7 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// Verify Admin Credentials Endpoint
-app.post('/api/admin/verify', async (req, res) => {
-  try {
-    const { username, password, email } = req.body;
-    const inputUsername = (username || '').trim();
-    const inputPassword = (password || '').trim();
-    const inputHash = hashPassword(inputPassword);
-
-    const isUsernameValid = inputUsername === 'adm' || hashPassword(inputUsername) === '2b1f868d4073356885df1f9b33e2182d8c36ec3b90b1062a3f7f0df88e5d2222';
-    const isPasswordValid =
-      inputPassword === 'hd189733b' ||
-      VALID_ADMIN_PASSWORDS.includes(inputPassword) ||
-      VALID_ADMIN_HASHES.has(inputHash);
-
-    if (isUsernameValid && isPasswordValid) {
-      return res.json({ success: true, message: 'Authentication successful via Cloudflare D1.' });
-    }
-
-    return res.status(401).json({ success: false, message: 'Incorrect administrator username or password.' });
-  } catch (err: any) {
-    console.error('Admin verify error:', err);
-    const inputUsername = (req.body?.username || '').trim();
-    const inputPassword = (req.body?.password || '').trim();
-    if (inputUsername === 'adm' && inputPassword === 'hd189733b') {
-      return res.json({ success: true, message: 'Authentication successful (D1 fallback).' });
-    }
-    return res.status(500).json({ success: false, message: 'Authentication server error' });
-  }
-});
-
-// API Records endpoint
-app.post('/api/records/add', async (req, res) => {
-  try {
-    const { date, category, value, metric_name } = req.body;
-    
-    if (!date || !category || typeof value !== 'number') {
-      return res.status(400).json({
-        success: false,
-        error: "Missing or invalid fields. 'date', 'category', and 'value' (number) are required."
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: 'Record successfully recorded to Cloudflare D1!',
-      recordCount: 1,
-      url: `/api/records`
-    });
-
-  } catch (err: any) {
-    console.error('API /api/records/add error:', err);
-    return res.status(500).json({
-      success: false,
-      error: err.message || 'Internal server error during recording process.'
-    });
-  }
-});
-
-// Database Endpoints for Wiki Pages
-app.get(['/api/pages', '/api/sql/pages'], async (req, res) => {
-  try {
-    const pages = await defaultPageService.listPages();
-    res.json({ success: true, results: pages, count: pages.length, storedIn: 'Cloudflare D1' });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.post(['/api/pages', '/api/sql/pages'], async (req, res) => {
-  try {
-    const body = req.body || {};
-    const title = body.title || body.id || 'Untitled Page';
-    const slug = body.slug || body.id;
-    const content = body.content || body.description || '';
-
-    const page = await defaultPageService.createPage({ title, slug, content });
-    return res.json({
-      success: true,
-      message: 'Page created and stored in Cloudflare D1',
-      page,
-      storedIn: 'Cloudflare D1',
-    });
-  } catch (err: any) {
-    console.error('Error saving page to Cloudflare D1:', err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.delete(['/api/pages/:id', '/api/sql/pages/:id'], async (req, res) => {
-  try {
-    const { id } = req.params;
-    await defaultPageService.deletePage(id);
-    res.json({ success: true, message: `Page '${id}' deleted from Cloudflare D1` });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Categories endpoints
-const customCategories: any[] = [];
-
-app.get(['/api/categories', '/api/sql/categories'], async (req, res) => {
-  res.json({ success: true, categories: customCategories, storedIn: 'Cloudflare D1' });
-});
-
-app.post(['/api/categories', '/api/sql/categories'], async (req, res) => {
-  try {
-    const category = req.body;
-    if (!category || !category.id) {
-      return res.status(400).json({ success: false, message: 'Invalid category object' });
-    }
-    const idx = customCategories.findIndex(c => c.id === category.id);
-    if (idx >= 0) {
-      customCategories[idx] = category;
-    } else {
-      customCategories.push(category);
-    }
-    res.json({ success: true, category, storedIn: 'Cloudflare D1' });
-  } catch (err: any) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// Admin endpoint to access Cloudflare D1 stats
-app.post('/api/admin/reseed', async (req, res) => {
-  try {
-    const count = await defaultPageService.reseed();
-    res.json({
-      success: true,
-      message: `Database reseeded successfully with ${count} records.`,
-      seededCount: count,
-      storedIn: 'Cloudflare D1'
-    });
-  } catch (err: any) {
-    console.error('Error reseeding database:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get('/api/admin/database-stats', async (req, res) => {
-  try {
-    const users = inMemoryUsers.map(u => ({ username: u.username, role: u.role, created_at: u.created_at }));
-    const pages = await defaultPageService.listPages();
-
-    res.json({
-      success: true,
-      users,
-      pages,
-      storedIn: 'Cloudflare D1'
-    });
-  } catch (err: any) {
-    console.error('Error fetching admin database stats:', err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+// All database operations and page endpoints are proxied directly to the real Cloudflare D1 local worker (proxyToWorker) above.
 
 async function startServer() {
   const publicPath = path.join(process.cwd(), 'public');
