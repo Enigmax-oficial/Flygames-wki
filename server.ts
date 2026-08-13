@@ -42,6 +42,7 @@ app.use(express.json({ limit: '10mb' }));
 // Local filesystem fallback handler for pages/admin when Cloudflare D1 local worker is offline
 async function handleLocalFallback(req: any, res: any) {
   try {
+    fs.appendFileSync('proxy.log', `[FALLBACK] ${req.method} ${req.originalUrl}\n`);
     const pathWithoutQuery = req.originalUrl.split('?')[0];
     const urlParts = pathWithoutQuery.split('/').filter(Boolean);
 
@@ -223,6 +224,8 @@ async function handleLocalFallback(req: any, res: any) {
 // Helper to proxy requests to Cloudflare D1 Worker running on port 3001
 async function proxyToWorker(req: any, res: any) {
   const targetUrl = `http://127.0.0.1:3001${req.originalUrl}`;
+  console.log(`[PROXY] Proxying request ${req.method} ${req.originalUrl} to ${targetUrl}`);
+  fs.appendFileSync('proxy.log', `[PROXY] ${req.method} ${req.originalUrl}\n`);
   try {
     const headers: Record<string, string> = {};
     for (const [key, val] of Object.entries(req.headers)) {
