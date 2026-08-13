@@ -79,6 +79,33 @@ async function handleLocalFallback(req: any, res: any) {
       });
     }
 
+    // 2.1 Admin Analytics Fallback
+    if (pathWithoutQuery === '/api/admin/analytics' || pathWithoutQuery === '/admin/analytics') {
+      let pages: any[] = [];
+      try {
+        pages = await defaultPageService.listPages();
+      } catch (e) {}
+      const mappedPages = pages.map(p => ({
+        id: p.id,
+        title: p.title,
+        slug: p.slug,
+        category: p.category || 'items',
+        views: p.views || 0,
+        favorites_count: 0
+      }));
+      return res.json({
+        success: true,
+        summary: {
+          totalViews: mappedPages.reduce((acc, p) => acc + (p.views || 0), 0),
+          totalFavorites: 0,
+          totalPages: pages.length,
+          totalUsers: 1,
+        },
+        mostVisited: [...mappedPages].sort((a, b) => (b.views || 0) - (a.views || 0)),
+        mostFavorited: mappedPages,
+      });
+    }
+
     // 3. Category Endpoints Fallback
     if (pathWithoutQuery.includes('/categories')) {
       return res.json({ success: true, results: [] });
@@ -228,6 +255,8 @@ app.all([
   '/api/admin/pages',
   '/api/admin/pages/*',
   '/api/admin/database-stats',
+  '/api/admin/analytics',
+  '/admin/analytics',
   '/api/admin/verify',
   '/api/categories',
   '/api/categories/*',

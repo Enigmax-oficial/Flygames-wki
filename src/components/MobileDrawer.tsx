@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage, getItemImage } from '../lib/assetHelper';
 import { WikiApi } from '../lib/wikiApi';
@@ -18,16 +18,17 @@ import {
   Crown,
   Globe,
   User,
-  Mic
+  Mic,
+  Heart
 } from 'lucide-react';
 
 interface MobileDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   pages: WikiPage[];
-  selectedCategory: CategoryType | 'all';
+  selectedCategory: CategoryType | 'all' | string;
   selectedPageId: string | null;
-  onSelectCategory: (category: CategoryType | 'all') => void;
+  onSelectCategory: (category: CategoryType | 'all' | string) => void;
   onSelectPage: (pageId: string) => void;
   onGoHome: () => void;
   onOpenSearch: (isVoice?: boolean) => void;
@@ -46,6 +47,17 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onOpenSearch,
   userEmail,
 }) => {
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getLocalFavorites());
+
+  useEffect(() => {
+    const handleFavUpdate = () => {
+      setFavoriteIds(WikiApi.getLocalFavorites());
+    };
+    window.addEventListener('wiki_favorites_updated', handleFavUpdate);
+    WikiApi.fetchFavorites().then(favs => setFavoriteIds(favs));
+    return () => window.removeEventListener('wiki_favorites_updated', handleFavUpdate);
+  }, []);
+
   if (!isOpen) return null;
 
   const isAdmin = isAuthorizedAdminEmail(userEmail);
@@ -55,6 +67,13 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   const renderMobileIcon = (catId: string, iconStr: string) => {
     return <WikiIcon icon={catId || iconStr || 'item'} className="w-4 h-4 text-sky-400" />;
   };
+
+  const filteredPages = pages.filter((p) => {
+    if (selectedCategory === 'favorites') {
+      return favoriteIds.includes(p.id);
+    }
+    return selectedCategory === 'all' || p.category === selectedCategory;
+  });
 
   return (
     <div className="fixed inset-0 z-50 md:hidden flex">
@@ -163,6 +182,19 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
               <Sparkles className="w-3.5 h-3.5" />
               <span>All</span>
             </button>
+            {(!!userEmail || WikiApi.isUserLoggedIn()) && (
+              <button
+                onClick={() => onSelectCategory('favorites')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all ${
+                  selectedCategory === 'favorites'
+                    ? 'bg-amber-400 text-black font-bold'
+                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                }`}
+              >
+                <Heart className="w-3.5 h-3.5 fill-current" />
+                <span>Favorites ({favoriteIds.length})</span>
+              </button>
+            )}
             {dynamicCategories.map((cat) => (
               <button
                 key={cat.id}
@@ -183,11 +215,14 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
         {/* Pages List */}
         <div className="flex-1 p-3 overflow-y-auto space-y-1">
           <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-widest block mb-2">
-            Articles
+            {selectedCategory === 'favorites' ? 'My Favorites' : 'Articles'} ({filteredPages.length})
           </span>
-          {pages
-            .filter((p) => selectedCategory === 'all' || p.category === selectedCategory)
-            .map((page) => {
+          {filteredPages.length === 0 ? (
+            <div className="p-4 text-center text-xs text-[#64748b] bg-[#0b0f19]/50 rounded-xl border border-[#1e293b]">
+              {selectedCategory === 'favorites' ? 'No favorites yet.' : 'No articles found.'}
+            </div>
+          ) : (
+            filteredPages.map((page) => {
               const isSelected = selectedPageId === page.id;
 
               return (
@@ -220,7 +255,8 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
                   </span>
                 </button>
               );
-            })}
+            })
+          )}
         </div>
 
         {/* Footer Info */}

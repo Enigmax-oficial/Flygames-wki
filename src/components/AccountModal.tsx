@@ -1,5 +1,5 @@
 import { WikiIcon } from './WikiIcon';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   User, 
@@ -17,10 +17,14 @@ import {
   Lock,
   Star,
   Award,
-  Settings
+  Settings,
+  Heart,
+  Trash2,
+  ChevronRight
 } from 'lucide-react';
 import { WikiPage } from '../types/wiki';
 import { isAuthorizedAdminEmail } from '../lib/adminAuth';
+import { WikiApi } from '../lib/wikiApi';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -32,6 +36,7 @@ interface AccountModalProps {
   onUpdateUserEmail?: (newEmail: string) => void;
   onOpenAdminPanel?: () => void;
   pages?: WikiPage[];
+  onSelectPage?: (pageId: string) => void;
 }
 
 export const AccountModal: React.FC<AccountModalProps> = ({
@@ -43,7 +48,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onUpdateUserName,
   onUpdateUserEmail,
   onOpenAdminPanel,
-  pages = []
+  pages = [],
+  onSelectPage,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'contributions' | 'bookmarks' | 'security'>('overview');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -51,6 +57,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState(userEmail || '');
   const [copiedScript, setCopiedScript] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getLocalFavorites());
+
+  useEffect(() => {
+    const handleFavUpdate = () => {
+      setFavoriteIds(WikiApi.getLocalFavorites());
+    };
+    window.addEventListener('wiki_favorites_updated', handleFavUpdate);
+    WikiApi.fetchFavorites().then(favs => setFavoriteIds(favs));
+    return () => window.removeEventListener('wiki_favorites_updated', handleFavUpdate);
+  }, []);
 
   if (!isOpen) return null;
 

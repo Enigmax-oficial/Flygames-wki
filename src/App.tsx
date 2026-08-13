@@ -92,9 +92,9 @@ export default function App() {
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(() => {
     try {
       const saved = localStorage.getItem('etherium_desktop_sidebar_open');
-      return saved !== null ? JSON.parse(saved) : true;
+      return saved !== null ? JSON.parse(saved) : false;
     } catch {
-      return true;
+      return false;
     }
   });
 

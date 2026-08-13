@@ -100,6 +100,60 @@ export default {
         }, 200, corsHeaders);
       }
 
+      // Admin Data Analytics endpoint
+      if (pathname === '/api/admin/analytics' || pathname === '/admin/analytics') {
+        await ensureSchema(env);
+        let topVisited: any[] = [];
+        let topFavorited: any[] = [];
+        let totalViews = 0;
+        let totalFavorites = 0;
+        let totalPages = 0;
+        let totalUsers = 0;
+
+        try {
+          // 1. Top Visited Pages
+          const visitedRes = await env.mysql.prepare(
+            'SELECT id, title, slug, category, image_url, COALESCE(views, 0) as views, created_at, updated_at FROM pages ORDER BY views DESC LIMIT 20'
+          ).all();
+          topVisited = visitedRes.results || [];
+
+          // 2. Top Favorited Pages
+          const favoritedRes = await env.mysql.prepare(
+            `SELECT p.id, p.title, p.slug, p.category, p.image_url, COALESCE(p.views, 0) as views, COUNT(f.id) as favorites_count 
+             FROM pages p 
+             LEFT JOIN favorites f ON p.id = f.page_id 
+             GROUP BY p.id 
+             ORDER BY favorites_count DESC, views DESC LIMIT 20`
+          ).all();
+          topFavorited = favoritedRes.results || [];
+
+          // 3. Totals
+          const sumRes = await env.mysql.prepare('SELECT SUM(COALESCE(views, 0)) as total_views, COUNT(*) as total_pages FROM pages').first<any>();
+          totalViews = sumRes?.total_views || 0;
+          totalPages = sumRes?.total_pages || 0;
+
+          const favCountRes = await env.mysql.prepare('SELECT COUNT(*) as total_favs FROM favorites').first<any>();
+          totalFavorites = favCountRes?.total_favs || 0;
+
+          const userCountRes = await env.mysql.prepare('SELECT COUNT(*) as total_users FROM users').first<any>();
+          totalUsers = userCountRes?.total_users || 0;
+        } catch (err) {
+          console.error('Analytics query error:', err);
+        }
+
+        return jsonResponse({
+          success: true,
+          summary: {
+            totalViews,
+            totalFavorites,
+            totalPages,
+            totalUsers,
+          },
+          mostVisited: topVisited,
+          mostFavorited: topFavorited,
+        }, 200, corsHeaders);
+      }
+
       // Images list endpoint
       if (pathname === '/api/images/list' || pathname === '/images/list') {
         return jsonResponse({

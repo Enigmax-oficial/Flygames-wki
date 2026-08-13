@@ -21,7 +21,8 @@ import {
   Heart,
   ShieldAlert,
   Wand2,
-  Box
+  Box,
+  Eye
 } from 'lucide-react';
 import { WikiImageGallery, GalleryItem } from './WikiImageGallery';
 import { WikiComments } from './WikiComments';
@@ -56,6 +57,42 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'crafting' | 'drops'>('overview');
   const [isTocCollapsed, setIsTocCollapsed] = useState(false);
+  const [isFavorited, setIsFavorited] = useState<boolean>(() => WikiApi.isFavorite(page.id));
+  const [favNotification, setFavNotification] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    setIsFavorited(WikiApi.isFavorite(page.id));
+    if (page && page.id) {
+      WikiApi.recordPageView(page.id);
+    }
+  }, [page.id]);
+
+  React.useEffect(() => {
+    const handleFavUpdate = () => {
+      setIsFavorited(WikiApi.isFavorite(page.id));
+    };
+    window.addEventListener('wiki_favorites_updated', handleFavUpdate);
+    return () => window.removeEventListener('wiki_favorites_updated', handleFavUpdate);
+  }, [page.id]);
+
+  const handleToggleFavorite = async () => {
+    if (!WikiApi.isUserLoggedIn()) {
+      setFavNotification('🔒 Login Required: Please log in to add articles to your favorites!');
+      setTimeout(() => setFavNotification(null), 3000);
+      return;
+    }
+
+    const nextState = !isFavorited;
+    setIsFavorited(nextState);
+    if (nextState) {
+      setFavNotification('Saved to Favorites!');
+      await WikiApi.addFavorite(page.id);
+    } else {
+      setFavNotification('Removed from Favorites');
+      await WikiApi.removeFavorite(page.id);
+    }
+    setTimeout(() => setFavNotification(null), 2500);
+  };
 
   const handleShare = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -326,10 +363,16 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           <span className="text-white font-bold">{page.id}</span>
         </div>
 
-        <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-mono font-bold">
-          <Clock className="w-3.5 h-3.5 text-emerald-400" />
-          <span>{readingTime} min read</span>
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-mono font-bold" title="Page views saved in database">
+            <Eye className="w-3.5 h-3.5 text-sky-400" />
+            <span>{(page.views || 0) + 1} views</span>
+          </span>
+          <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded text-xs font-mono font-bold">
+            <Clock className="w-3.5 h-3.5 text-emerald-400" />
+            <span>{readingTime} min read</span>
+          </span>
+        </div>
       </div>
 
       {/* Header Title & Badge */}
@@ -354,14 +397,39 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
           )}
         </div>
 
-        <button
-          onClick={handleShare}
-          className="px-3.5 py-1.5 bg-[#1e293b]/70 hover:bg-[#1e293b] text-[#cbd5e1] border border-[#334155] rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-sm cursor-pointer"
-        >
-          {copiedLink ? <Check className="w-3.5 h-3.5 text-sky-400" /> : <Share2 className="w-3.5 h-3.5 text-sky-400" />}
-          <span>{copiedLink ? 'Link Copied' : 'Share'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {(!!currentUserEmail || WikiApi.isUserLoggedIn()) && (
+            <button
+              type="button"
+              onClick={handleToggleFavorite}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm cursor-pointer border ${
+                isFavorited
+                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                  : 'bg-[#1e293b]/70 hover:bg-[#1e293b] text-[#cbd5e1] border-[#334155]'
+              }`}
+              title={isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+            >
+              <Heart className={`w-3.5 h-3.5 ${isFavorited ? 'fill-amber-400 text-amber-400' : 'text-amber-400'}`} />
+              <span>{isFavorited ? 'Favorited' : 'Add to Favorites'}</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleShare}
+            className="px-3.5 py-1.5 bg-[#1e293b]/70 hover:bg-[#1e293b] text-[#cbd5e1] border border-[#334155] rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-sm cursor-pointer"
+          >
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-sky-400" /> : <Share2 className="w-3.5 h-3.5 text-sky-400" />}
+            <span>{copiedLink ? 'Link Copied' : 'Share'}</span>
+          </button>
+        </div>
       </div>
+
+      {favNotification && (
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs font-semibold flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          <span>{favNotification}</span>
+        </div>
+      )}
 
       {/* Description Banner */}
       {page.description && (

@@ -78,6 +78,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                         let name = 'Google User';
                         let emailVal = 'user@gmail.com';
 
+                        if (data && data.token) {
+                          try {
+                            localStorage.setItem('etherium_auth_token', data.token);
+                          } catch (e) {
+                            console.warn('LocalStorage save token error', e);
+                          }
+                        }
+
                         if (data && data.user) {
                           name = data.user.name || name;
                           emailVal = data.user.email || emailVal;

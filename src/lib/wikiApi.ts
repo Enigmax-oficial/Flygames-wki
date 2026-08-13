@@ -328,6 +328,166 @@ export class WikiApi {
   static getPresetImages() {
     return PRESET_IMAGES;
   }
+
+  // --- PAGE VIEW TRACKING ---
+  static async recordPageView(pageId: string): Promise<void> {
+    if (!pageId) return;
+    try {
+      // Update cached page view locally for instant feedback
+      const page = this.cachedPages.find(p => p.id === pageId);
+      if (page) {
+        page.views = (page.views || 0) + 1;
+      }
+      await fetch(`/api/pages/${encodeURIComponent(pageId)}/view`, {
+        method: 'POST',
+      });
+    } catch (err) {
+      console.warn('Failed to record page view:', err);
+    }
+  }
+
+  // --- FAVORITES MANAGEMENT ---
+  private static cachedFavorites: string[] = [];
+
+  static isUserLoggedIn(): boolean {
+    try {
+      const email = localStorage.getItem('etherium_user_email');
+      const token = localStorage.getItem('etherium_auth_token');
+      return !!(email || token);
+    } catch {
+      return false;
+    }
+  }
+
+  static getLocalFavorites(): string[] {
+    if (!this.isUserLoggedIn()) {
+      return [];
+    }
+    try {
+      const stored = localStorage.getItem('etherium_favorites');
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Failed to parse local favorites:', e);
+    }
+    return this.cachedFavorites;
+  }
+
+  static saveLocalFavorites(favs: string[]) {
+    if (!this.isUserLoggedIn()) {
+      return;
+    }
+    this.cachedFavorites = Array.from(new Set(favs));
+    try {
+      localStorage.setItem('etherium_favorites', JSON.stringify(this.cachedFavorites));
+    } catch (e) {
+      console.warn('Failed to save local favorites:', e);
+    }
+    window.dispatchEvent(new Event('wiki_favorites_updated'));
+  }
+
+  static isFavorite(pageId: string): boolean {
+    if (!this.isUserLoggedIn()) return false;
+    const favs = this.getLocalFavorites();
+    return favs.includes(pageId);
+  }
+
+  static async fetchFavorites(): Promise<string[]> {
+    if (!this.isUserLoggedIn()) {
+      return [];
+    }
+
+    const email = localStorage.getItem('etherium_user_email');
+    const token = localStorage.getItem('etherium_auth_token');
+
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (email) headers['X-User-Email'] = email;
+
+    try {
+      const res = await fetch('/api/favorites', { headers });
+      if (res.ok) {
+        const data = (await res.json()) as any;
+        if (data.success && Array.isArray(data.favorites)) {
+          const serverPageIds = data.favorites.map((f: any) => f.id || f.page_id).filter(Boolean);
+          const combined = Array.from(new Set([...serverPageIds, ...this.getLocalFavorites()]));
+          this.saveLocalFavorites(combined);
+          return combined;
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch favorites from server, using local fallback:', err);
+    }
+    return this.getLocalFavorites();
+  }
+
+  static async toggleFavorite(pageId: string): Promise<boolean> {
+    if (!this.isUserLoggedIn()) {
+      return false;
+    }
+    const isFav = this.isFavorite(pageId);
+    if (isFav) {
+      return await this.removeFavorite(pageId);
+    } else {
+      return await this.addFavorite(pageId);
+    }
+  }
+
+  static async addFavorite(pageId: string): Promise<boolean> {
+    if (!this.isUserLoggedIn()) {
+      return false;
+    }
+
+    const current = this.getLocalFavorites();
+    if (!current.includes(pageId)) {
+      this.saveLocalFavorites([...current, pageId]);
+    }
+
+    const email = localStorage.getItem('etherium_user_email');
+    const token = localStorage.getItem('etherium_auth_token');
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (email) headers['X-User-Email'] = email;
+
+    try {
+      await fetch('/api/favorites', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ page_id: pageId }),
+      });
+    } catch (err) {
+      console.warn('Background favorite add failed, local fallback saved:', err);
+    }
+    return true;
+  }
+
+  static async removeFavorite(pageId: string): Promise<boolean> {
+    if (!this.isUserLoggedIn()) {
+      return false;
+    }
+
+    const current = this.getLocalFavorites();
+    this.saveLocalFavorites(current.filter(id => id !== pageId));
+
+    const email = localStorage.getItem('etherium_user_email');
+    const token = localStorage.getItem('etherium_auth_token');
+
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (email) headers['X-User-Email'] = email;
+
+    try {
+      await fetch(`/api/favorites/${encodeURIComponent(pageId)}`, {
+        method: 'DELETE',
+        headers,
+      });
+    } catch (err) {
+      console.warn('Background favorite remove failed, local fallback updated:', err);
+    }
+    return false;
+  }
 }
 
 // Attach to window for easy developer access (API availability)

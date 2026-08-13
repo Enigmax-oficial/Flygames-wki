@@ -21,7 +21,14 @@ import {
   Sliders,
   HelpCircle,
   Download,
-  FileJson
+  FileJson,
+  BarChart3,
+  Eye,
+  Heart,
+  TrendingUp,
+  RefreshCw,
+  Search,
+  Flame
 } from 'lucide-react';
 import { WikiPage, CategoryType, PageTemplate } from '../types/wiki';
 import { WikiApi, DynamicCategory, PRESET_IMAGES } from '../lib/wikiApi';
@@ -96,7 +103,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   // Navigation Tab State
-  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'api-playground' | 'assets' | 'database'>('create-page');
+  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'analytics' | 'api-playground' | 'assets' | 'database'>('create-page');
+
+  // Data Analytics State
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState('');
+  const [analyticsFilter, setAnalyticsFilter] = useState('');
+
+  const fetchAnalyticsData = () => {
+    setIsAnalyticsLoading(true);
+    setAnalyticsError('');
+    fetch('/api/admin/analytics')
+      .then((res) => {
+        if (!res.ok) throw new Error('Analytics API error');
+        return res.json() as any;
+      })
+      .then((data) => {
+        if (data.success) {
+          setAnalyticsData(data);
+        } else {
+          setAnalyticsError(data.error || 'Failed to fetch analytics.');
+        }
+      })
+      .catch((err) => {
+        console.error('Analytics fetch error:', err);
+        setAnalyticsError('Could not connect to the analytics system.');
+      })
+      .finally(() => {
+        setIsAnalyticsLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    if (activeTab === 'analytics') {
+      fetchAnalyticsData();
+    }
+  }, [activeTab]);
 
   // Cloudflare D1 Database Access States
   const [dbUsers, setDbUsers] = useState<any[]>([]);
@@ -675,6 +718,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('analytics')}
+          className={`px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+            activeTab === 'analytics'
+              ? 'border-sky-400 text-sky-400 bg-sky-500/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+          }`}
+        >
+          <BarChart3 className="w-4 h-4 text-sky-400" />
+          <span>Data Analytics</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('api-playground')}
           className={`px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
             activeTab === 'api-playground'
@@ -888,15 +943,102 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-300">Item Asset / Icon Identifier</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. aetheria:aetherial_sword, items, shield"
-                    value={icon}
-                    onChange={(e) => setIcon(e.target.value)}
-                    className="w-full bg-[#0b0f19] border border-[#1e293b] focus:border-emerald-500/50 rounded-xl px-3.5 py-2 text-xs text-white text-center focus:outline-none transition font-sans"
-                  />
+                <div className="space-y-1.5 sm:col-span-2">
+                  <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                    <span>Page Icon (Assigned Image or Asset) *</span>
+                    <span className="text-[10px] text-sky-400 font-mono">Assign image to page icon</span>
+                  </label>
+                  
+                  <div className="p-3 bg-[#0b0f19] border border-[#1e293b] rounded-xl space-y-3">
+                    {/* Live Icon Preview & Input */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#111827] border border-sky-500/40 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-[0_0_10px_rgba(56,189,248,0.2)]">
+                        <WikiIcon icon={icon} className="w-7 h-7 object-contain" />
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Image URL (e.g. /images/weapons/diamond_sword.png or https://...)"
+                        value={icon}
+                        onChange={(e) => setIcon(e.target.value)}
+                        className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-2 text-xs text-white focus:outline-none font-mono"
+                      />
+                    </div>
+
+                    {/* Quick Preset Icon Image Buttons */}
+                    <div>
+                      <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1.5">
+                        Select Icon Image Preset:
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-1 bg-[#070a12] rounded-lg border border-[#1e293b]">
+                        {[
+                          '/images/weapons/diamond_sword.png',
+                          '/images/weapons/netherite_sword.png',
+                          '/images/weapons/gold_sword.png',
+                          '/images/weapons/iron_sword.png',
+                          '/images/weapons/stone_sword.png',
+                          '/images/weapons/wood_sword.png',
+                          '/images/tools/diamond_pickaxe.png',
+                          '/images/tools/diamond_axe.png',
+                          '/images/tools/netherite_axe.png',
+                          '/images/tools/netherite_pickaxe.png',
+                          '/images/items/apple_golden.png',
+                          '/images/items/apple.png',
+                          '/images/categories/mobs.png',
+                          '/images/categories/items.png',
+                          '/images/categories/blocks.png',
+                          '/images/categories/recipes.png',
+                          '/images/categories/biomes.png',
+                          '/images/heart.png',
+                          'sword',
+                          'shield',
+                          'sparkles',
+                          'pickaxe',
+                          'gem',
+                          'flame'
+                        ].map((imgPath) => (
+                          <button
+                            type="button"
+                            key={imgPath}
+                            onClick={() => setIcon(imgPath)}
+                            className={`p-1.5 rounded-lg border flex items-center justify-center transition cursor-pointer ${
+                              icon === imgPath
+                                ? 'bg-sky-500/20 border-sky-400 ring-2 ring-sky-400/40'
+                                : 'bg-[#111827] border-[#1e293b] hover:border-slate-600'
+                            }`}
+                            title={imgPath}
+                          >
+                            <WikiIcon icon={imgPath} className="w-5 h-5 object-contain" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Upload Image File for Icon */}
+                    <div className="flex items-center justify-between text-[11px] pt-1 border-t border-[#1e293b]/60">
+                      <span className="text-slate-400">Or upload image file for icon:</span>
+                      <label className="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded-lg font-bold cursor-pointer transition">
+                        <span>Upload Icon File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (ev) => {
+                                if (ev.target?.result) {
+                                  setIcon(ev.target.result as string);
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
@@ -1632,6 +1774,340 @@ wikiApi.createPage({
             </div>
 
           </div>
+        </div>
+      )}
+
+      {activeTab === 'analytics' && (
+        <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 space-y-8 shadow-xl animate-in fade-in duration-300 font-sans">
+          
+          {/* Header Banner */}
+          <div className="border-b border-[#1e293b] pb-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-extrabold text-white flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-sky-400" />
+                  <span>Wiki Analytics & Traffic Console</span>
+                </h2>
+                <span className="px-2 py-0.5 text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded font-mono font-bold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Live Tracking</span>
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Real-time tracking system showing the most favorited articles, most visited pages, and global reader engagement statistics.
+              </p>
+            </div>
+
+            <button
+              onClick={fetchAnalyticsData}
+              disabled={isAnalyticsLoading}
+              className="px-4 py-2 bg-[#1e293b] hover:bg-[#334155] text-slate-200 border border-[#334155] rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-sky-400 ${isAnalyticsLoading ? 'animate-spin' : ''}`} />
+              <span>{isAnalyticsLoading ? 'Refreshing Stats...' : 'Refresh Analytics'}</span>
+            </button>
+          </div>
+
+          {analyticsError && (
+            <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-400 font-bold flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{analyticsError}</span>
+            </div>
+          )}
+
+          {isAnalyticsLoading && !analyticsData ? (
+            <div className="flex flex-col items-center justify-center py-20 space-y-3">
+              <div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-xs font-bold text-slate-400">Loading wiki analytics data...</span>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              
+              {/* Summary Stats Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <div className="p-4 bg-[#0b0f19] border border-[#1e293b] hover:border-sky-500/30 rounded-2xl space-y-2 transition shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400">Total Page Views</span>
+                    <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center">
+                      <Eye className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-white font-mono">
+                    {analyticsData?.summary?.totalViews?.toLocaleString() || 0}
+                  </div>
+                  <p className="text-[10px] text-slate-500 flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-emerald-400" />
+                    <span>Calculated across all articles</span>
+                  </p>
+                </div>
+
+                <div className="p-4 bg-[#0b0f19] border border-[#1e293b] hover:border-rose-500/30 rounded-2xl space-y-2 transition shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400">Total Saved Favorites</span>
+                    <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+                      <Heart className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-white font-mono">
+                    {analyticsData?.summary?.totalFavorites?.toLocaleString() || 0}
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Logged-in user bookmarks
+                  </p>
+                </div>
+
+                <div className="p-4 bg-[#0b0f19] border border-[#1e293b] hover:border-emerald-500/30 rounded-2xl space-y-2 transition shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400">Active Articles</span>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                      <BookOpen className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-white font-mono">
+                    {analyticsData?.summary?.totalPages || pages.length}
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Wiki knowledge base entries
+                  </p>
+                </div>
+
+                <div className="p-4 bg-[#0b0f19] border border-[#1e293b] hover:border-purple-500/30 rounded-2xl space-y-2 transition shadow-md">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400">Registered Users</span>
+                    <div className="w-8 h-8 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center">
+                      <Globe className="w-4 h-4" />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-white font-mono">
+                    {analyticsData?.summary?.totalUsers || 1}
+                  </div>
+                  <p className="text-[10px] text-slate-500">
+                    Registered accounts
+                  </p>
+                </div>
+
+              </div>
+
+              {/* Search filter for analytics */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="Filter analytics by page title, category, or slug..."
+                  value={analyticsFilter}
+                  onChange={(e) => setAnalyticsFilter(e.target.value)}
+                  className="w-full bg-[#0b0f19] border border-[#1e293b] focus:border-sky-500 focus:outline-none rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 transition"
+                />
+              </div>
+
+              {/* Leaderboards Grid: Most Visited & Most Favorited */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                {/* 1. Most Visited Pages Table */}
+                <div className="space-y-3 bg-[#0b0f19]/80 border border-[#1e293b] rounded-2xl p-5 shadow-lg">
+                  <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+                    <h3 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Flame className="w-4 h-4 text-amber-400" />
+                      <span>Most Visited Wiki Pages</span>
+                    </h3>
+                    <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded font-bold">
+                      Ranked by Total Views
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-[#1e293b] text-slate-400 font-bold text-[11px]">
+                          <th className="py-2.5 px-2">Rank</th>
+                          <th className="py-2.5 px-2">Article</th>
+                          <th className="py-2.5 px-2 text-center">Category</th>
+                          <th className="py-2.5 px-2 text-right">Views</th>
+                          <th className="py-2.5 px-2 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1e293b]/60 text-slate-300">
+                        {(() => {
+                          const list = (analyticsData?.mostVisited || pages.map(p => ({
+                            id: p.id,
+                            title: p.title,
+                            category: p.category,
+                            views: p.views || 0
+                          }))).filter((item: any) => {
+                            if (!analyticsFilter) return true;
+                            const query = analyticsFilter.toLowerCase();
+                            return (item.title || '').toLowerCase().includes(query) ||
+                                   (item.category || '').toLowerCase().includes(query) ||
+                                   (item.id || item.slug || '').toLowerCase().includes(query);
+                          });
+
+                          if (list.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={5} className="py-6 text-center text-slate-500 italic">
+                                  No article analytics records found.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          const maxViews = Math.max(...list.map((i: any) => i.views || 0), 1);
+
+                          return list.map((item: any, idx: number) => {
+                            const views = item.views || 0;
+                            const percentage = Math.min(Math.round((views / maxViews) * 100), 100);
+
+                            return (
+                              <tr key={item.id || idx} className="hover:bg-[#111827] transition-colors">
+                                <td className="py-3 px-2 font-mono font-bold">
+                                  {idx === 0 ? (
+                                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">#1 🥇</span>
+                                  ) : idx === 1 ? (
+                                    <span className="px-2 py-0.5 rounded bg-slate-400/20 text-slate-200 border border-slate-400/30 text-[10px]">#2 🥈</span>
+                                  ) : idx === 2 ? (
+                                    <span className="px-2 py-0.5 rounded bg-amber-700/20 text-amber-500 border border-amber-700/30 text-[10px]">#3 🥉</span>
+                                  ) : (
+                                    <span className="text-slate-500 pl-1">#{idx + 1}</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-2">
+                                  <div className="font-bold text-white truncate max-w-[150px] sm:max-w-[180px]" title={item.title}>
+                                    {item.title}
+                                  </div>
+                                  <div className="w-24 bg-slate-800 rounded-full h-1 mt-1.5 overflow-hidden">
+                                    <div
+                                      className="bg-sky-400 h-full rounded-full transition-all duration-500"
+                                      style={{ width: `${percentage}%` }}
+                                    ></div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2 text-center">
+                                  <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-medium capitalize">
+                                    {item.category || 'general'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-2 text-right font-mono font-bold text-sky-400">
+                                  {views.toLocaleString()}
+                                </td>
+                                <td className="py-3 px-2 text-center">
+                                  <button
+                                    onClick={() => onSelectPage(item.id || item.slug)}
+                                    className="px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold transition cursor-pointer"
+                                  >
+                                    View Page
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* 2. Most Favorited Pages Table */}
+                <div className="space-y-3 bg-[#0b0f19]/80 border border-[#1e293b] rounded-2xl p-5 shadow-lg">
+                  <div className="flex items-center justify-between border-b border-[#1e293b] pb-3">
+                    <h3 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-rose-400 fill-rose-500/30" />
+                      <span>Most Favorited Wiki Articles</span>
+                    </h3>
+                    <span className="text-[10px] font-mono text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded font-bold">
+                      Ranked by Favorites Count
+                    </span>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="border-b border-[#1e293b] text-slate-400 font-bold text-[11px]">
+                          <th className="py-2.5 px-2">Rank</th>
+                          <th className="py-2.5 px-2">Article</th>
+                          <th className="py-2.5 px-2 text-center">Category</th>
+                          <th className="py-2.5 px-2 text-right">Favorites</th>
+                          <th className="py-2.5 px-2 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#1e293b]/60 text-slate-300">
+                        {(() => {
+                          const list = (analyticsData?.mostFavorited || pages.map(p => ({
+                            id: p.id,
+                            title: p.title,
+                            category: p.category,
+                            favorites_count: 0
+                          }))).filter((item: any) => {
+                            if (!analyticsFilter) return true;
+                            const query = analyticsFilter.toLowerCase();
+                            return (item.title || '').toLowerCase().includes(query) ||
+                                   (item.category || '').toLowerCase().includes(query) ||
+                                   (item.id || item.slug || '').toLowerCase().includes(query);
+                          });
+
+                          if (list.length === 0) {
+                            return (
+                              <tr>
+                                <td colSpan={5} className="py-6 text-center text-slate-500 italic">
+                                  No favorites analytics records found.
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          return list.map((item: any, idx: number) => {
+                            const favCount = item.favorites_count || 0;
+
+                            return (
+                              <tr key={item.id || idx} className="hover:bg-[#111827] transition-colors">
+                                <td className="py-3 px-2 font-mono font-bold">
+                                  {idx === 0 ? (
+                                    <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 text-[10px]">#1 ❤️</span>
+                                  ) : idx === 1 ? (
+                                    <span className="px-2 py-0.5 rounded bg-slate-400/20 text-slate-200 border border-slate-400/30 text-[10px]">#2</span>
+                                  ) : idx === 2 ? (
+                                    <span className="px-2 py-0.5 rounded bg-amber-700/20 text-amber-500 border border-amber-700/30 text-[10px]">#3</span>
+                                  ) : (
+                                    <span className="text-slate-500 pl-1">#{idx + 1}</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-2">
+                                  <div className="font-bold text-white truncate max-w-[150px] sm:max-w-[180px]" title={item.title}>
+                                    {item.title}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2 text-center">
+                                  <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-medium capitalize">
+                                    {item.category || 'general'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-2 text-right">
+                                  <span className="px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono font-bold text-[11px] inline-flex items-center gap-1">
+                                    <Heart className="w-3 h-3 fill-rose-500" />
+                                    <span>{favCount}</span>
+                                  </span>
+                                </td>
+                                <td className="py-3 px-2 text-center">
+                                  <button
+                                    onClick={() => onSelectPage(item.id || item.slug)}
+                                    className="px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 text-[10px] font-bold transition cursor-pointer"
+                                  >
+                                    View Page
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          )}
         </div>
       )}
 

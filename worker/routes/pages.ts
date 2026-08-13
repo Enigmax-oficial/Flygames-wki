@@ -45,6 +45,11 @@ export async function ensureSchema(env: Env): Promise<void> {
     } catch (e) {
       // Ignore if column already exists
     }
+    try {
+      await env.mysql.exec('ALTER TABLE pages ADD COLUMN views INTEGER DEFAULT 0;');
+    } catch (e) {
+      // Ignore if column already exists
+    }
     schemaInitialized = true;
   } catch (err) {
     console.error('Failed to ensure D1 pages table schema:', err);
@@ -58,6 +63,16 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
   const pathParts = url.pathname.split('/').filter(Boolean); // e.g. ["pages"] or ["pages", "some-slug"]
 
   try {
+    // POST /pages/:slug/view (Increment page view count)
+    if (method === 'POST' && pathParts.length === 3 && pathParts[2] === 'view') {
+      const slugOrId = pathParts[1];
+      const cleanedSlug = generateSlug(slugOrId);
+      await env.mysql.prepare(
+        'UPDATE pages SET views = COALESCE(views, 0) + 1 WHERE slug = ? OR slug = ? OR id = ?'
+      ).bind(slugOrId, cleanedSlug, slugOrId).run();
+      return jsonResponse({ success: true }, 200, corsHeaders);
+    }
+
     // GET /pages
     if (method === 'GET' && pathParts.length === 1) {
       const limitParam = url.searchParams.get('limit');
@@ -66,7 +81,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const offset = Math.max(parseInt(offsetParam || '0', 10) || 0, 0);
 
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, category, image_url, created_at, updated_at FROM pages ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, created_at, updated_at FROM pages ORDER BY updated_at DESC LIMIT ? OFFSET ?'
       ).bind(limit, offset);
 
       const { results, success, error } = await stmt.all<PageRecord>();
@@ -82,7 +97,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const slugOrId = pathParts[1];
       const cleanedSlug = generateSlug(slugOrId);
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, category, image_url, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
+        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
       ).bind(slugOrId, cleanedSlug, slugOrId);
 
       const page = await stmt.first<PageRecord>();

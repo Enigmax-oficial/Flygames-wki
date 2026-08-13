@@ -122,6 +122,7 @@ export interface WikiPage {
   }>;
 
   // Custom metadata / KV
+  views?: number;
   customProperties?: Record<string, string>;
 }
 

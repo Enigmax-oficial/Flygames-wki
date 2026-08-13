@@ -103,10 +103,40 @@ export function extractAuthToken(request: Request): string | null {
   return null;
 }
 
-export async function authenticateRequest(request: Request): Promise<UserPayload | null> {
+export async function authenticateRequest(request: Request, env?: Env): Promise<UserPayload | null> {
   const token = extractAuthToken(request);
-  if (!token) return null;
-  return await verifyToken(token);
+  if (token) {
+    const verified = await verifyToken(token);
+    if (verified) return verified;
+  }
+
+  // Fallback to X-User-Email header if present
+  const emailHeader = request.headers.get('X-User-Email') || request.headers.get('x-user-email');
+  if (emailHeader && emailHeader.includes('@') && env?.mysql) {
+    const cleanEmail = emailHeader.trim().toLowerCase();
+    try {
+      let existingUser = await env.mysql
+        .prepare('SELECT id, email FROM users WHERE email = ?')
+        .bind(cleanEmail)
+        .first<{ id: string; email: string }>();
+
+      if (existingUser) {
+        return { id: existingUser.id, email: existingUser.email };
+      } else {
+        const newId = 'usr_' + crypto.randomUUID();
+        const now = new Date().toISOString();
+        await env.mysql
+          .prepare('INSERT INTO users (id, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)')
+          .bind(newId, cleanEmail, 'session:header', now, now)
+          .run();
+        return { id: newId, email: cleanEmail };
+      }
+    } catch {
+      return { id: 'usr_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'), email: cleanEmail };
+    }
+  }
+
+  return null;
 }
 
 export async function handleAuthRequest(
@@ -330,7 +360,7 @@ export async function handleFavoritesRequest(
     });
   };
 
-  const currentUser = await authenticateRequest(request);
+  const currentUser = await authenticateRequest(request, env);
   if (!currentUser) {
     return jsonRes({ error: 'Unauthorized. Please log in.' }, 401);
   }

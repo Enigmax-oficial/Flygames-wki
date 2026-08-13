@@ -389,33 +389,92 @@ export const PageCreatorModal: React.FC<PageCreatorModalProps> = ({
               </div>
 
               {/* Icon Image Asset Selector */}
-              <div className="space-y-2 p-3.5 bg-[#070a12]/80 border border-[#1e293b] rounded-xl">
-                <label className="block text-sky-400 font-bold uppercase flex items-center gap-1.5">
-                  <Sword className="w-4 h-4 text-sky-400" />
-                  <span>Item Icon Asset</span>
-                </label>
-                <div className="flex flex-wrap gap-2 items-center">
-                  {Object.keys(ITEM_IMAGES).slice(0, 8).map((assetKey) => (
-                    <button
-                      type="button"
-                      key={assetKey}
-                      onClick={() => setIconAsset(assetKey)}
-                      className={`w-10 h-10 p-1 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
-                        iconAsset === assetKey ? 'bg-sky-500/20 border-sky-400 ring-2 ring-sky-400/30' : 'bg-[#111827] border-[#1e293b]'
-                      }`}
-                      title={assetKey}
-                    >
-                      <WikiIcon icon={assetKey} className="w-7 h-7" />
-                    </button>
-                  ))}
+              <div className="space-y-3 p-3.5 bg-[#070a12]/80 border border-[#1e293b] rounded-xl">
+                <div className="flex items-center justify-between">
+                  <label className="text-sky-400 font-bold uppercase flex items-center gap-1.5">
+                    <Sword className="w-4 h-4 text-sky-400" />
+                    <span>Page Icon Image / Asset</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">Assign image to page icon</span>
                 </div>
-                <input
-                  type="text"
-                  value={iconAsset}
-                  onChange={(e) => setIconAsset(e.target.value)}
-                  placeholder="Asset ID or Lucide name (e.g. aetheria:aetherial_sword, items, shield)"
-                  className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-1.5 text-white font-mono text-[11px] focus:outline-none"
-                />
+
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#111827] border border-sky-500/40 flex items-center justify-center shrink-0 overflow-hidden p-1 shadow-[0_0_10px_rgba(56,189,248,0.2)]">
+                    <WikiIcon icon={iconAsset} className="w-7 h-7 object-contain" />
+                  </div>
+
+                  <input
+                    type="text"
+                    value={iconAsset}
+                    onChange={(e) => setIconAsset(e.target.value)}
+                    placeholder="Image URL or Asset ID (e.g. /images/weapons/diamond_sword.png)"
+                    className="w-full bg-[#111827] border border-[#1e293b] focus:border-sky-400 rounded-xl px-3 py-2 text-white font-mono text-[11px] focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold mb-1.5">
+                    Quick Preset Icon Images:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto p-1 bg-[#111827] rounded-lg border border-[#1e293b]">
+                    {[
+                      '/images/weapons/diamond_sword.png',
+                      '/images/weapons/netherite_sword.png',
+                      '/images/weapons/gold_sword.png',
+                      '/images/weapons/iron_sword.png',
+                      '/images/tools/diamond_pickaxe.png',
+                      '/images/tools/diamond_axe.png',
+                      '/images/tools/netherite_axe.png',
+                      '/images/items/apple_golden.png',
+                      '/images/items/apple.png',
+                      '/images/categories/mobs.png',
+                      '/images/categories/items.png',
+                      '/images/categories/blocks.png',
+                      '/images/categories/biomes.png',
+                      'aetheria:aetherial_sword',
+                      'sword',
+                      'shield',
+                      'sparkles',
+                      'gem'
+                    ].map((imgKey) => (
+                      <button
+                        type="button"
+                        key={imgKey}
+                        onClick={() => setIconAsset(imgKey)}
+                        className={`w-8 h-8 p-1 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                          iconAsset === imgKey ? 'bg-sky-500/20 border-sky-400 ring-2 ring-sky-400/30' : 'bg-[#070a12] border-[#1e293b]'
+                        }`}
+                        title={imgKey}
+                      >
+                        <WikiIcon icon={imgKey} className="w-5 h-5 object-contain" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] pt-1 border-t border-[#1e293b]">
+                  <span className="text-slate-400">Upload custom icon image:</span>
+                  <label className="px-2 py-0.5 bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 rounded font-bold cursor-pointer transition">
+                    <span>Upload Image</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            if (ev.target?.result) {
+                              setIconAsset(ev.target.result as string);
+                            }
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
               </div>
 
               {/* Photos & Screenshots Gallery */}
