@@ -532,14 +532,14 @@ async function sendEmailVerification(email, username, env) {
   verificationCodesMap.set(cleanEmail, { code, expiresAt });
   const apiKey = env?.RESEND_API_KEY || typeof process !== "undefined" && process.env?.RESEND_API_KEY || DEFAULT_RESEND_API_KEY;
   const configuredFrom = env?.RESEND_FROM_EMAIL || typeof process !== "undefined" && process.env?.RESEND_FROM_EMAIL;
-  let primaryFromAddress = configuredFrom || "Wiki Team <noreply@flyerserver.uk>";
+  let primaryFromAddress = configuredFrom || "Wiki Team <noreply@flygames.flyerserver.uk>";
   if (primaryFromAddress.includes("@resend.dev") && !primaryFromAddress.includes("onboarding@resend.dev")) {
     primaryFromAddress = primaryFromAddress.replace(/<[^>]+>/, "<onboarding@resend.dev>").replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, "onboarding@resend.dev");
   }
   const resendClient = new import_resend.Resend(apiKey);
   let emailSent = false;
   let emailError = null;
-  const displaySenderEmail = primaryFromAddress.includes("<") ? primaryFromAddress.match(/<([^>]+)>/)?.[1] || "noreply@flyerserver.uk" : primaryFromAddress;
+  const displaySenderEmail = primaryFromAddress.includes("<") ? primaryFromAddress.match(/<([^>]+)>/)?.[1] || "noreply@flygames.flyerserver.uk" : primaryFromAddress;
   const emailHtml = `
     <!DOCTYPE html>
     <html>
@@ -1085,7 +1085,7 @@ async function handleAuthRequest(request, url, env, corsHeaders) {
     const toEmail = (body.to || "enigmaxhd20@gmail.com").trim();
     const apiKey = env?.RESEND_API_KEY || typeof process !== "undefined" && process.env?.RESEND_API_KEY || DEFAULT_RESEND_API_KEY;
     const resendClient = new import_resend.Resend(apiKey);
-    let fromAddress = env?.RESEND_FROM_EMAIL || typeof process !== "undefined" && process.env?.RESEND_FROM_EMAIL || "Wiki Team <noreply@flyerserver.uk>";
+    let fromAddress = env?.RESEND_FROM_EMAIL || typeof process !== "undefined" && process.env?.RESEND_FROM_EMAIL || "Wiki Team <noreply@flygames.flyerserver.uk>";
     if (fromAddress.includes("@resend.dev") && !fromAddress.includes("onboarding@resend.dev")) {
       fromAddress = fromAddress.replace(/<[^>]+>/, "<onboarding@resend.dev>").replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, "onboarding@resend.dev");
     }
@@ -1150,7 +1150,7 @@ async function handleAuthRequest(request, url, env, corsHeaders) {
       let rawError = result.error || "Failed to send verification email via Resend API.";
       let userFriendlyError = rawError;
       if (rawError.includes("Testing domain restriction") || rawError.includes("resend.dev") || rawError.includes("own email address") || rawError.includes("verify a domain") || rawError.includes("not verified")) {
-        userFriendlyError = `Resend Domain Notice: To send emails from @flyerserver.uk to all recipients, verify "flyerserver.uk" in your Resend Dashboard (https://resend.com/domains). In Resend test mode, emails can only be delivered to your Resend account owner email address.`;
+        userFriendlyError = `Resend Domain Notice: To send emails from @flygames.flyerserver.uk to all recipients, verify "flygames.flyerserver.uk" in your Resend Dashboard (https://resend.com/domains). In Resend test mode, emails can only be delivered to your Resend account owner email address.`;
       }
       return jsonRes({
         success: false,

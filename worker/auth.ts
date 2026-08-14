@@ -28,7 +28,7 @@ export async function sendEmailVerification(
 
   const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
   const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
-  let primaryFromAddress = configuredFrom || 'Wiki Team <noreply@flyerserver.uk>';
+  let primaryFromAddress = configuredFrom || 'Wiki Team <noreply@flygames.flyerserver.uk>';
 
   // Safety rewrite if using default resend.dev subdomains that require onboarding address
   if (primaryFromAddress.includes('@resend.dev') && !primaryFromAddress.includes('onboarding@resend.dev')) {
@@ -43,7 +43,7 @@ export async function sendEmailVerification(
   let emailError: string | null = null;
 
   const displaySenderEmail = primaryFromAddress.includes('<')
-    ? (primaryFromAddress.match(/<([^>]+)>/)?.[1] || 'noreply@flyerserver.uk')
+    ? (primaryFromAddress.match(/<([^>]+)>/)?.[1] || 'noreply@flygames.flyerserver.uk')
     : primaryFromAddress;
 
   const emailHtml = `
@@ -783,7 +783,7 @@ export async function handleAuthRequest(
     const toEmail = (body.to || 'enigmaxhd20@gmail.com').trim();
     const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
     const resendClient = new Resend(apiKey);
-    let fromAddress = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <noreply@flyerserver.uk>';
+    let fromAddress = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <noreply@flygames.flyerserver.uk>';
     if (fromAddress.includes('@resend.dev') && !fromAddress.includes('onboarding@resend.dev')) {
       fromAddress = fromAddress
         .replace(/<[^>]+>/, '<onboarding@resend.dev>')
@@ -873,7 +873,7 @@ export async function handleAuthRequest(
         rawError.includes('verify a domain') ||
         rawError.includes('not verified')
       ) {
-        userFriendlyError = `Resend Domain Notice: To send emails from @flyerserver.uk to all recipients, verify "flyerserver.uk" in your Resend Dashboard (https://resend.com/domains). In Resend test mode, emails can only be delivered to your Resend account owner email address.`;
+        userFriendlyError = `Resend Domain Notice: To send emails from @flygames.flyerserver.uk to all recipients, verify "flygames.flyerserver.uk" in your Resend Dashboard (https://resend.com/domains). In Resend test mode, emails can only be delivered to your Resend account owner email address.`;
       }
 
       return jsonRes({
