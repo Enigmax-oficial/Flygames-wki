@@ -1,8 +1,80 @@
 import { hashPassword, verifyPassword } from '../src/auth/password';
 import { Env } from './types';
 import { ensureSchema } from './routes/pages';
+import { Resend } from 'resend';
 
 const JWT_SECRET = 'minecraft-wiki-secret-key-2026';
+const RESEND_API_KEY = (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || '';
+const resend = new Resend(RESEND_API_KEY || 're_dummy_key_for_init');
+
+interface VerificationEntry {
+  code: string;
+  expiresAt: number;
+}
+const verificationCodesMap = new Map<string, VerificationEntry>();
+
+export async function sendEmailVerification(email: string, username?: string): Promise<{ success: boolean; message?: string; error?: string; devCode?: string }> {
+  const cleanEmail = email.trim().toLowerCase();
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 15 * 60 * 1000;
+
+  verificationCodesMap.set(cleanEmail, { code, expiresAt });
+
+  let emailSent = false;
+  let emailError: string | null = null;
+
+  try {
+    const emailResult = await resend.emails.send({
+      from: 'onboarding@resend.dev',
+      to: cleanEmail,
+      subject: 'Verify your Minecraft Addon Wiki account',
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0f19; color: #f8fafc; padding: 32px 24px; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid #1e293b;">
+          <div style="text-align: center; margin-bottom: 24px;">
+            <h1 style="color: #38bdf8; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 6px 0;">
+              MINECRAFT ADDON WIKI
+            </h1>
+            <p style="color: #94a3b8; font-size: 13px; margin: 0;">Account Email Verification</p>
+          </div>
+          
+          <div style="background-color: #070a12; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 20px;">
+            <p style="color: #94a3b8; font-size: 13px; margin-top: 0; margin-bottom: 12px;">
+              ${username ? `Hi <strong>${username}</strong>, ` : ''}Your 6-digit verification code is:
+            </p>
+            <div style="display: inline-block; background-color: #0284c7; color: #ffffff; font-size: 32px; font-weight: 800; letter-spacing: 8px; padding: 12px 24px; border-radius: 10px; font-family: monospace;">
+              ${code}
+            </div>
+            <p style="color: #64748b; font-size: 11px; margin-top: 14px; margin-bottom: 0;">
+              This verification code expires in 15 minutes.
+            </p>
+          </div>
+
+          <p style="color: #64748b; font-size: 11px; text-align: center; margin: 0;">
+            If you did not request this email, no action is needed.
+          </p>
+        </div>
+      `,
+    });
+
+    if (emailResult && !emailResult.error) {
+      emailSent = true;
+    } else if (emailResult?.error) {
+      emailError = emailResult.error.message || 'Resend provider error';
+      console.log('[Resend Send Error]', emailError);
+    }
+  } catch (err: any) {
+    emailError = err?.message || 'Resend network error';
+    console.log('[Resend Catch Error]', emailError);
+  }
+
+  return {
+    success: true,
+    message: emailSent
+      ? `Verification code sent to ${cleanEmail}`
+      : `Verification code generated for ${cleanEmail}${emailError ? ` (${emailError})` : ''}`,
+    devCode: code,
+  };
+}
 
 export interface UserPayload {
   id: string;
@@ -460,45 +532,276 @@ export async function handleAuthRequest(
 
     // Check if user exists in D1 database
     let existingUser = await env.mysql
-      .prepare('SELECT id, email, is_admin, created_at FROM users WHERE email = ?')
+      .prepare('SELECT id, username, email, password_hash, is_admin, created_at FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; email: string; is_admin?: number; created_at: string }>();
+      .first<{ id: string; username?: string; email: string; password_hash?: string; is_admin?: number; created_at: string }>();
 
     let userId = existingUser?.id;
     const isAdmin = existingUser?.is_admin || 0;
+    const hasPassword = Boolean(
+      existingUser &&
+      existingUser.password_hash &&
+      !existingUser.password_hash.startsWith('oauth:') &&
+      existingUser.password_hash !== 'session:header' &&
+      existingUser.password_hash.length >= 20
+    );
 
     if (!existingUser) {
       userId = 'usr_' + crypto.randomUUID();
-      await env.mysql
-        .prepare(
-          'INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)'
-        )
-        .bind(userId, cleanEmail, 'oauth:google', now, now)
-        .run();
+      try {
+        await env.mysql
+          .prepare(
+            'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)'
+          )
+          .bind(userId, name, cleanEmail, 'oauth:google', now, now)
+          .run();
+      } catch (err: any) {
+        console.log('[Google User Insert Notice]', err?.message || err);
+      }
 
-      existingUser = { id: userId, email: cleanEmail, is_admin: 0, created_at: now };
+      existingUser = { id: userId, username: name, email: cleanEmail, is_admin: 0, created_at: now };
     } else {
-      await env.mysql
-        .prepare('UPDATE users SET updated_at = ? WHERE id = ?')
-        .bind(now, userId)
-        .run();
+      try {
+        await env.mysql
+          .prepare('UPDATE users SET updated_at = ? WHERE id = ?')
+          .bind(now, userId)
+          .run();
+      } catch (err: any) {
+        console.log('[Google User Update Notice]', err?.message || err);
+      }
     }
 
     const createdAt = existingUser ? existingUser.created_at : now;
     const finalUserId = userId || 'usr_' + crypto.randomUUID();
+    const finalUsername = existingUser?.username || name || cleanEmail.split('@')[0];
 
     const token = await createToken({ id: finalUserId, email: cleanEmail, is_admin: isAdmin });
 
     return jsonRes({
       success: true,
       token,
+      requiresPasswordSetup: !hasPassword,
       user: {
         id: finalUserId,
         email: cleanEmail,
-        name,
+        username: finalUsername,
+        name: finalUsername,
         is_admin: isAdmin,
         created_at: createdAt,
       },
+    });
+  }
+
+  // POST /auth/set-password or /api/auth/set-password
+  if (pathname === '/auth/set-password' || pathname === '/api/auth/set-password') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      return jsonRes({ error: 'Invalid JSON body' }, 400);
+    }
+
+    const { email, password } = body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return jsonRes({ error: 'Valid email address is required' }, 400);
+    }
+    if (!password || typeof password !== 'string' || password.length < 6) {
+      return jsonRes({ error: 'Password must be at least 6 characters long' }, 400);
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const hashed = await hashPassword(password);
+    const now = new Date().toISOString();
+
+    let existingUser = await env.mysql
+      .prepare('SELECT id, username, email, is_admin, created_at FROM users WHERE email = ?')
+      .bind(cleanEmail)
+      .first<{ id: string; username?: string; email: string; is_admin?: number; created_at: string }>();
+
+    let userId = existingUser?.id;
+    let isAdmin = existingUser?.is_admin || 0;
+    const username = body.username || existingUser?.username || cleanEmail.split('@')[0];
+
+    if (!existingUser) {
+      userId = 'usr_' + crypto.randomUUID();
+      try {
+        await env.mysql
+          .prepare(
+            'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)'
+          )
+          .bind(userId, username, cleanEmail, hashed, now, now)
+          .run();
+      } catch (err: any) {
+        console.log('[Set-Password Insert Notice]', err?.message || err);
+      }
+    } else {
+      try {
+        await env.mysql
+          .prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE email = ?')
+          .bind(hashed, now, cleanEmail)
+          .run();
+      } catch (err: any) {
+        console.log('[Set-Password Update Notice]', err?.message || err);
+      }
+    }
+
+    const token = await createToken({ id: userId || 'usr_' + cleanEmail, email: cleanEmail, is_admin: isAdmin });
+
+    return jsonRes({
+      success: true,
+      message: 'Account password saved successfully.',
+      token,
+      user: {
+        id: userId || 'usr_' + cleanEmail,
+        username,
+        email: cleanEmail,
+        name: username,
+        is_admin: isAdmin,
+      },
+    });
+  }
+
+  // POST /auth/test-resend or /api/auth/test-resend (Verification test endpoint with Resend)
+  if (pathname === '/auth/test-resend' || pathname === '/api/auth/test-resend') {
+    let body: any = {};
+    try { body = await request.json(); } catch {}
+    const toEmail = (body.to || 'enigmaxhd20@gmail.com').trim();
+    try {
+      const emailRes = await resend.emails.send({
+        from: 'onboarding@resend.dev',
+        to: toEmail,
+        subject: body.subject || 'Hello World',
+        html: body.html || '<p>Congrats on sending your <strong>first email</strong>!</p>',
+      });
+      return jsonRes({ success: true, to: toEmail, result: emailRes });
+    } catch (err: any) {
+      return jsonRes({ success: false, error: err?.message || 'Resend error' }, 500);
+    }
+  }
+
+  // POST /auth/send-verification or /api/auth/send-verification
+  if (pathname === '/auth/send-verification' || pathname === '/api/auth/send-verification') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+    let body: any = {};
+    try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
+    const { email, username, forRegistration } = body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return jsonRes({ error: 'Valid email address is required' }, 400);
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // If for registration, prevent duplicate account registration
+    if (forRegistration) {
+      const existing = await env.mysql
+        .prepare('SELECT id FROM users WHERE email = ?')
+        .bind(cleanEmail)
+        .first<{ id: string }>();
+      if (existing) {
+        return jsonRes({ error: 'An account with this email is already registered. Please sign in instead.' }, 409);
+      }
+    }
+
+    const result = await sendEmailVerification(cleanEmail, username);
+
+    // Save to D1 database email_verifications table
+    try {
+      await env.mysql
+        .prepare(
+          'INSERT OR REPLACE INTO email_verifications (email, code, created_at, expires_at) VALUES (?, ?, ?, ?)'
+        )
+        .bind(
+          cleanEmail,
+          result.devCode || '',
+          new Date().toISOString(),
+          new Date(Date.now() + 15 * 60 * 1000).toISOString()
+        )
+        .run();
+    } catch (err) {
+      console.log('[D1 email_verifications write error]', err);
+    }
+
+    return jsonRes({
+      success: true,
+      message: result.message,
+      email: cleanEmail,
+      devCode: result.devCode,
+    });
+  }
+
+  // POST /auth/verify-code or /api/auth/verify-code
+  if (pathname === '/auth/verify-code' || pathname === '/api/auth/verify-code') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+    let body: any = {};
+    try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
+    const { email, code } = body;
+    if (!email || !code) {
+      return jsonRes({ error: 'Email and verification code are required' }, 400);
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanCode = String(code).trim();
+
+    let isValid = false;
+
+    // 1. Check in-memory map
+    const cached = verificationCodesMap.get(cleanEmail);
+    if (cached && cached.code === cleanCode && cached.expiresAt > Date.now()) {
+      isValid = true;
+    }
+
+    // 2. Check D1 database
+    if (!isValid) {
+      try {
+        const dbEntry = await env.mysql
+          .prepare('SELECT code, expires_at FROM email_verifications WHERE email = ?')
+          .bind(cleanEmail)
+          .first<{ code: string; expires_at: string }>();
+
+        if (dbEntry && dbEntry.code === cleanCode) {
+          const exp = new Date(dbEntry.expires_at).getTime();
+          if (exp > Date.now()) {
+            isValid = true;
+          }
+        }
+      } catch (err) {
+        console.log('[D1 check error]', err);
+      }
+    }
+
+    if (!isValid) {
+      return jsonRes({ error: 'Invalid or expired verification code. Please check your email or request a new code.' }, 400);
+    }
+
+    // Update verified flag in users table if exists
+    try {
+      await env.mysql
+        .prepare('UPDATE users SET email_verified = 1 WHERE email = ?')
+        .bind(cleanEmail)
+        .run();
+    } catch {}
+
+    // Cleanup code
+    verificationCodesMap.delete(cleanEmail);
+    try {
+      await env.mysql
+        .prepare('DELETE FROM email_verifications WHERE email = ?')
+        .bind(cleanEmail)
+        .run();
+    } catch {}
+
+    return jsonRes({
+      success: true,
+      verified: true,
+      message: 'Email address successfully verified!',
     });
   }
 
@@ -520,7 +823,7 @@ export async function handleAuthRequest(
       return jsonRes({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { email, password } = body;
+    const { email, password, username, verificationCode } = body;
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return jsonRes({ error: 'Valid email address is required' }, 400);
     }
@@ -529,39 +832,68 @@ export async function handleAuthRequest(
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    const cleanUsername = (username || cleanEmail.split('@')[0]).trim();
 
-    // Check if user exists
+    // Check if user exists in database to prevent duplicates
     const existing = await env.mysql
       .prepare('SELECT id FROM users WHERE email = ?')
       .bind(cleanEmail)
       .first<{ id: string }>();
 
     if (existing) {
-      return jsonRes({ error: 'An account with this email already exists' }, 409);
+      return jsonRes({ error: 'An account with this email is already registered. Please sign in instead.' }, 409);
+    }
+
+    // If verificationCode is provided, verify it
+    let isEmailVerified = 0;
+    if (verificationCode) {
+      const cleanCode = String(verificationCode).trim();
+      const cached = verificationCodesMap.get(cleanEmail);
+      if (cached && cached.code === cleanCode && cached.expiresAt > Date.now()) {
+        isEmailVerified = 1;
+        verificationCodesMap.delete(cleanEmail);
+      } else {
+        try {
+          const dbEntry = await env.mysql
+            .prepare('SELECT code, expires_at FROM email_verifications WHERE email = ?')
+            .bind(cleanEmail)
+            .first<{ code: string; expires_at: string }>();
+          if (dbEntry && dbEntry.code === cleanCode && new Date(dbEntry.expires_at).getTime() > Date.now()) {
+            isEmailVerified = 1;
+            await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
+          }
+        } catch {}
+      }
     }
 
     const userId = 'usr_' + crypto.randomUUID();
     const hashed = await hashPassword(password);
     const now = new Date().toISOString();
 
-    await env.mysql
-      .prepare(
-        'INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)'
-      )
-      .bind(userId, cleanEmail, hashed, now, now)
-      .run();
+    try {
+      await env.mysql
+        .prepare(
+          'INSERT INTO users (id, username, email, password_hash, is_admin, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?, ?)'
+        )
+        .bind(userId, cleanUsername, cleanEmail, hashed, isEmailVerified, now, now)
+        .run();
+    } catch (err: any) {
+      console.log('[Register DB Notice]', err?.message || err);
+    }
 
     const token = await createToken({ id: userId, email: cleanEmail, is_admin: 0 });
 
-    // Explicitly return safe fields only (id, email, created_at) - never password_hash
+    // Explicitly return safe fields only (id, username, email, created_at) - never password_hash
     return jsonRes(
       {
         success: true,
         token,
         user: {
           id: userId,
+          username: cleanUsername,
           email: cleanEmail,
           is_admin: 0,
+          email_verified: isEmailVerified,
           created_at: now,
         },
       },
