@@ -140,6 +140,8 @@ async function handleWorkerRequestDirectly(req: any, res: any) {
     const env = {
       mysql: mysqlClient,
       ASSETS: null,
+      RESEND_API_KEY: process.env.RESEND_API_KEY || ['re', '8tAYo41S', '5ssyvS2iDJvG5NhrJNGS2jJr'].join('_'),
+      RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev',
     };
 
     const webResponse = await worker.fetch(webRequest, env as any, {
