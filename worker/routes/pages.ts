@@ -40,18 +40,37 @@ export async function ensureSchema(env: Env): Promise<void> {
       'CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT NOT NULL, category TEXT DEFAULT "guides", image_url TEXT, views INTEGER NOT NULL DEFAULT 0, view_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
     );
     await env.mysql.exec(
+      'CREATE TABLE IF NOT EXISTS pages_contains (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT NOT NULL, category TEXT DEFAULT "guides", image_url TEXT, views INTEGER NOT NULL DEFAULT 0, view_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
+    );
+    await env.mysql.exec(
+      'CREATE INDEX IF NOT EXISTS idx_pages_contains_slug ON pages_contains(slug);'
+    );
+    await env.mysql.exec(
+      'CREATE UNIQUE INDEX IF NOT EXISTS idx_pages_contains_title_unique ON pages_contains(title);'
+    );
+    await env.mysql.exec(
+      'CREATE INDEX IF NOT EXISTS idx_pages_contains_category_updated ON pages_contains(category, updated_at DESC);'
+    );
+
+    await env.mysql.exec(
       'CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY NOT NULL, username TEXT, email TEXT NOT NULL UNIQUE, password_hash TEXT, is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0, 1)), email_verified INTEGER NOT NULL DEFAULT 0 CHECK (email_verified IN (0, 1)), created_at TEXT NOT NULL, updated_at TEXT);'
     );
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS page_contents (page_id TEXT PRIMARY KEY NOT NULL, content_markdown TEXT NOT NULL, raw_json TEXT, FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE);'
+      'CREATE TABLE IF NOT EXISTS page_contents (page_id TEXT PRIMARY KEY NOT NULL, content_markdown TEXT NOT NULL, raw_json TEXT, FOREIGN KEY (page_id) REFERENCES pages_contains(id) ON DELETE CASCADE);'
     );
 
     // 3. User Favorites Table (Composite PK + WITHOUT ROWID + FK Constraints)
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS user_favorites (user_id TEXT NOT NULL, page_id TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (user_id, page_id), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE) WITHOUT ROWID;'
+      'CREATE TABLE IF NOT EXISTS user_favorites (user_id TEXT NOT NULL, page_id TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (user_id, page_id), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (page_id) REFERENCES pages_contains(id) ON DELETE CASCADE) WITHOUT ROWID;'
+    );
+    await env.mysql.exec(
+      'CREATE TABLE IF NOT EXISTS users_favorites (user_id TEXT NOT NULL, page_id TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (user_id, page_id), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (page_id) REFERENCES pages_contains(id) ON DELETE CASCADE) WITHOUT ROWID;'
     );
     await env.mysql.exec(
       'CREATE INDEX IF NOT EXISTS idx_user_favorites_page_id ON user_favorites(page_id);'
+    );
+    await env.mysql.exec(
+      'CREATE INDEX IF NOT EXISTS idx_users_favorites_page_id ON users_favorites(page_id);'
     );
 
     // 4. Migrate data from legacy 'favorites' table if it exists
@@ -59,15 +78,27 @@ export async function ensureSchema(env: Env): Promise<void> {
       const legacyCheck = await env.mysql.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='favorites'").first();
       if (legacyCheck) {
         await env.mysql.exec(
-          'INSERT OR IGNORE INTO user_favorites (user_id, page_id, created_at) SELECT user_id, page_id, created_at FROM favorites;'
+          'INSERT OR IGNORE INTO users_favorites (user_id, page_id, created_at) SELECT user_id, page_id, created_at FROM favorites;'
         );
       }
     } catch {
       // Legacy table migration check completed
     }
 
+    // Migrate from 'user_favorites' to 'users_favorites' and from 'pages' to 'pages_contains'
+    try {
+      await env.mysql.exec('INSERT OR IGNORE INTO pages_contains SELECT * FROM pages;');
+    } catch {
+      // Pages migration notice
+    }
+    try {
+      await env.mysql.exec('INSERT OR IGNORE INTO users_favorites SELECT * FROM user_favorites;');
+    } catch {
+      // Favorites migration notice
+    }
+
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS comments (id TEXT PRIMARY KEY NOT NULL, page_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, comment TEXT NOT NULL, created_at TEXT NOT NULL, FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE);'
+      'CREATE TABLE IF NOT EXISTS comments (id TEXT PRIMARY KEY NOT NULL, page_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, comment TEXT NOT NULL, created_at TEXT NOT NULL, FOREIGN KEY (page_id) REFERENCES pages_contains(id) ON DELETE CASCADE);'
     );
     await env.mysql.exec(
       'CREATE TABLE IF NOT EXISTS adm (id TEXT PRIMARY KEY, username TEXT, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL);'
@@ -110,6 +141,12 @@ export async function ensureSchema(env: Env): Promise<void> {
     await addColumn('pages', 'image_url', 'TEXT');
     await addColumn('pages', 'views', 'INTEGER DEFAULT 0');
     await addColumn('pages', 'view_count', 'INTEGER DEFAULT 0');
+
+    await addColumn('pages_contains', 'category', 'TEXT DEFAULT "guides"');
+    await addColumn('pages_contains', 'image_url', 'TEXT');
+    await addColumn('pages_contains', 'views', 'INTEGER DEFAULT 0');
+    await addColumn('pages_contains', 'view_count', 'INTEGER DEFAULT 0');
+
     await addColumn('users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0');
     await addColumn('users', 'username', 'TEXT');
     await addColumn('users', 'email_verified', 'INTEGER DEFAULT 0');
@@ -133,7 +170,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const slugOrId = pathParts[1];
       const cleanedSlug = generateSlug(slugOrId);
       await env.mysql.prepare(
-        'UPDATE pages SET views = COALESCE(views, 0) + 1, view_count = COALESCE(view_count, 0) + 1 WHERE slug = ? OR slug = ? OR id = ?'
+        'UPDATE pages_contains SET views = COALESCE(views, 0) + 1, view_count = COALESCE(view_count, 0) + 1 WHERE slug = ? OR slug = ? OR id = ?'
       ).bind(slugOrId, cleanedSlug, slugOrId).run();
       return jsonResponse({ success: true }, 200, corsHeaders);
     }
@@ -146,7 +183,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const offset = Math.max(parseInt(offsetParam || '0', 10) || 0, 0);
 
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, COALESCE(view_count, 0) as view_count, created_at, updated_at FROM pages ORDER BY updated_at DESC LIMIT ? OFFSET ?'
+        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, COALESCE(view_count, 0) as view_count, created_at, updated_at FROM pages_contains ORDER BY updated_at DESC LIMIT ? OFFSET ?'
       ).bind(limit, offset);
 
       const { results, success, error } = await stmt.all<PageRecord>();
@@ -163,7 +200,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       const slugOrId = pathParts[1];
       const cleanedSlug = generateSlug(slugOrId);
       const stmt = env.mysql.prepare(
-        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, COALESCE(view_count, 0) as view_count, created_at, updated_at FROM pages WHERE slug = ? OR slug = ? OR id = ?'
+        'SELECT id, title, slug, content, category, image_url, COALESCE(views, 0) as views, COALESCE(view_count, 0) as view_count, created_at, updated_at FROM pages_contains WHERE slug = ? OR slug = ? OR id = ?'
       ).bind(slugOrId, cleanedSlug, slugOrId);
 
       const page = await stmt.first<PageRecord>();
@@ -196,7 +233,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       }
 
       // Check if title already exists
-      const existingTitle = await env.mysql.prepare('SELECT id FROM pages WHERE title = ?').bind(title).first();
+      const existingTitle = await env.mysql.prepare('SELECT id FROM pages_contains WHERE title = ?').bind(title).first();
       if (existingTitle) {
         return jsonResponse({ error: `A page with this title already exists: '${title}'`, field: 'title' }, 409, corsHeaders);
       }
@@ -210,7 +247,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       let finalSlug = slug;
       let counter = 1;
       while (true) {
-        const existing = await env.mysql.prepare('SELECT id FROM pages WHERE slug = ?').bind(finalSlug).first();
+        const existing = await env.mysql.prepare('SELECT id FROM pages_contains WHERE slug = ?').bind(finalSlug).first();
         if (!existing) break;
         finalSlug = `${slug}-${Math.random().toString(36).substring(2, 6)}`;
         counter++;
@@ -226,7 +263,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
       console.log(`[DIAGNOSTIC] INSERTing into pages: ID="${id}", TITLE="${title}", SLUG="${finalSlug}", CATEGORY="${category}", IMAGE="${imageUrl}"`);
 
       const insertStmt = env.mysql.prepare(
-        'INSERT INTO pages (id, title, slug, content, category, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO pages_contains (id, title, slug, content, category, image_url, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
       ).bind(id, title, finalSlug, content, category, imageUrl || null, now, now);
 
       let result;
@@ -272,7 +309,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
         return jsonResponse({ error: 'Invalid JSON body', field: 'body' }, 400, corsHeaders);
       }
 
-      const existing = await env.mysql.prepare('SELECT id, title, slug, content, category, image_url, created_at FROM pages WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
+      const existing = await env.mysql.prepare('SELECT id, title, slug, content, category, image_url, created_at FROM pages_contains WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
       if (!existing) {
         return jsonResponse({ error: `Page not found: '${slugOrId}'` }, 404, corsHeaders);
       }
@@ -292,7 +329,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
 
       let finalNewSlug = newSlug;
       if (finalNewSlug !== existing.slug) {
-        const conflict = await env.mysql.prepare('SELECT id FROM pages WHERE slug = ?').bind(finalNewSlug).first();
+        const conflict = await env.mysql.prepare('SELECT id FROM pages_contains WHERE slug = ?').bind(finalNewSlug).first();
         if (conflict) {
           finalNewSlug = `${newSlug}-${Math.random().toString(36).substring(2, 6)}`;
         }
@@ -300,7 +337,7 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
 
       const now = new Date().toISOString();
       const updateStmt = env.mysql.prepare(
-        'UPDATE pages SET title = ?, slug = ?, content = ?, category = ?, image_url = ?, updated_at = ? WHERE id = ?'
+        'UPDATE pages_contains SET title = ?, slug = ?, content = ?, category = ?, image_url = ?, updated_at = ? WHERE id = ?'
       ).bind(title, finalNewSlug, content, category, imageUrl || null, now, existing.id);
 
       const { success, error } = await updateStmt.run();
@@ -326,12 +363,12 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
     if (method === 'DELETE' && pathParts.length === 2) {
       const slugOrId = pathParts[1];
       const cleanedSlug = generateSlug(slugOrId);
-      const existing = await env.mysql.prepare('SELECT id, slug FROM pages WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
+      const existing = await env.mysql.prepare('SELECT id, slug FROM pages_contains WHERE slug = ? OR slug = ? OR id = ?').bind(slugOrId, cleanedSlug, slugOrId).first<PageRecord>();
       if (!existing) {
         return jsonResponse({ error: `Page not found: '${slugOrId}'` }, 404, corsHeaders);
       }
 
-      const deleteStmt = env.mysql.prepare('DELETE FROM pages WHERE id = ?').bind(existing.id);
+      const deleteStmt = env.mysql.prepare('DELETE FROM pages_contains WHERE id = ?').bind(existing.id);
       const { success, error } = await deleteStmt.run();
       if (!success) {
         throw new Error(error || 'Failed to delete page from D1');

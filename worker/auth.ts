@@ -22,13 +22,13 @@ export async function sendEmailVerification(
   // Generate random 6-digit verification code
   const randomNum = Math.floor(100000 + Math.random() * 900000);
   const code = randomNum.toString();
-  const expiresAt = Date.now() + 15 * 60 * 1000;
+  const expiresAt = Date.now() + 5 * 60 * 1000;
 
   verificationCodesMap.set(cleanEmail, { code, expiresAt });
 
   const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
   const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
-  const primaryFromAddress = configuredFrom || 'Wiki Team <wkiteam@noreply.flyerserver.uk>';
+  const primaryFromAddress = configuredFrom || 'Wiki Team <wkiteam@noreply>';
 
   const resendClient = new Resend(apiKey);
 
@@ -117,20 +117,27 @@ export async function sendEmailVerification(
   `;
 
   try {
-    const emailResult = await resendClient.emails.send({
-      from: primaryFromAddress,
-      to: cleanEmail,
-      subject: `[Wiki Team] Your Verification Code: ${code}`,
-      html: emailHtml,
-    });
+    try {
+      const emailResult = await resendClient.emails.send({
+        from: primaryFromAddress,
+        to: cleanEmail,
+        subject: `[Wiki Team] Your Verification Code: ${code}`,
+        html: emailHtml,
+      });
 
-    if (emailResult && !emailResult.error && (emailResult as any).data?.id) {
-      emailSent = true;
-      emailError = null;
-    } else if (emailResult?.error) {
-      emailError = emailResult.error.message || 'Resend error';
-      console.log('[Resend Primary Send Notice]', emailError);
+      if (emailResult && !emailResult.error && (emailResult as any).data?.id) {
+        emailSent = true;
+        emailError = null;
+      } else if (emailResult?.error) {
+        emailError = emailResult.error.message || 'Resend error';
+        console.log('[Resend Primary Send Notice]', emailError);
+      }
+    } catch (primaryErr: any) {
+      emailError = primaryErr?.message || 'Primary send threw error';
+      console.log('[Resend Primary Send Exception]', emailError);
+    }
 
+    if (!emailSent) {
       // Attempt fallback with onboarding@resend.dev
       try {
         const fallbackRes = await resendClient.emails.send({
@@ -764,7 +771,7 @@ export async function handleAuthRequest(
     const resendClient = new Resend(apiKey);
     try {
       const emailRes = await resendClient.emails.send({
-        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <wkiteam@noreply.flyerserver.uk>',
+        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <wkiteam@noreply>',
         to: toEmail,
         subject: body.subject || 'Hello World',
         html: body.html || '<p>Congrats on sending your <strong>first email</strong>!</p>',
@@ -820,7 +827,7 @@ export async function handleAuthRequest(
           cleanUsername,
           passwordHash,
           new Date().toISOString(),
-          new Date(Date.now() + 15 * 60 * 1000).toISOString()
+          new Date(Date.now() + 5 * 60 * 1000).toISOString()
         )
         .run();
     } catch (err) {
@@ -837,7 +844,7 @@ export async function handleAuthRequest(
       devCode: !result.emailSent ? result.code : undefined,
       deliveryNotice: !result.emailSent
         ? (result.error?.includes('domain') || result.error?.includes('verify')
-            ? 'The domain noreply.flyerserver.uk is not yet verified on resend.com. Your code is provided for instant testing.'
+            ? 'The domain is not yet verified on resend.com. Your code is provided for instant testing.'
             : 'Resend sandbox mode is active. Your verification code is provided below for immediate testing.')
         : undefined,
     });
@@ -1228,8 +1235,8 @@ export async function handleFavoritesRequest(
     const { results } = await env.mysql
       .prepare(
         `SELECT f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.content, p.image_url, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
-         FROM user_favorites f
-         JOIN pages p ON (f.page_id = p.id OR f.page_id = p.slug)
+         FROM users_favorites f
+         JOIN pages_contains p ON (f.page_id = p.id OR f.page_id = p.slug)
          WHERE f.user_id = ? OR f.user_id = ?
          ORDER BY f.created_at DESC`
       )
@@ -1263,7 +1270,7 @@ export async function handleFavoritesRequest(
 
     // Check page existence (by id or slug)
     const pageExists = await env.mysql
-      .prepare('SELECT id, slug FROM pages WHERE id = ? OR slug = ?')
+      .prepare('SELECT id, slug FROM pages_contains WHERE id = ? OR slug = ?')
       .bind(targetPageId, targetPageId)
       .first<{ id: string; slug: string }>();
 
@@ -1277,7 +1284,7 @@ export async function handleFavoritesRequest(
     try {
       await env.mysql
         .prepare(
-          'INSERT INTO user_favorites (user_id, page_id, created_at) VALUES (?, ?, ?)'
+          'INSERT INTO users_favorites (user_id, page_id, created_at) VALUES (?, ?, ?)'
         )
         .bind(currentUser.id, actualPageId, now)
         .run();
@@ -1310,7 +1317,7 @@ export async function handleFavoritesRequest(
 
     await env.mysql
       .prepare(
-        'DELETE FROM user_favorites WHERE (user_id = ? OR user_id = ?) AND (page_id = ? OR page_id IN (SELECT id FROM pages WHERE slug = ? OR id = ?))'
+        'DELETE FROM users_favorites WHERE (user_id = ? OR user_id = ?) AND (page_id = ? OR page_id IN (SELECT id FROM pages_contains WHERE slug = ? OR id = ?))'
       )
       .bind(currentUser.id, currentUser.email, targetPageId, targetPageId, targetPageId)
       .run();
