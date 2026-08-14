@@ -853,16 +853,21 @@ export async function handleAuthRequest(
       }
     }
 
-    // Delete record from email_verifications table so it leaves the verification table
+    // Invalidate the in-memory map entry immediately
     verificationCodesMap.delete(cleanEmail);
-    try {
-      await env.mysql
-        .prepare('DELETE FROM email_verifications WHERE email = ?')
-        .bind(cleanEmail)
-        .run();
-    } catch (err) {
-      console.log('[D1 delete verification error]', err);
-    }
+
+    // Remove the verified email from email_verifications table after a 3-second delay
+    // This prevents race condition errors during simultaneous retries while saving database space, leaving data strictly in the users section
+    setTimeout(async () => {
+      try {
+        await env.mysql
+          .prepare('DELETE FROM email_verifications WHERE email = ?')
+          .bind(cleanEmail)
+          .run();
+      } catch (err) {
+        console.log('[D1 delayed delete verification notice]', err);
+      }
+    }, 3000);
 
     const token = await createToken({ id: userId, email: cleanEmail, is_admin: isAdmin });
 
@@ -938,7 +943,11 @@ export async function handleAuthRequest(
             .first<{ code: string; expires_at: string }>();
           if (dbEntry && dbEntry.code === cleanCode && new Date(dbEntry.expires_at).getTime() > Date.now()) {
             isEmailVerified = 1;
-            await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
+            setTimeout(async () => {
+              try {
+                await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
+              } catch {}
+            }, 3000);
           }
         } catch {}
       }

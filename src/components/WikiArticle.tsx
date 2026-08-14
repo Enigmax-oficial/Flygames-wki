@@ -28,6 +28,7 @@ import { WikiImageGallery, GalleryItem } from './WikiImageGallery';
 import { WikiComments } from './WikiComments';
 import { WikiIcon } from './WikiIcon';
 import { WikiApi } from '../lib/wikiApi';
+import { generateBreadcrumbSchema, generateArticleSchema } from '../lib/seoSchema';
 
 interface WikiArticleProps {
   page: WikiPage;
@@ -362,21 +363,43 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
   // Render clean layout for all pages
   return (
     <article className="max-w-4xl mx-auto text-[#cbd5e1] pb-16 font-sans space-y-6">
-      {/* Top Breadcrumb Path & Navigation Back Button */}
-      <div className="flex items-center justify-between gap-3 text-xs font-mono border-b border-[#1e293b] pb-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onGoHome ? onGoHome() : onSelectCategory('all')}
-            className="inline-flex items-center gap-1.5 font-bold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
-          >
-            <Home className="w-3.5 h-3.5 text-sky-400" />
-            <span>Portal</span>
-          </button>
-          <span className="text-[#475569]">/</span>
-          <span className="text-[#94a3b8] capitalize">{page.category}</span>
-          <span className="text-[#475569]">/</span>
-          <span className="text-white font-bold">{page.id}</span>
-        </div>
+      {/* Google Search Structured Data (JSON-LD Breadcrumb Tree & Article Schema) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify([
+            generateBreadcrumbSchema(page, page.category),
+            generateArticleSchema(page),
+          ]),
+        }}
+      />
+
+      {/* Top Breadcrumb Path & Navigation Back Button (Semantic microdata for crawlers) */}
+      <nav aria-label="Breadcrumb" className="flex items-center justify-between gap-3 text-xs font-mono border-b border-[#1e293b] pb-3">
+        <ol className="flex items-center gap-2 list-none p-0 m-0">
+          <li className="inline-flex items-center gap-1.5">
+            <button
+              onClick={() => onGoHome ? onGoHome() : onSelectCategory('all')}
+              className="inline-flex items-center gap-1.5 font-bold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
+            >
+              <Home className="w-3.5 h-3.5 text-sky-400" />
+              <span>Portal</span>
+            </button>
+          </li>
+          <li className="text-[#475569]">/</li>
+          <li className="inline-flex items-center">
+            <button
+              onClick={() => onSelectCategory(page.category)}
+              className="text-[#94a3b8] hover:text-sky-300 capitalize cursor-pointer transition-colors"
+            >
+              {page.category}
+            </button>
+          </li>
+          <li className="text-[#475569]">/</li>
+          <li className="text-white font-bold truncate max-w-[200px] sm:max-w-none" aria-current="page">
+            {page.title || page.id}
+          </li>
+        </ol>
 
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 px-2 py-0.5 bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded text-xs font-mono font-bold" title="Page views saved in database">
@@ -388,7 +411,7 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
             <span>{readingTime} min read</span>
           </span>
         </div>
-      </div>
+      </nav>
 
       {/* Header Title & Badge */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">

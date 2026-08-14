@@ -16,8 +16,10 @@ import {
   Shield,
   Layers,
   Tag,
-  Compass
+  Compass,
+  Home
 } from 'lucide-react';
+import { generateBreadcrumbSchema } from '../lib/seoSchema';
 
 interface CategoryOverviewPageProps {
   category: CategoryType | 'all';
@@ -118,6 +120,33 @@ export const CategoryOverviewPage: React.FC<CategoryOverviewPageProps> = ({
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-12 font-sans">
+      {/* Google Search Structured Data (JSON-LD Breadcrumb Tree) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(generateBreadcrumbSchema(undefined, category)),
+        }}
+      />
+
+      {/* Navigational Breadcrumb Tree */}
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-mono text-[#94a3b8] px-1">
+        <ol className="flex items-center gap-2 list-none p-0 m-0">
+          <li>
+            <button
+              onClick={() => onSelectCategory('all')}
+              className="inline-flex items-center gap-1.5 font-bold text-sky-400 hover:text-sky-300 transition-colors cursor-pointer"
+            >
+              <Home className="w-3.5 h-3.5 text-sky-400" />
+              <span>Portal</span>
+            </button>
+          </li>
+          <li className="text-[#475569]">/</li>
+          <li className="text-white font-bold capitalize" aria-current="page">
+            {category === 'all' ? 'All Categories' : currentMeta.title}
+          </li>
+        </ol>
+      </nav>
+
       {/* Category Hero Banner */}
       <div
         className={`bg-gradient-to-r ${currentMeta.color} border border-[#2a2a2a] rounded-xl p-6 sm:p-8 shadow-2xl relative overflow-hidden`}
