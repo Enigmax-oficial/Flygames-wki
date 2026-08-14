@@ -729,16 +729,17 @@ export async function handleAuthRequest(
 
     if (!existingUser) {
       userId = 'usr_' + crypto.randomUUID();
+      const defaultGooglePic = picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name || cleanEmail)}&background=1a73e8&color=fff`;
       
-      console.log(`[DEBUG_AVATAR] Brand new user signup detection. Saving google_avatar_url directly: "${picture || 'NULL'}"`);
+      console.log(`[DEBUG_AVATAR] Brand new user signup detection. Saving google_avatar_url directly: "${defaultGooglePic}"`);
 
       try {
-        console.log(`[DEBUG_AVATAR] Executing SQL INSERT with google_avatar_url: "${picture || 'NULL'}" for user ID: "${userId}"`);
+        console.log(`[DEBUG_AVATAR] Executing SQL INSERT with google_avatar_url: "${defaultGooglePic}" for user ID: "${userId}"`);
         await env.mysql
           .prepare(
             'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at, avatar_url, avatar_key, google_avatar_url) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?, ?)'
           )
-          .bind(userId, name, cleanEmail, 'oauth:google', now, now, null, null, picture || null)
+          .bind(userId, name, cleanEmail, 'oauth:google', now, now, null, null, defaultGooglePic)
           .run();
 
         // SELECT verify
@@ -759,25 +760,17 @@ export async function handleAuthRequest(
         created_at: now, 
         avatar_url: undefined,
         avatar_key: undefined,
-        google_avatar_url: picture || undefined
+        google_avatar_url: defaultGooglePic
       } as any;
     } else {
       try {
-        if (picture) {
-          console.log(`[DEBUG_AVATAR] Updating Google picture on every login for user ID: "${existingUser.id}" to: "${picture}"`);
-          await env.mysql
-            .prepare('UPDATE users SET updated_at = ?, google_avatar_url = ? WHERE id = ?')
-            .bind(now, picture, userId)
-            .run();
-          existingUser.google_avatar_url = picture;
-        } else {
-          console.log(`[DEBUG_AVATAR] Google picture removed for user ID: "${existingUser.id}". Clearing google_avatar_url.`);
-          await env.mysql
-            .prepare('UPDATE users SET updated_at = ?, google_avatar_url = NULL WHERE id = ?')
-            .bind(now, userId)
-            .run();
-          existingUser.google_avatar_url = undefined;
-        }
+        const resolvedPic = picture || existingUser.google_avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(existingUser.username || name || cleanEmail)}&background=1a73e8&color=fff`;
+        console.log(`[DEBUG_AVATAR] Updating/ensuring Google picture for older user ID: "${existingUser.id}" to: "${resolvedPic}"`);
+        await env.mysql
+          .prepare('UPDATE users SET updated_at = ?, google_avatar_url = ? WHERE id = ?')
+          .bind(now, resolvedPic, userId)
+          .run();
+        existingUser.google_avatar_url = resolvedPic;
       } catch (err: any) {
         console.log('[Google User Update Notice]', err?.message || err);
       }
