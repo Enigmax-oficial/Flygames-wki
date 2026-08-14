@@ -1147,10 +1147,15 @@ async function handleAuthRequest(request, url, env, corsHeaders) {
       console.log("[D1 email_verifications write error]", err);
     }
     if (!result.emailSent) {
+      let rawError = result.error || "Failed to send verification email via Resend API.";
+      let userFriendlyError = rawError;
+      if (rawError.includes("Testing domain restriction") || rawError.includes("resend.dev") || rawError.includes("own email address") || rawError.includes("verify a domain") || rawError.includes("not verified")) {
+        userFriendlyError = `Resend Domain Notice: To send emails from @flyerserver.uk to all recipients, verify "flyerserver.uk" in your Resend Dashboard (https://resend.com/domains). In Resend test mode, emails can only be delivered to your Resend account owner email address.`;
+      }
       return jsonRes({
         success: false,
         emailSent: false,
-        error: result.error || "Failed to send verification email via Resend API. Please verify your email address."
+        error: userFriendlyError
       }, 400);
     }
     return jsonRes({
