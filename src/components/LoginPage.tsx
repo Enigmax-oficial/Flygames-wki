@@ -143,7 +143,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       if (res.ok && data.success) {
         setMode('verify_email');
         setResendCooldown(60);
-        setSuccessMessage(`Verification email sent to ${cleanEmail}. Please check your inbox.`);
+        if (data.devCode) {
+          setSuccessMessage(`Test mode active. Use verification code: ${data.devCode}`);
+        } else {
+          setSuccessMessage(`Verification email sent to ${cleanEmail}. Please check your inbox.`);
+        }
       } else {
         if (res.status === 409) {
           setErrorMessage(data.error || 'An account with this email is already registered. Please sign in instead.');
@@ -180,7 +184,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
       if (res.ok && data.success) {
         setResendCooldown(60);
-        setSuccessMessage('A new verification code has been sent to your email.');
+        if (data.devCode) {
+          setSuccessMessage(`Test mode active. Use verification code: ${data.devCode}`);
+        } else {
+          setSuccessMessage('A new verification code has been sent to your email.');
+        }
       } else {
         setErrorMessage(data.error || 'Failed to resend verification code.');
       }
@@ -366,6 +374,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
           email: emailVal,
           isAdmin,
           token: data.token,
+          avatarUrl: data.user?.avatar_url,
         });
         setMode('set_google_password');
         setIsLoading(false);
@@ -434,7 +443,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
             pendingGoogleUser.name,
             pendingGoogleUser.email,
             pendingGoogleUser.isAdmin,
-            pendingGoogleUser.isAdmin ? 'admin-panel' : 'home'
+            pendingGoogleUser.isAdmin ? 'admin-panel' : 'home',
+            data.user?.avatar_url || pendingGoogleUser.avatarUrl
           );
           setSuccess(false);
         }, 600);

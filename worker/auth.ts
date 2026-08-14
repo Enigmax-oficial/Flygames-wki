@@ -594,8 +594,9 @@ export async function handleAuthRequest(
     const idToken = body.id_token;
     let email = body.email;
     let name = body.name || 'Google User';
+    let picture = '';
 
-    if (idToken && !email) {
+    if (idToken) {
       try {
         const parts = idToken.split('.');
         if (parts.length === 3) {
@@ -605,8 +606,9 @@ export async function handleAuthRequest(
           }
           const payloadStr = atob(b64);
           const payload = JSON.parse(payloadStr);
-          email = payload.email;
+          if (!email) email = payload.email;
           name = payload.name || (email ? email.split('@')[0] : 'Google User');
+          picture = payload.picture || '';
         }
       } catch (err) {
         console.warn('Could not parse Google ID token:', err);
@@ -622,9 +624,9 @@ export async function handleAuthRequest(
 
     // Check if user exists in D1 database
     let existingUser = await env.mysql
-      .prepare('SELECT id, username, email, password_hash, is_admin, created_at FROM users WHERE email = ?')
+      .prepare('SELECT id, username, email, password_hash, is_admin, created_at, avatar_url FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; username?: string; email: string; password_hash?: string; is_admin?: number; created_at: string }>();
+      .first<{ id: string; username?: string; email: string; password_hash?: string; is_admin?: number; created_at: string; avatar_url?: string }>();
 
     let userId = existingUser?.id;
     const isAdmin = existingUser?.is_admin || 0;
@@ -641,20 +643,20 @@ export async function handleAuthRequest(
       try {
         await env.mysql
           .prepare(
-            'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)'
+            'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at, avatar_url) VALUES (?, ?, ?, ?, 0, ?, ?, ?)'
           )
-          .bind(userId, name, cleanEmail, 'oauth:google', now, now)
+          .bind(userId, name, cleanEmail, 'oauth:google', now, now, picture || null)
           .run();
       } catch (err: any) {
         console.log('[Google User Insert Notice]', err?.message || err);
       }
 
-      existingUser = { id: userId, username: name, email: cleanEmail, is_admin: 0, created_at: now };
+      existingUser = { id: userId, username: name, email: cleanEmail, is_admin: 0, created_at: now, avatar_url: picture || undefined };
     } else {
       try {
         await env.mysql
-          .prepare('UPDATE users SET updated_at = ? WHERE id = ?')
-          .bind(now, userId)
+          .prepare('UPDATE users SET updated_at = ?, avatar_url = COALESCE(avatar_url, ?) WHERE id = ?')
+          .bind(now, picture || null, userId)
           .run();
       } catch (err: any) {
         console.log('[Google User Update Notice]', err?.message || err);
@@ -664,6 +666,7 @@ export async function handleAuthRequest(
     const createdAt = existingUser ? existingUser.created_at : now;
     const finalUserId = userId || 'usr_' + crypto.randomUUID();
     const finalUsername = existingUser?.username || name || cleanEmail.split('@')[0];
+    const finalAvatarUrl = existingUser?.avatar_url || picture || null;
 
     const token = await createToken({ id: finalUserId, email: cleanEmail, is_admin: isAdmin });
 
@@ -678,6 +681,7 @@ export async function handleAuthRequest(
         name: finalUsername,
         is_admin: isAdmin,
         created_at: createdAt,
+        avatar_url: finalAvatarUrl,
       },
     });
   }
@@ -708,13 +712,14 @@ export async function handleAuthRequest(
     const now = new Date().toISOString();
 
     let existingUser = await env.mysql
-      .prepare('SELECT id, username, email, is_admin, created_at FROM users WHERE email = ?')
+      .prepare('SELECT id, username, email, is_admin, created_at, avatar_url FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; username?: string; email: string; is_admin?: number; created_at: string }>();
+      .first<{ id: string; username?: string; email: string; is_admin?: number; created_at: string; avatar_url?: string }>();
 
     let userId = existingUser?.id;
     let isAdmin = existingUser?.is_admin || 0;
     const username = body.username || existingUser?.username || cleanEmail.split('@')[0];
+    const finalAvatarUrl = existingUser?.avatar_url || null;
 
     if (!existingUser) {
       userId = 'usr_' + crypto.randomUUID();
@@ -751,6 +756,7 @@ export async function handleAuthRequest(
         email: cleanEmail,
         name: username,
         is_admin: isAdmin,
+        avatar_url: finalAvatarUrl,
       },
     });
   }
