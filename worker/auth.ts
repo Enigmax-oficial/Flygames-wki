@@ -14,7 +14,9 @@ interface VerificationEntry {
 const verificationCodesMap = new Map<string, VerificationEntry>();
 
 async function downloadAndUploadGoogleAvatar(userId: string, pictureUrl: string, env: Env): Promise<string | null> {
+  console.log(`[DEBUG_AVATAR] downloadAndUploadGoogleAvatar initiated for userId: ${userId}, pictureUrl: ${pictureUrl}`);
   if (!pictureUrl || !env.AVATAR_BUCKET) {
+    console.log(`[DEBUG_AVATAR] Skipped download. pictureUrl present: ${!!pictureUrl}, AVATAR_BUCKET bound: ${!!env.AVATAR_BUCKET}`);
     return null;
   }
   try {
@@ -23,12 +25,16 @@ async function downloadAndUploadGoogleAvatar(userId: string, pictureUrl: string,
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       }
     });
+    console.log(`[DEBUG_AVATAR] Google picture fetch HTTP response status: ${res.status} ${res.statusText}`);
     if (!res.ok) {
-      console.log(`[Google Avatar Sync] Failed to fetch image: status ${res.status}`);
+      console.log(`[DEBUG_AVATAR] Failed to download image from Google URL. Status code: ${res.status}`);
       return null;
     }
     const arrayBuffer = await res.arrayBuffer();
+    console.log(`[DEBUG_AVATAR] Download succeeded. Total fetched size: ${arrayBuffer.byteLength} bytes`);
+
     const key = `avatars/${userId}.webp`;
+    console.log(`[DEBUG_AVATAR] Uploading raw image buffer to R2 bucket key: "${key}" (Simulated WebP format container)`);
     
     // Upload to AVATAR_BUCKET
     await env.AVATAR_BUCKET.put(key, arrayBuffer, {
@@ -38,10 +44,10 @@ async function downloadAndUploadGoogleAvatar(userId: string, pictureUrl: string,
       }
     });
     
-    console.log(`[Google Avatar Sync] Successfully uploaded google picture to R2 bucket key: ${key}`);
+    console.log(`[DEBUG_AVATAR] R2 bucket upload succeeded for key: ${key}`);
     return key;
   } catch (err: any) {
-    console.log(`[Google Avatar Sync Error] Failed to process or upload:`, err?.message || err);
+    console.log(`[DEBUG_AVATAR_ERROR] Error in download or R2 upload:`, err?.message || err, err?.stack);
     return null;
   }
 }
@@ -720,6 +726,7 @@ export async function handleAuthRequest(
           if (!email) email = payload.email;
           name = payload.name || (email ? email.split('@')[0] : 'Google User');
           picture = payload.picture || '';
+          console.log(`[DEBUG_AVATAR] Parsed Google Identity JWT Claim: pictureURL is "${picture}"`);
         }
       } catch (err) {
         console.warn('Could not parse Google ID token:', err);
@@ -753,27 +760,36 @@ export async function handleAuthRequest(
       userId = 'usr_' + crypto.randomUUID();
       let avatarKey: string | undefined = undefined;
       
+      console.log(`[DEBUG_AVATAR] Brand new user signup detection. picture is "${picture}".`);
       // Attempt to download and upload Google avatar
       if (picture) {
-        const uploadedKey = await downloadAndUploadGoogleAvatar(userId, picture, env);
+        const uploadedKey = await downloadAndUploadGoogleAvatar(userId!, picture, env);
         if (uploadedKey) {
           avatarKey = uploadedKey;
         }
       }
 
       try {
+        console.log(`[DEBUG_AVATAR] Executing SQL INSERT with avatar_key: "${avatarKey || 'NULL'}" for user ID: "${userId}"`);
         await env.mysql
           .prepare(
             'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at, avatar_url, avatar_key) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)'
           )
           .bind(userId, name, cleanEmail, 'oauth:google', now, now, null, avatarKey || null)
           .run();
+
+        // SELECT verify
+        const verificationSelect = await env.mysql
+          .prepare('SELECT id, email, avatar_key, avatar_url FROM users WHERE id = ?')
+          .bind(userId)
+          .first<{ id: string; email: string; avatar_key?: string; avatar_url?: string }>();
+        console.log(`[DEBUG_AVATAR] INSERT row verification from D1:`, JSON.stringify(verificationSelect));
       } catch (err: any) {
         console.log('[Google User Insert Notice]', err?.message || err);
       }
 
       existingUser = { 
-        id: userId, 
+        id: userId!, 
         username: name, 
         email: cleanEmail, 
         is_admin: 0, 
@@ -786,11 +802,16 @@ export async function handleAuthRequest(
         let avatarKey = existingUser.avatar_key;
         let nowUpdated = false;
 
+        const isAvatarKeyNullOrEmpty = !avatarKey || avatarKey.trim() === '';
+        console.log(`[DEBUG_AVATAR] Existing user login. avatar_key currently is "${avatarKey || 'NULL/empty'}". Is null/empty condition check result: ${isAvatarKeyNullOrEmpty}`);
+
         // If avatar_key is empty/null, attempt to fetch Google picture as initial default
-        if (!avatarKey && picture) {
+        if (isAvatarKeyNullOrEmpty && picture) {
+          console.log(`[DEBUG_AVATAR] Condition met! Fetching Google picture default avatar for user ID: "${existingUser.id}"`);
           const uploadedKey = await downloadAndUploadGoogleAvatar(existingUser.id, picture, env);
           if (uploadedKey) {
             avatarKey = uploadedKey;
+            console.log(`[DEBUG_AVATAR] Executing SQL UPDATE to assign avatar_key: "${avatarKey}" and setting avatar_url to NULL for user: "${userId}"`);
             await env.mysql
               .prepare('UPDATE users SET updated_at = ?, avatar_key = ?, avatar_url = NULL WHERE id = ?')
               .bind(now, avatarKey, userId)
@@ -798,10 +819,18 @@ export async function handleAuthRequest(
             existingUser.avatar_key = avatarKey;
             existingUser.avatar_url = undefined;
             nowUpdated = true;
+
+            // SELECT verify
+            const verificationSelect = await env.mysql
+              .prepare('SELECT id, email, avatar_key, avatar_url FROM users WHERE id = ?')
+              .bind(userId)
+              .first<{ id: string; email: string; avatar_key?: string; avatar_url?: string }>();
+            console.log(`[DEBUG_AVATAR] UPDATE row verification from D1:`, JSON.stringify(verificationSelect));
           }
         }
 
         if (!nowUpdated) {
+          console.log(`[DEBUG_AVATAR] No avatar update needed or skipped. Touching updated_at timestamp for user: "${userId}"`);
           await env.mysql
             .prepare('UPDATE users SET updated_at = ? WHERE id = ?')
             .bind(now, userId)
