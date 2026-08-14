@@ -28,7 +28,7 @@ export async function sendEmailVerification(
 
   const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
   const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
-  const primaryFromAddress = configuredFrom || 'Wiki Team <wiki@flyerserver.uk>';
+  const primaryFromAddress = configuredFrom || 'Wiki Team <onboarding@resend.dev>';
 
   const resendClient = new Resend(apiKey);
 
@@ -65,7 +65,7 @@ export async function sendEmailVerification(
                             Wiki Team
                           </div>
                           <div style="font-size: 12px; color: #38bdf8; font-family: monospace; margin-top: 3px;">
-                            wiki@flyerserver.uk
+                            onboarding@resend.dev
                           </div>
                         </td>
                       </tr>
@@ -107,7 +107,7 @@ export async function sendEmailVerification(
                 <tr>
                   <td style="padding: 16px 24px; background-color: #080c14; border-top: 1px solid #1e293b; text-align: center;">
                     <p style="margin: 0; font-size: 11px; color: #475569;">
-                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">wiki@flyerserver.uk</span>)
+                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">onboarding@resend.dev</span>)
                     </p>
                   </td>
                 </tr>
@@ -774,7 +774,7 @@ export async function handleAuthRequest(
     const resendClient = new Resend(apiKey);
     try {
       const emailRes = await resendClient.emails.send({
-        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <wiki@flyerserver.uk>',
+        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <onboarding@resend.dev>',
         to: toEmail,
         subject: body.subject || 'Hello World',
         html: body.html || '<p>Congrats on sending your <strong>first email</strong>!</p>',
