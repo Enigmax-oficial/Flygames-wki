@@ -27,51 +27,126 @@ export async function sendEmailVerification(
   verificationCodesMap.set(cleanEmail, { code, expiresAt });
 
   const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
-  const fromAddress = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'onboarding@resend.dev';
+  const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
+  const primaryFromAddress = configuredFrom || 'Wiki Team <wkiteam@noreply.flyerserver.uk>';
 
   const resendClient = new Resend(apiKey);
 
   let emailSent = false;
   let emailError: string | null = null;
 
+  const emailHtml = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0b0f19; padding: 40px 12px;">
+          <tr>
+            <td align="center">
+              <table role="presentation" width="100%" style="max-width: 520px; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5);" cellspacing="0" cellpadding="0">
+                <!-- Header with Profile Picture & Name -->
+                <tr>
+                  <td style="padding: 28px 24px 20px 24px; border-bottom: 1px solid #1e293b; background-color: #0d1322;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td width="56" valign="middle">
+                          <!-- Profile Picture -->
+                          <img src="https://flygames.flyerserver.uk/images/categories/items.png" alt="Wiki Team Profile" width="50" height="50" style="display: block; border-radius: 50%; border: 2px solid #38bdf8; background-color: #1e293b; object-fit: cover;" />
+                        </td>
+                        <td style="padding-left: 14px;" valign="middle">
+                          <!-- Name and Sender Info -->
+                          <div style="font-size: 17px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; line-height: 1.2;">
+                            Wiki Team
+                          </div>
+                          <div style="font-size: 12px; color: #38bdf8; font-family: monospace; margin-top: 3px;">
+                            wkiteam@noreply
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Content Body -->
+                <tr>
+                  <td style="padding: 28px 24px;">
+                    <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.4px;">
+                      Verification Code
+                    </h2>
+                    <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.5; color: #94a3b8;">
+                      ${username ? `Hello <strong style="color: #e2e8f0;">${username}</strong>,<br/>` : 'Hello,<br/>'}
+                      Use the 6-digit confirmation code below to verify your account on <strong>Aetheria Addon Wiki</strong>.
+                    </p>
+
+                    <!-- Code Container -->
+                    <div style="background-color: #070a12; border: 1px solid #38bdf8; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
+                      <span style="display: block; font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">
+                        Your Security Code
+                      </span>
+                      <div style="display: inline-block; color: #ffffff; font-size: 36px; font-weight: 800; letter-spacing: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; text-shadow: 0 0 12px rgba(56,189,248,0.4);">
+                        ${code}
+                      </div>
+                      <p style="color: #64748b; font-size: 12px; margin: 12px 0 0 0;">
+                        ⏱️ Valid for the next <strong>15 minutes</strong>
+                      </p>
+                    </div>
+
+                    <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #64748b; text-align: center;">
+                      If you did not request this verification code, no action is needed. You can safely disregard this message.
+                    </p>
+                  </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                  <td style="padding: 16px 24px; background-color: #080c14; border-top: 1px solid #1e293b; text-align: center;">
+                    <p style="margin: 0; font-size: 11px; color: #475569;">
+                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">wkiteam@noreply</span>)
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+
   try {
     const emailResult = await resendClient.emails.send({
-      from: fromAddress,
+      from: primaryFromAddress,
       to: cleanEmail,
-      subject: 'Your Minecraft Addon Wiki Verification Code',
-      html: `
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0f19; color: #f8fafc; padding: 32px 24px; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid #1e293b;">
-          <div style="text-align: center; margin-bottom: 24px;">
-            <h1 style="color: #38bdf8; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 6px 0;">
-              MINECRAFT ADDON WIKI
-            </h1>
-            <p style="color: #94a3b8; font-size: 13px; margin: 0;">Account Email Verification</p>
-          </div>
-          
-          <div style="background-color: #070a12; border: 1px solid #1e293b; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 20px;">
-            <p style="color: #94a3b8; font-size: 13px; margin-top: 0; margin-bottom: 12px;">
-              ${username ? `Hi <strong>${username}</strong>, ` : ''}Your 6-digit verification code is:
-            </p>
-            <div style="display: inline-block; background-color: #0284c7; color: #ffffff; font-size: 32px; font-weight: 800; letter-spacing: 8px; padding: 12px 24px; border-radius: 10px; font-family: monospace;">
-              ${code}
-            </div>
-            <p style="color: #64748b; font-size: 11px; margin-top: 14px; margin-bottom: 0;">
-              This verification code expires in 15 minutes.
-            </p>
-          </div>
-
-          <p style="color: #64748b; font-size: 11px; text-align: center; margin: 0;">
-            If you did not request this verification code, please ignore this email.
-          </p>
-        </div>
-      `,
+      subject: `[Wiki Team] Your Verification Code: ${code}`,
+      html: emailHtml,
     });
 
     if (emailResult && !emailResult.error && (emailResult as any).data?.id) {
       emailSent = true;
     } else if (emailResult?.error) {
       emailError = emailResult.error.message || 'Resend error';
-      console.log('[Resend Send Error]', emailError);
+      console.log('[Resend Primary Send Error]', emailError);
+
+      // If custom domain is not yet verified in user's Resend dashboard, attempt fallback to sandbox sender
+      if (emailError.toLowerCase().includes('domain') || emailError.toLowerCase().includes('verify')) {
+        try {
+          const fallbackRes = await resendClient.emails.send({
+            from: 'Wiki Team <onboarding@resend.dev>',
+            to: cleanEmail,
+            subject: `[Wiki Team] Your Verification Code: ${code}`,
+            html: emailHtml,
+          });
+          if (fallbackRes && !fallbackRes.error && (fallbackRes as any).data?.id) {
+            emailSent = true;
+            emailError = null;
+          }
+        } catch (fallbackErr: any) {
+          console.log('[Resend Fallback Error]', fallbackErr);
+        }
+      }
     }
   } catch (err: any) {
     emailError = err?.message || 'Resend network error';
@@ -692,7 +767,7 @@ export async function handleAuthRequest(
     const resendClient = new Resend(apiKey);
     try {
       const emailRes = await resendClient.emails.send({
-        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'onboarding@resend.dev',
+        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <wkiteam@noreply.flyerserver.uk>',
         to: toEmail,
         subject: body.subject || 'Hello World',
         html: body.html || '<p>Congrats on sending your <strong>first email</strong>!</p>',
