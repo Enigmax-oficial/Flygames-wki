@@ -118,6 +118,7 @@ export async function ensureSchema(env: Env): Promise<void> {
     await addColumn('users', 'google_avatar_url', 'TEXT');
     await addColumn('email_verifications', 'avatar_url', 'TEXT');
     await addColumn('email_verifications', 'avatar_key', 'TEXT');
+    await addColumn('email_verifications', 'google_avatar_url', 'TEXT');
     await addColumn('email_verifications', 'username', 'TEXT');
     await addColumn('email_verifications', 'password_hash', 'TEXT');
 

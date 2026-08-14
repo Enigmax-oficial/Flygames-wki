@@ -38,7 +38,7 @@ export async function sendEmailVerification(
 
   const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
   const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
-  const primaryFromAddress = configuredFrom || 'Wiki Team <wkiteam@noreply.flyerserver.uk>';
+  const primaryFromAddress = configuredFrom || 'Wiki Team <noreply@flygames.flyerserver.uk>';
 
   const resendClient = new Resend(apiKey);
 
@@ -972,14 +972,8 @@ export async function handleAuthRequest(
       emailSent: result.emailSent,
       message: result.emailSent
         ? 'Verification code sent to your email. Please check your inbox.'
-        : 'Verification code generated.',
+        : 'Failed to send verification email. Please try again.',
       email: cleanEmail,
-      devCode: result.code,
-      deliveryNotice: !result.emailSent
-        ? (result.error?.includes('domain') || result.error?.includes('verify')
-            ? 'The domain noreply.flyerserver.uk is not yet verified on resend.com. Your code is provided for instant testing.'
-            : 'Resend sandbox mode is active. Your verification code is provided below for immediate testing.')
-        : 'Resend sandbox/dev mode active. If you do not receive the email, please check the devCode.',
     });
   }
 

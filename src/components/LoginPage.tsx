@@ -144,11 +144,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       if (res.ok && data.success) {
         setMode('verify_email');
         setResendCooldown(60);
-        if (data.devCode) {
-          setSuccessMessage(`Verification email sent to ${cleanEmail}. (Sandbox Backup: ${data.devCode})`);
-        } else {
-          setSuccessMessage(`Verification email sent to ${cleanEmail}. Please check your inbox.`);
-        }
+        setSuccessMessage(`Verification email sent to ${cleanEmail}. Please check your inbox.`);
       } else {
         if (res.status === 409) {
           setErrorMessage(data.error || 'An account with this email is already registered. Please sign in instead.');
@@ -185,11 +181,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
       if (res.ok && data.success) {
         setResendCooldown(60);
-        if (data.devCode) {
-          setSuccessMessage(`A new verification code has been sent. (Sandbox Backup: ${data.devCode})`);
-        } else {
-          setSuccessMessage('A new verification code has been sent to your email.');
-        }
+        setSuccessMessage('A new verification code has been sent to your email.');
       } else {
         setErrorMessage(data.error || 'Failed to resend verification code.');
       }
