@@ -544,6 +544,19 @@ export class WikiApi {
       return false;
     }
   }
+
+  static async clearAllFavorites(): Promise<boolean> {
+    if (!this.isUserLoggedIn() || this.cachedFavorites.length === 0) {
+      return false;
+    }
+    const targetIds = [...this.cachedFavorites];
+    for (const id of targetIds) {
+      await this.removeFavorite(id);
+    }
+    this.cachedFavorites = [];
+    window.dispatchEvent(new Event('wiki_favorites_updated'));
+    return true;
+  }
 }
 
 // Attach to window for easy developer access (API availability)

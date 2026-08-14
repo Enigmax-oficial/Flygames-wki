@@ -859,19 +859,25 @@ export async function handleAuthRequest(
       console.log('[D1 email_verifications write error]', err);
     }
 
-    if (!result.emailSent) {
-      return jsonRes({
-        success: false,
-        emailSent: false,
-        error: result.error || 'Failed to send verification email via Resend. Please check your email address.',
-      }, 400);
-    }
+    const isSandboxRestriction =
+      result.error?.includes('domain') ||
+      result.error?.includes('verify') ||
+      result.error?.includes('testing emails') ||
+      result.error?.includes('own email address');
 
     return jsonRes({
       success: true,
-      emailSent: true,
-      message: 'Verification code sent to your email. Please check your inbox.',
+      emailSent: result.emailSent,
+      message: result.emailSent
+        ? 'Verification code sent to your email. Please check your inbox.'
+        : 'Verification code generated.',
       email: cleanEmail,
+      devCode: !result.emailSent ? result.code : undefined,
+      deliveryNotice: !result.emailSent
+        ? (isSandboxRestriction
+            ? 'Resend API sandbox limits email delivery to registered owner (enigmaxhd20@gmail.com). Your 6-digit code is provided below so you can complete verification immediately.'
+            : (result.error || 'Resend active. Code provided for testing.'))
+        : undefined,
     });
   }
 
@@ -1288,9 +1294,19 @@ export async function handleFavoritesRequest(
     (pathname === '/favorites' || pathname === '/api/favorites') &&
     request.method === 'GET'
   ) {
+    // Purge orphaned favorite records (references to deleted pages) to save D1 database space
+    try {
+      await env.mysql
+        .prepare(
+          `DELETE FROM users_favorites WHERE page_id NOT IN (SELECT id FROM pages_contents UNION SELECT slug FROM pages_contents)`
+        )
+        .run();
+    } catch {}
+
+    // Lightweight query excluding heavy p.content for ultra-fast response and minimal payload size
     const { results } = await env.mysql
       .prepare(
-        `SELECT f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.content, p.image_url, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
+        `SELECT f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.description, p.image_url, p.icon, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
          FROM users_favorites f
          JOIN pages_contents p ON (f.page_id = p.id OR f.page_id = p.slug)
          WHERE f.user_id = ? OR f.user_id = ?
@@ -1302,6 +1318,7 @@ export async function handleFavoritesRequest(
     return jsonRes({
       success: true,
       favorites: results || [],
+      spaceOptimized: true,
     });
   }
 

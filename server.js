@@ -1,32 +1,8 @@
-"use strict";
-var __create = Object.create;
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
-
 // server.ts
-var import_express = __toESM(require("express"), 1);
-var import_path = __toESM(require("path"), 1);
-var import_vite = require("vite");
-var import_fs = __toESM(require("fs"), 1);
+import express from "express";
+import path from "path";
+import { createServer as createViteServer } from "vite";
+import fs from "fs";
 
 // worker/routes/pages.ts
 function jsonResponse(data, status = 200, corsHeaders = {}) {
@@ -520,7 +496,7 @@ async function verifyPassword(password, stored) {
 }
 
 // worker/auth.ts
-var import_resend = require("resend");
+import { Resend } from "resend";
 var JWT_SECRET = "minecraft-wiki-secret-key-2026";
 var DEFAULT_RESEND_API_KEY = typeof process !== "undefined" && process.env?.RESEND_API_KEY || ["re", "8tAYo41S", "5ssyvS2iDJvG5NhrJNGS2jJr"].join("_");
 var verificationCodesMap = /* @__PURE__ */ new Map();
@@ -536,7 +512,7 @@ async function sendEmailVerification(email, username, env) {
   if (primaryFromAddress.includes("@resend.dev") && !primaryFromAddress.includes("onboarding@resend.dev")) {
     primaryFromAddress = primaryFromAddress.replace(/<[^>]+>/, "<onboarding@resend.dev>").replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, "onboarding@resend.dev");
   }
-  const resendClient = new import_resend.Resend(apiKey);
+  const resendClient = new Resend(apiKey);
   let emailSent = false;
   let emailError = null;
   const emailHtml = `
@@ -1083,7 +1059,7 @@ async function handleAuthRequest(request, url, env, corsHeaders) {
     }
     const toEmail = (body.to || "enigmaxhd20@gmail.com").trim();
     const apiKey = env?.RESEND_API_KEY || typeof process !== "undefined" && process.env?.RESEND_API_KEY || DEFAULT_RESEND_API_KEY;
-    const resendClient = new import_resend.Resend(apiKey);
+    const resendClient = new Resend(apiKey);
     let fromAddress = env?.RESEND_FROM_EMAIL || typeof process !== "undefined" && process.env?.RESEND_FROM_EMAIL || "Wiki Team <onboarding@resend.dev>";
     if (fromAddress.includes("@resend.dev") && !fromAddress.includes("onboarding@resend.dev")) {
       fromAddress = fromAddress.replace(/<[^>]+>/, "<onboarding@resend.dev>").replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, "onboarding@resend.dev");
@@ -1686,9 +1662,9 @@ var worker_default = {
 if (!console.warning) {
   console.warning = console.warn;
 }
-var app = (0, import_express.default)();
+var app = express();
 var PORT = 3e3;
-app.use(import_express.default.json({ limit: "10mb" }));
+app.use(express.json({ limit: "10mb" }));
 var D1_DATABASE_ID = "d7f3eefe-63ff-4b62-8baf-6dc44381abab";
 async function queryRemoteD1(sql, params = []) {
   const token = process.env.CLOUDFLARE_API_TOKEN || process.env.D1_TOKEN;
@@ -1850,17 +1826,17 @@ app.all([
 ], handleWorkerRequestDirectly);
 function scanDirRecursive(dirPath, rootDir) {
   let results = [];
-  if (!import_fs.default.existsSync(dirPath)) return results;
+  if (!fs.existsSync(dirPath)) return results;
   try {
-    const list = import_fs.default.readdirSync(dirPath);
+    const list = fs.readdirSync(dirPath);
     list.forEach((file) => {
-      const fullPath = import_path.default.join(dirPath, file);
-      const stat = import_fs.default.statSync(fullPath);
+      const fullPath = path.join(dirPath, file);
+      const stat = fs.statSync(fullPath);
       if (stat && stat.isDirectory()) {
         results = results.concat(scanDirRecursive(fullPath, rootDir));
       } else {
         if (/\.(png|jpe?g|gif|svg|webp)$/i.test(file) && stat.size > 0) {
-          const relPath = "/" + import_path.default.relative(rootDir, fullPath).replace(/\\/g, "/");
+          const relPath = "/" + path.relative(rootDir, fullPath).replace(/\\/g, "/");
           results.push(relPath);
         }
       }
@@ -1895,8 +1871,8 @@ app.get("/api/health", async (req, res) => {
 });
 app.get("/api/images/list", (req, res) => {
   try {
-    const publicPath = import_path.default.join(process.cwd(), "public");
-    const imagesPath = import_path.default.join(publicPath, "images");
+    const publicPath = path.join(process.cwd(), "public");
+    const imagesPath = path.join(publicPath, "images");
     const images = scanDirRecursive(imagesPath, publicPath);
     res.json({ success: true, images });
   } catch (err) {
@@ -1904,8 +1880,8 @@ app.get("/api/images/list", (req, res) => {
   }
 });
 async function startServer() {
-  const publicPath = import_path.default.join(process.cwd(), "public");
-  app.use(import_express.default.static(publicPath, {
+  const publicPath = path.join(process.cwd(), "public");
+  app.use(express.static(publicPath, {
     setHeaders: (res, filePath) => {
       if (filePath.endsWith(".json")) {
         res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0");
@@ -1913,16 +1889,16 @@ async function startServer() {
     }
   }));
   if (process.env.NODE_ENV !== "production") {
-    const vite = await (0, import_vite.createServer)({
+    const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = import_path.default.join(process.cwd(), "dist");
-    app.use(import_express.default.static(distPath));
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(import_path.default.join(distPath, "index.html"));
+      res.sendFile(path.join(distPath, "index.html"));
     });
   }
   const effectivePort = process.env.PORT || PORT;
@@ -1948,4 +1924,4 @@ async function startServer() {
   }
 }
 startServer();
-//# sourceMappingURL=server.cjs.map
+//# sourceMappingURL=server.js.map
