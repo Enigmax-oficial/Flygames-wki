@@ -526,7 +526,7 @@ export default function App() {
           <p className="flex items-center gap-1.5">
             <span>Addon Knowledge Base</span>
             <span>•</span>
-            <span className="text-sky-400 font-bold">Wiki Team</span>
+            <span className="text-sky-400 font-bold">Minecraft Addon Wiki</span>
             <span>© 2026</span>
           </p>
 

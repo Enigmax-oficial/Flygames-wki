@@ -27,8 +27,14 @@ export async function sendEmailVerification(
   verificationCodesMap.set(cleanEmail, { code, expiresAt });
 
   const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
-  const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
-  let primaryFromAddress = configuredFrom || 'Wiki Team <noreply@flygames.flyerserver.uk>';
+  let configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
+  
+  // If the configured from address is just an email without a name, inject "Minecraft Addon Wiki"
+  if (configuredFrom && !configuredFrom.includes('<')) {
+    configuredFrom = `"Minecraft Addon Wiki" <${configuredFrom}>`;
+  }
+  
+  let primaryFromAddress = configuredFrom || '"Minecraft Addon Wiki" <noreply@flygames.flyerserver.uk>';
 
   // Safety rewrite if using default resend.dev subdomains that require onboarding address
   if (primaryFromAddress.includes('@resend.dev') && !primaryFromAddress.includes('onboarding@resend.dev')) {
@@ -67,13 +73,13 @@ export async function sendEmailVerification(
                           <!-- Overlay image with CSS fallback block to prevent image blocking and spam filters -->
                           <div style="display: block; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #38bdf8; background-color: #1e293b; color: #38bdf8; font-size: 22px; font-weight: 800; line-height: 50px; text-align: center; font-family: sans-serif; text-shadow: 0 0 8px rgba(56,189,248,0.5); overflow: hidden; position: relative;">
                             <span style="position: absolute; top: 0; left: 0; width: 50px; height: 50px; line-height: 50px; text-align: center; z-index: 1;">W</span>
-                            <img src="https://flygames.flyerserver.uk/images/categories/items.png" alt="Wiki Team" width="50" height="50" style="display: block; width: 50px; height: 50px; border-radius: 50%; border: none; position: absolute; top: 0; left: 0; z-index: 2; object-fit: cover;" />
+                            <img src="https://flygames.flyerserver.uk/images/categories/items.png" alt="Minecraft Addon Wiki" width="50" height="50" style="display: block; width: 50px; height: 50px; border-radius: 50%; border: none; position: absolute; top: 0; left: 0; z-index: 2; object-fit: cover;" />
                           </div>
                         </td>
                         <td style="padding-left: 14px;" valign="middle">
                           <!-- Name and Sender Info -->
                           <div style="font-size: 17px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; line-height: 1.2;">
-                            Wiki Team
+                            Minecraft Addon Wiki
                           </div>
                           <div style="font-size: 12px; color: #38bdf8; font-family: monospace; margin-top: 3px;">
                             ${displaySenderEmail}
@@ -118,7 +124,7 @@ export async function sendEmailVerification(
                 <tr>
                   <td style="padding: 16px 24px; background-color: #080c14; border-top: 1px solid #1e293b; text-align: center;">
                     <p style="margin: 0; font-size: 11px; color: #475569;">
-                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">${displaySenderEmail}</span>)
+                      Sent automatically by <strong>Minecraft Addon Wiki</strong> (<span style="font-family: monospace;">${displaySenderEmail}</span>)
                     </p>
                   </td>
                 </tr>
@@ -135,7 +141,7 @@ export async function sendEmailVerification(
       const emailResult = await resendClient.emails.send({
         from: primaryFromAddress,
         to: cleanEmail,
-        subject: `[Wiki Team] Your Verification Code: ${code}`,
+        subject: `[Minecraft Addon Wiki] Your Verification Code: ${code}`,
         html: emailHtml,
       });
 
@@ -155,9 +161,9 @@ export async function sendEmailVerification(
       // Attempt fallback with onboarding@resend.dev
       try {
         const fallbackRes = await resendClient.emails.send({
-          from: 'Wiki Team <onboarding@resend.dev>',
+          from: '"Minecraft Addon Wiki" <onboarding@resend.dev>',
           to: cleanEmail,
-          subject: `[Wiki Team] Your Verification Code: ${code}`,
+          subject: `[Minecraft Addon Wiki] Your Verification Code: ${code}`,
           html: emailHtml,
         });
         if (fallbackRes && !fallbackRes.error && (fallbackRes as any).data?.id) {
@@ -175,15 +181,22 @@ export async function sendEmailVerification(
     console.log('[Resend Network Notice]', emailError);
   }
 
-  // Always return success with code registered in verification map/D1
+  if (!emailSent) {
+    verificationCodesMap.delete(cleanEmail);
+    return {
+      success: false,
+      emailSent: false,
+      message: `Failed to send verification code to ${cleanEmail}`,
+      code: '',
+      error: emailError || 'Unknown error',
+    };
+  }
+
   return {
     success: true,
-    emailSent,
-    message: emailSent 
-      ? `Verification code delivered to ${cleanEmail}`
-      : `Verification code generated for ${cleanEmail}`,
+    emailSent: true,
+    message: `Verification code delivered to ${cleanEmail}`,
     code,
-    error: emailError || undefined,
   };
 }
 
@@ -783,7 +796,7 @@ export async function handleAuthRequest(
     const toEmail = (body.to || 'enigmaxhd20@gmail.com').trim();
     const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
     const resendClient = new Resend(apiKey);
-    let fromAddress = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <noreply@flygames.flyerserver.uk>';
+    let fromAddress = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || '"Minecraft Addon Wiki" <noreply@flygames.flyerserver.uk>';
     if (fromAddress.includes('@resend.dev') && !fromAddress.includes('onboarding@resend.dev')) {
       fromAddress = fromAddress
         .replace(/<[^>]+>/, '<onboarding@resend.dev>')
@@ -843,25 +856,6 @@ export async function handleAuthRequest(
         .run();
     } catch {}
 
-    // Save pending credentials to D1 database email_verifications table
-    try {
-      await env.mysql
-        .prepare(
-          'INSERT OR REPLACE INTO email_verifications (email, code, username, password_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
-        )
-        .bind(
-          cleanEmail,
-          result.code,
-          cleanUsername,
-          passwordHash,
-          new Date().toISOString(),
-          new Date(Date.now() + 5 * 60 * 1000).toISOString()
-        )
-        .run();
-    } catch (err) {
-      console.log('[D1 email_verifications write error]', err);
-    }
-
     if (!result.emailSent) {
       let rawError = result.error || 'Failed to send verification email via Resend API.';
       let userFriendlyError = rawError;
@@ -881,6 +875,25 @@ export async function handleAuthRequest(
         emailSent: false,
         error: userFriendlyError,
       }, 400);
+    }
+
+    // Save pending credentials to D1 database email_verifications table ONLY if email was sent successfully
+    try {
+      await env.mysql
+        .prepare(
+          'INSERT OR REPLACE INTO email_verifications (email, code, username, password_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
+        )
+        .bind(
+          cleanEmail,
+          result.code,
+          cleanUsername,
+          passwordHash,
+          new Date().toISOString(),
+          new Date(Date.now() + 5 * 60 * 1000).toISOString()
+        )
+        .run();
+    } catch (err) {
+      console.log('[D1 email_verifications write error]', err);
     }
 
     return jsonRes({
@@ -907,11 +920,11 @@ export async function handleAuthRequest(
     // Invalidate the in-memory map entry immediately
     verificationCodesMap.delete(cleanEmail);
 
-    // Delete from D1 database email_verifications table
+    // Delete from D1 database email_verifications table (and clean up expired ones)
     try {
       await env.mysql
-        .prepare('DELETE FROM email_verifications WHERE email = ?')
-        .bind(cleanEmail)
+        .prepare('DELETE FROM email_verifications WHERE email = ? OR expires_at < ?')
+        .bind(cleanEmail, new Date().toISOString())
         .run();
     } catch (err) {
       console.log('[D1 cancel verification delete error]', err);
@@ -1010,11 +1023,11 @@ export async function handleAuthRequest(
     // Invalidate the in-memory map entry immediately
     verificationCodesMap.delete(cleanEmail);
 
-    // Remove the verified record from email_verifications table immediately
+    // Remove the verified record from email_verifications table immediately, and clean up expired
     try {
       await env.mysql
-        .prepare('DELETE FROM email_verifications WHERE email = ?')
-        .bind(cleanEmail)
+        .prepare('DELETE FROM email_verifications WHERE email = ? OR expires_at < ?')
+        .bind(cleanEmail, new Date().toISOString())
         .run();
     } catch (err) {
       console.log('[D1 delete verification notice]', err);
@@ -1087,7 +1100,7 @@ export async function handleAuthRequest(
         isEmailVerified = 1;
         verificationCodesMap.delete(cleanEmail);
         try {
-          await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
+          await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ? OR expires_at < ?').bind(cleanEmail, new Date().toISOString()).run();
         } catch {}
       } else {
         try {
@@ -1099,7 +1112,7 @@ export async function handleAuthRequest(
             isEmailVerified = 1;
             verificationCodesMap.delete(cleanEmail);
             try {
-              await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
+              await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ? OR expires_at < ?').bind(cleanEmail, new Date().toISOString()).run();
             } catch {}
           }
         } catch {}

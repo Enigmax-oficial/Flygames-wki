@@ -1,9 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import {
-  playGoogleVoiceStartSound,
-  playGoogleVoiceStopSound,
-  playGoogleVoiceErrorSound,
-} from '../lib/googleVoiceSound';
 
 // Declaration for Web Speech API types
 declare global {
@@ -72,7 +67,6 @@ export function useVoiceSearch(options: UseVoiceSearchOptions = {}) {
       const errMsg = 'Voice search is not supported in this browser.';
       setSpeechError(errMsg);
       onErrorRef.current?.(errMsg);
-      playGoogleVoiceErrorSound();
       return;
     }
 
@@ -95,9 +89,6 @@ export function useVoiceSearch(options: UseVoiceSearchOptions = {}) {
     setSpeechError(null);
     setTranscript('');
     isStartingRef.current = true;
-
-    // Play Google voice mode activation chime immediately on gesture
-    playGoogleVoiceStartSound();
 
     try {
       const recognition = new SpeechRecognition();
@@ -127,7 +118,6 @@ export function useVoiceSearch(options: UseVoiceSearchOptions = {}) {
           return;
         }
         console.warn('Speech recognition error:', event.error);
-        playGoogleVoiceErrorSound();
         let msg = 'Voice recognition error.';
         if (event.error === 'no-speech') {
           msg = 'No speech detected. Please speak louder or try again.';
@@ -142,12 +132,7 @@ export function useVoiceSearch(options: UseVoiceSearchOptions = {}) {
 
       recognition.onend = () => {
         isStartingRef.current = false;
-        setIsListening((prev) => {
-          if (prev) {
-            playGoogleVoiceStopSound();
-          }
-          return false;
-        });
+        setIsListening(false);
       };
 
       recognitionRef.current = recognition;
@@ -156,7 +141,6 @@ export function useVoiceSearch(options: UseVoiceSearchOptions = {}) {
       console.error('Failed to start recognition:', err);
       isStartingRef.current = false;
       setIsListening(false);
-      playGoogleVoiceErrorSound();
       const msg = 'Unable to start voice search.';
       setSpeechError(msg);
       onErrorRef.current?.(msg);
