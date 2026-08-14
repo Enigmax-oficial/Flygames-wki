@@ -567,6 +567,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                   </p>
                 </div>
 
+                {devCode && (
+                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 font-bold text-amber-400">
+                        <KeyRound className="w-4 h-4" />
+                        <span>Code: <span className="font-mono text-white text-sm bg-slate-900 px-2 py-0.5 rounded border border-amber-500/40 select-all">{devCode}</span></span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setVerificationCode(devCode)}
+                        className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold rounded-lg border border-amber-500/30 text-[10px] transition cursor-pointer"
+                      >
+                        Use Code
+                      </button>
+                    </div>
+                    {deliveryNotice && (
+                      <p className="text-[11px] text-slate-400 leading-snug">
+                        {deliveryNotice}
+                      </p>
+                    )}
+                  </div>
+                )}
+
                  {errorMessage && (
                   <motion.div 
                     initial={{ opacity: 0, y: -8 }}

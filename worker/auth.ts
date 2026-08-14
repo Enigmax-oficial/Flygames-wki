@@ -860,9 +860,9 @@ export async function handleAuthRequest(
       email: cleanEmail,
       devCode: !result.emailSent ? result.code : undefined,
       deliveryNotice: !result.emailSent
-        ? (result.error?.includes('domain') || result.error?.includes('verify')
-            ? 'The domain is not yet verified on resend.com. Your code is provided for instant testing.'
-            : 'Resend sandbox mode is active. Your verification code is provided below for immediate testing.')
+        ? (result.error?.includes('domain') || result.error?.includes('verify') || result.error?.includes('testing emails') || result.error?.includes('own email address')
+            ? 'Resend sandbox limits delivery to registered owner address (enigmaxhd20@gmail.com). Your 6-digit code is provided below so you can complete verification immediately.'
+            : (result.error || 'Resend sandbox active. Code provided for testing.'))
         : undefined,
     });
   }
