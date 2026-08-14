@@ -28,7 +28,7 @@ export async function sendEmailVerification(
 
   const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
   const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
-  const primaryFromAddress = configuredFrom || 'Wiki Team <wkiteam@noreply>';
+  const primaryFromAddress = configuredFrom || 'Wiki Team <wkiteam@noreply.flyerserver.uk>';
 
   const resendClient = new Resend(apiKey);
 
@@ -53,8 +53,11 @@ export async function sendEmailVerification(
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                       <tr>
                         <td width="56" valign="middle">
-                          <!-- Profile Picture -->
-                          <img src="https://flygames.flyerserver.uk/images/categories/items.png" alt="Wiki Team Profile" width="50" height="50" style="display: block; border-radius: 50%; border: 2px solid #38bdf8; background-color: #1e293b; object-fit: cover;" />
+                          <!-- Overlay image with CSS fallback block to prevent image blocking and spam filters -->
+                          <div style="display: block; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #38bdf8; background-color: #1e293b; color: #38bdf8; font-size: 22px; font-weight: 800; line-height: 50px; text-align: center; font-family: sans-serif; text-shadow: 0 0 8px rgba(56,189,248,0.5); overflow: hidden; position: relative;">
+                            <span style="position: absolute; top: 0; left: 0; width: 50px; height: 50px; line-height: 50px; text-align: center; z-index: 1;">W</span>
+                            <img src="https://flygames.flyerserver.uk/images/categories/items.png" alt="Wiki Team" width="50" height="50" style="display: block; width: 50px; height: 50px; border-radius: 50%; border: none; position: absolute; top: 0; left: 0; z-index: 2; object-fit: cover;" />
+                          </div>
                         </td>
                         <td style="padding-left: 14px;" valign="middle">
                           <!-- Name and Sender Info -->
@@ -62,7 +65,7 @@ export async function sendEmailVerification(
                             Wiki Team
                           </div>
                           <div style="font-size: 12px; color: #38bdf8; font-family: monospace; margin-top: 3px;">
-                            wkiteam@noreply
+                            wkiteam@noreply.flyerserver.uk
                           </div>
                         </td>
                       </tr>
@@ -90,7 +93,7 @@ export async function sendEmailVerification(
                         ${code}
                       </div>
                       <p style="color: #64748b; font-size: 12px; margin: 12px 0 0 0;">
-                        ⏱️ Valid for the next <strong>15 minutes</strong>
+                        ⏱️ Valid for the next <strong>5 minutes</strong>
                       </p>
                     </div>
 
@@ -104,7 +107,7 @@ export async function sendEmailVerification(
                 <tr>
                   <td style="padding: 16px 24px; background-color: #080c14; border-top: 1px solid #1e293b; text-align: center;">
                     <p style="margin: 0; font-size: 11px; color: #475569;">
-                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">wkiteam@noreply</span>)
+                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">wkiteam@noreply.flyerserver.uk</span>)
                     </p>
                   </td>
                 </tr>
@@ -771,7 +774,7 @@ export async function handleAuthRequest(
     const resendClient = new Resend(apiKey);
     try {
       const emailRes = await resendClient.emails.send({
-        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <wkiteam@noreply>',
+        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <wkiteam@noreply.flyerserver.uk>',
         to: toEmail,
         subject: body.subject || 'Hello World',
         html: body.html || '<p>Congrats on sending your <strong>first email</strong>!</p>',
