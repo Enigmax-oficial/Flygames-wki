@@ -317,15 +317,15 @@ export default function App() {
         hasAdmin ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0b0f19] text-center text-slate-300">
             <div className="max-w-md p-8 bg-[#111827] border border-slate-800 rounded-2xl space-y-4">
-              <h3 className="text-lg font-bold text-white">Configuração Indisponível</h3>
+              <h3 className="text-lg font-bold text-white">Setup Unavailable</h3>
               <p className="text-xs text-slate-400">
-                A conta de administrador já foi inicializada. Esta página de configuração de uso único foi desativada e não pode mais ser acessada.
+                The administrator account has already been initialized. This one-time setup page has been disabled and can no longer be accessed.
               </p>
               <button
                 onClick={() => navigateToPage('home')}
                 className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs rounded-xl transition cursor-pointer"
               >
-                Voltar ao Portal
+                Back to Portal
               </button>
             </div>
           </div>

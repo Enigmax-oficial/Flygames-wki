@@ -96,15 +96,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     e.preventDefault();
     setBootstrapError('');
     if (!bootstrapEmail || !bootstrapPassword) {
-      setBootstrapError('Preencha o e-mail e a senha.');
+      setBootstrapError('Please fill in the email and password.');
       return;
     }
     if (bootstrapPassword.length < 6) {
-      setBootstrapError('A senha deve ter pelo menos 6 caracteres.');
+      setBootstrapError('The password must be at least 6 characters long.');
       return;
     }
     if (bootstrapPassword !== bootstrapConfirm) {
-      setBootstrapError('As senhas não coincidem.');
+      setBootstrapError('Passwords do not match.');
       return;
     }
 
@@ -127,10 +127,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         setHasAdmin(true);
         setActiveTab('admin-users');
       } else {
-        setBootstrapError(data.error || 'Falha ao criar conta permanente de administrador.');
+        setBootstrapError(data.error || 'Failed to create permanent administrator account.');
       }
     } catch {
-      setBootstrapError('Erro de conexão ao criar conta de administrador.');
+      setBootstrapError('Connection error while creating administrator account.');
     } finally {
       setIsBootstrapping(false);
     }
@@ -636,7 +636,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       return (
         <div className="max-w-md mx-auto p-8 text-center text-slate-400 font-sans my-20">
           <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-xs">Verificando status do sistema...</p>
+          <p className="text-xs">Verifying system status...</p>
         </div>
       );
     }
@@ -649,9 +649,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </div>
           
           <div className="space-y-1.5">
-            <h2 className="text-xl font-bold text-white tracking-tight">Primeiro Acesso: Criar Administrador</h2>
+            <h2 className="text-xl font-bold text-white tracking-tight">First Access: Create Administrator</h2>
             <p className="text-xs text-slate-400">
-              O sistema ainda não possui uma conta de administrador permanente. Crie o seu acesso de administrador principal abaixo.
+              The system does not yet have a permanent administrator account. Create your primary administrator access below.
             </p>
           </div>
 
@@ -660,11 +660,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
                   <Mail className="w-3.5 h-3.5 text-slate-400" />
-                  <span>E-mail do Administrador</span>
+                  <span>Administrator Email</span>
                 </label>
                 <input
                   type="email"
-                  placeholder="Ex: admin@seuemail.com"
+                  placeholder="Ex: admin@youremail.com"
                   value={bootstrapEmail}
                   onChange={(e) => setBootstrapEmail(e.target.value)}
                   className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600"
@@ -675,7 +675,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Senha (mínimo 6 caracteres)</span>
+                  <span>Password (minimum 6 characters)</span>
                 </label>
                 <div className="relative">
                   <input
@@ -698,7 +698,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Confirmar Senha</span>
+                  <span>Confirm Password</span>
                 </label>
                 <div className="relative">
                   <input
@@ -733,7 +733,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 onClick={onClosePanel}
                 className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
               >
-                Voltar ao Portal
+                Back to Portal
               </button>
               <button
                 type="submit"
@@ -743,12 +743,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 {isBootstrapping ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                    <span>Criando...</span>
+                    <span>Creating...</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>Criar Administrador</span>
+                    <span>Create Administrator</span>
                   </>
                 )}
               </button>
@@ -756,7 +756,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </form>
 
           <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-500 space-y-1">
-            <p>Esta etapa de configuração inicial ocorre apenas uma vez. Após criada, o painel só poderá ser acessado por contas de administrador cadastradas.</p>
+            <p>This initial setup step occurs only once. Once created, the panel can only be accessed by registered administrator accounts.</p>
           </div>
         </div>
       );
@@ -769,9 +769,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
         
         <div className="space-y-1.5">
-          <h2 className="text-xl font-bold text-white tracking-tight">Painel de Acesso do Administrador</h2>
+          <h2 className="text-xl font-bold text-white tracking-tight">Administrator Access Panel</h2>
           <p className="text-xs text-slate-400">
-            Acesso restrito ao painel de controle do Etherium Wiki.
+            Restricted access to the Etherium Wiki control panel.
           </p>
         </div>
 
@@ -781,11 +781,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5 text-slate-400" />
-                <span>Usuário ou E-mail</span>
+                <span>Username or Email</span>
               </label>
               <input
                 type="text"
-                placeholder="Ex: adm ou seu_email@dominio.com"
+                placeholder="Ex: adm or your_email@domain.com"
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
                 className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600"
@@ -795,7 +795,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-slate-400" />
-                <span>Senha de Acesso</span>
+                <span>Access Password</span>
               </label>
               <div className="relative">
                 <input
@@ -809,7 +809,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   type="button"
                   onClick={() => setShowLoginPassword(!showLoginPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
-                  title={showLoginPassword ? 'Ocultar senha' : 'Revelar senha'}
+                  title={showLoginPassword ? 'Hide password' : 'Show password'}
                 >
                   {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -830,7 +830,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               onClick={onClosePanel}
               className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition cursor-pointer"
             >
-              Voltar ao Portal
+              Back to Portal
             </button>
             <button
               type="submit"
@@ -840,12 +840,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               {isVerifying ? (
                 <>
                   <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                  <span>Entrando...</span>
+                  <span>Logging in...</span>
                 </>
               ) : (
                 <>
                   <ShieldCheck className="w-4 h-4" />
-                  <span>Acessar Painel</span>
+                  <span>Access Panel</span>
                 </>
               )}
             </button>
@@ -853,7 +853,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </form>
         
         <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-500 space-y-1">
-          <p>Após o login inicial, você poderá registrar seu próprio usuário e senha personalizados na aba de Administradores.</p>
+          <p>After the initial login, you can register your own custom username and password in the Administrators tab.</p>
         </div>
       </div>
     );
@@ -1083,7 +1083,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           }`}
         >
           <ShieldCheck className="w-4 h-4 text-amber-400" />
-          <span>Gestão de Administradores</span>
+          <span>Administrator Management</span>
         </button>
       </div>
 
@@ -2753,10 +2753,10 @@ wikiApi.createPage({
               <div className="space-y-1">
                 <h2 className="text-base font-extrabold text-white flex items-center gap-2">
                   <ShieldCheck className="w-5 h-5 text-amber-400" />
-                  <span>Gestão de Administradores & Novas Credenciais</span>
+                  <span>Administrator Management & New Credentials</span>
                 </h2>
                 <p className="text-xs text-slate-400">
-                  Cadastre contas de administrador permanentes com nome de usuário, e-mail e senha de sua escolha.
+                  Register permanent administrator accounts with the username, email, and password of your choice.
                 </p>
               </div>
               <button
@@ -2766,7 +2766,7 @@ wikiApi.createPage({
                 className="px-3.5 py-1.5 bg-[#1e293b] hover:bg-[#283548] text-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-slate-700 cursor-pointer disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isAdminAccountsLoading ? 'animate-spin text-amber-400' : ''}`} />
-                <span>Atualizar Lista</span>
+                <span>Update List</span>
               </button>
             </div>
 
@@ -2775,30 +2775,30 @@ wikiApi.createPage({
               <div className="bg-[#0b0f19] p-3 rounded-xl border border-slate-800 space-y-1">
                 <div className="flex items-center gap-2 font-bold text-amber-400 text-[11px] uppercase">
                   <span className="w-4 h-4 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px]">1</span>
-                  <span>Acesso Inicial</span>
+                  <span>Initial Access</span>
                 </div>
                 <p className="text-slate-400 text-[11px]">
-                  Utilize o usuário <strong className="text-amber-300 font-mono">adm</strong> e senha <strong className="text-amber-300 font-mono">admin</strong> no primeiro acesso ao painel.
+                  Use the username <strong className="text-amber-300 font-mono">adm</strong> and password <strong className="text-amber-300 font-mono">admin</strong> on your first access to the panel.
                 </p>
               </div>
 
               <div className="bg-[#0b0f19] p-3 rounded-xl border border-slate-800 space-y-1">
                 <div className="flex items-center gap-2 font-bold text-sky-400 text-[11px] uppercase">
                   <span className="w-4 h-4 rounded-full bg-sky-500/20 flex items-center justify-center text-[10px]">2</span>
-                  <span>Criar Sua Conta</span>
+                  <span>Create Your Account</span>
                 </div>
                 <p className="text-slate-400 text-[11px]">
-                  Preencha o formulário abaixo com seu nome de usuário, e-mail e senha definitiva de administrador.
+                  Fill out the form below with your username, email, and final administrator password.
                 </p>
               </div>
 
               <div className="bg-[#0b0f19] p-3 rounded-xl border border-slate-800 space-y-1">
                 <div className="flex items-center gap-2 font-bold text-emerald-400 text-[11px] uppercase">
                   <span className="w-4 h-4 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px]">3</span>
-                  <span>Login Definitivo</span>
+                  <span>Final Login</span>
                 </div>
                 <p className="text-slate-400 text-[11px]">
-                  Depois de criar, você poderá desbloquear o painel usando seu novo usuário ou e-mail com sua nova senha.
+                  After creating, you will be able to unlock the panel using your new username or email with your new password.
                 </p>
               </div>
             </div>
@@ -2830,7 +2830,7 @@ wikiApi.createPage({
               <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-start gap-3 animate-in fade-in">
                 <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-bold">Erro ao Criar Conta</p>
+                  <p className="font-bold">Error Creating Account</p>
                   <p className="text-rose-400/90 mt-0.5">{createAdminError}</p>
                 </div>
               </div>
@@ -2841,33 +2841,33 @@ wikiApi.createPage({
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Nome de Usuário (Username) <span className="text-rose-400">*</span></span>
+                    <span>Username <span className="text-rose-400">*</span></span>
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ex: ruan_admin ou ruan"
+                    placeholder="Ex: main_admin or admin_user"
                     value={newAdminUsername}
                     onChange={(e) => setNewAdminUsername(e.target.value)}
                     className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600"
                   />
-                  <span className="text-[10px] text-slate-500 mt-1 block">Identificador único de login.</span>
+                  <span className="text-[10px] text-slate-500 mt-1 block">Unique login identifier.</span>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Endereço de E-mail <span className="text-rose-400">*</span></span>
+                    <span>Email Address <span className="text-rose-400">*</span></span>
                   </label>
                   <input
                     type="email"
                     required
-                    placeholder="Ex: ruan@dominio.com"
+                    placeholder="Ex: admin@domain.com"
                     value={newAdminEmail}
                     onChange={(e) => setNewAdminEmail(e.target.value)}
                     className="w-full px-4 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600"
                   />
-                  <span className="text-[10px] text-slate-500 mt-1 block">Usado para identificação e login alternativo.</span>
+                  <span className="text-[10px] text-slate-500 mt-1 block">Used for identification and alternative login.</span>
                 </div>
               </div>
 
@@ -2875,13 +2875,13 @@ wikiApi.createPage({
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Senha de Administrador <span className="text-rose-400">*</span></span>
+                    <span>Administrator Password <span className="text-rose-400">*</span></span>
                   </label>
                   <div className="relative">
                     <input
                       type={showNewAdminPassword ? 'text' : 'password'}
                       required
-                      placeholder="Mínimo 6 caracteres"
+                      placeholder="Minimum 6 characters"
                       value={newAdminPassword}
                       onChange={(e) => setNewAdminPassword(e.target.value)}
                       className="w-full px-4 py-2.5 pr-10 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600 tracking-widest placeholder:tracking-normal"
@@ -2890,7 +2890,7 @@ wikiApi.createPage({
                       type="button"
                       onClick={() => setShowNewAdminPassword(!showNewAdminPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
-                      title={showNewAdminPassword ? 'Ocultar senha' : 'Revelar senha'}
+                      title={showNewAdminPassword ? 'Hide password' : 'Reveal password'}
                     >
                       {showNewAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -2900,13 +2900,13 @@ wikiApi.createPage({
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1.5 uppercase tracking-wider flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Confirmar Senha <span className="text-rose-400">*</span></span>
+                    <span>Confirm Password <span className="text-rose-400">*</span></span>
                   </label>
                   <div className="relative">
                     <input
                       type={showConfirmAdminPassword ? 'text' : 'password'}
                       required
-                      placeholder="Repita a senha"
+                      placeholder="Repeat password"
                       value={newAdminConfirmPassword}
                       onChange={(e) => setNewAdminConfirmPassword(e.target.value)}
                       className="w-full px-4 py-2.5 pr-10 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 transition font-mono placeholder:text-slate-600 tracking-widest placeholder:tracking-normal"
@@ -2915,7 +2915,7 @@ wikiApi.createPage({
                       type="button"
                       onClick={() => setShowConfirmAdminPassword(!showConfirmAdminPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
-                      title={showConfirmAdminPassword ? 'Ocultar senha' : 'Revelar senha'}
+                      title={showConfirmAdminPassword ? 'Hide password' : 'Reveal password'}
                     >
                       {showConfirmAdminPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -2937,7 +2937,7 @@ wikiApi.createPage({
                   ) : (
                     <>
                       <UserPlus className="w-4 h-4" />
-                      <span>Criar Conta de Administrador</span>
+                      <span>Create Administrator Account</span>
                     </>
                   )}
                 </button>
@@ -2950,10 +2950,10 @@ wikiApi.createPage({
             <div className="flex justify-between items-center">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
                 <Crown className="w-4 h-4 text-amber-400" />
-                <span>Administradores Cadastrados no Sistema</span>
+                <span>Registered Administrators in the System</span>
               </h3>
               <span className="text-[11px] font-mono text-slate-400 bg-slate-900 px-2.5 py-1 rounded-lg border border-slate-800">
-                {adminAccounts.length} contas ativas
+                {adminAccounts.length} active accounts
               </span>
             </div>
 
@@ -2964,25 +2964,25 @@ wikiApi.createPage({
             {isAdminAccountsLoading ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-2">
                 <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-xs text-slate-400">Carregando lista de administradores...</span>
+                <span className="text-xs text-slate-400">Loading administrator list...</span>
               </div>
             ) : (
               <div className="overflow-x-auto border border-[#1e293b] rounded-xl">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
                     <tr className="bg-[#0b0f19] border-b border-[#1e293b] text-slate-400 font-bold">
-                      <th className="p-3">Nome de Usuário</th>
-                      <th className="p-3">E-mail Cadastrado</th>
-                      <th className="p-3">Cargo / Função</th>
-                      <th className="p-3">Status de Acesso</th>
-                      <th className="p-3">Data de Registro</th>
+                      <th className="p-3">Username</th>
+                      <th className="p-3">Registered Email</th>
+                      <th className="p-3">Role / Function</th>
+                      <th className="p-3">Access Status</th>
+                      <th className="p-3">Registration Date</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e293b] text-slate-300">
                     {adminAccounts.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="p-4 text-center text-slate-500 italic">
-                          Nenhum administrador adicional cadastrado. O acesso padrão "adm" está ativo.
+                          No additional administrators registered. Default access "adm" is active.
                         </td>
                       </tr>
                     ) : (
@@ -3005,11 +3005,11 @@ wikiApi.createPage({
                           <td className="p-3">
                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                              <span>Ativo & Autorizado</span>
+                              <span>Active & Authorized</span>
                             </span>
                           </td>
                           <td className="p-3 text-slate-400 font-mono text-[10px]">
-                            {admin.created_at ? new Date(admin.created_at).toLocaleString() : 'Padrão do Sistema'}
+                            {admin.created_at ? new Date(admin.created_at).toLocaleString() : 'System Default'}
                           </td>
                         </tr>
                       ))

@@ -26,17 +26,17 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
     }
 
     if (!newAdminEmail || !newAdminEmail.includes('@')) {
-      setError('Por favor, informe um e-mail válido para o administrador.');
+      setError('Please enter a valid email for the administrator.');
       return;
     }
 
     if (!newAdminPassword || newAdminPassword.length < 6) {
-      setError('A senha do administrador deve ter pelo menos 6 caracteres.');
+      setError('The administrator password must be at least 6 characters long.');
       return;
     }
 
     if (newAdminPassword !== confirmPassword) {
-      setError('As senhas não coincidem.');
+      setError('Passwords do not match.');
       return;
     }
 
@@ -60,10 +60,10 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
           onSetupComplete(newAdminEmail);
         }, 1000);
       } else {
-        setError(data.error || 'Falha ao criar conta de administrador.');
+        setError(data.error || 'Failed to create administrator account.');
       }
     } catch {
-      setError('Erro de conexão com o servidor.');
+      setError('Connection error with the server.');
     } finally {
       setIsLoading(false);
     }
@@ -78,7 +78,7 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
             type="button"
             onClick={onBackToLogin}
             className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-            title="Voltar"
+            title="Back"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
@@ -86,9 +86,9 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
             <ShieldCheck className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-white">Configuração Inicial do Administrador</h3>
+            <h3 className="text-base font-bold text-white">Initial Administrator Setup</h3>
             <p className="text-xs text-slate-400">
-              Primeiro Acesso • Uso Único
+              First Access • Single Use
             </p>
           </div>
         </div>
@@ -105,15 +105,15 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
           {success ? (
             <div className="py-8 text-center space-y-3">
               <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto animate-bounce" />
-              <h4 className="text-lg font-bold text-white">Administrador Criado com Sucesso!</h4>
+              <h4 className="text-lg font-bold text-white">Administrator Created Successfully!</h4>
               <p className="text-xs text-slate-400">
-                Redirecionando para o sistema...
+                Redirecting to system...
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 space-y-1">
-                <p className="font-bold">Credenciais de Instalação:</p>
+                <p className="font-bold">Installation Credentials:</p>
                 <p className="text-[11px] text-amber-200/80">
                   Enter the default username and password (<code className="bg-black/30 px-1 py-0.5 rounded font-mono">adm</code> / <code className="bg-black/30 px-1 py-0.5 rounded font-mono">admin</code>) to authorize the creation of the permanent account. This page can only be used once.
                 </p>
@@ -122,7 +122,7 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
-                    Usuário Padrão
+                    Default User
                   </label>
                   <input
                     type="text"
@@ -134,7 +134,7 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
-                    Senha Padrão
+                    Default Password
                   </label>
                   <input
                     type="password"
@@ -150,11 +150,11 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    <span>E-mail do Novo Administrador</span>
+                    <span>New Administrator Email</span>
                   </label>
                   <input
                     type="email"
-                    placeholder="ex: admin@seuemail.com"
+                    placeholder="ex: admin@youremail.com"
                     value={newAdminEmail}
                     onChange={(e) => setNewAdminEmail(e.target.value)}
                     className="w-full px-3 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 font-mono placeholder:text-slate-600"
@@ -165,7 +165,7 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Senha (mínimo 6 caracteres)</span>
+                    <span>Password (minimum 6 characters)</span>
                   </label>
                   <input
                     type="password"
@@ -180,7 +180,7 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
                     <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Confirmar Senha</span>
+                    <span>Confirm Password</span>
                   </label>
                   <input
                     type="password"
@@ -201,12 +201,12 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                    <span>Criando Administrador...</span>
+                    <span>Creating Administrator...</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck className="w-4 h-4" />
-                    <span>Criar Conta de Administrador</span>
+                    <span>Create Administrator Account</span>
                   </>
                 )}
               </button>

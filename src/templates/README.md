@@ -1,28 +1,28 @@
-# 📚 Minecraft Addon Wiki - Templates & Guia de Expansão
+# 📚 Minecraft Addon Wiki - Templates & Expansion Guide
 
-Esta pasta contém os **Templates Oficiais em JSON** para expansão e criação estática de páginas da Wikipedia do seu Addon de Minecraft.
+This folder contains the **Official JSON Templates** for expansion and static creation of Wikipedia pages for your Minecraft Addon.
 
-## 🚀 Como Expandir esta Wiki no GitHub Pages
+## 🚀 How to Expand this Wiki on GitHub Pages
 
-Para publicar novas páginas no GitHub Pages ou manter seu repositório sincronizado:
+To publish new pages on GitHub Pages or keep your repository synchronized:
 
-1. **Escolha um Template:**
-   - `item-template.json` -> Para Armas, Ferramentas, Armaduras ou Itens
-   - `mob-template.json` -> Para Mobs Hostis, Pacíficos e Bosses
-   - `block-template.json` -> Para Blocos, Minérios e Bancadas
-   - `recipe-template.json` -> Para Receitas e Rituais
-   - `biome-template.json` -> Para Biomas e Dimensões
-   - `guide-template.json` -> Para Guias, Tutoriais e Patch Notes
+1. **Choose a Template:**
+   - `item-template.json` -> For Weapons, Tools, Armor, or Items
+   - `mob-template.json` -> For Hostile, Passive Mobs, and Bosses
+   - `block-template.json` -> For Blocks, Ores, and Workbenches
+   - `recipe-template.json` -> For Recipes and Rituals
+   - `biome-template.json` -> For Biomes and Dimensions
+   - `guide-template.json` -> For Guides, Tutorials, and Patch Notes
 
-2. **Crie ou Edite na Aplicação:**
-   - Abra a wiki na web e clique no botão **"➕ Criar com Template"** no menu.
-   - Selecione o tipo de página desejado, preencha os dados e pré-visualize o resultado em tempo real com receitas de crafting interativas 3x3.
-   - Clique em **"Baixar JSON / Exportar Página"** ou adicione diretamente ao bundle.
+2. **Create or Edit in the Application:**
+   - Open the wiki on the web and click the **"➕ Create with Template"** button in the menu.
+   - Select the desired page type, fill in the data, and preview the result in real-time with 3x3 interactive crafting recipes.
+   - Click **"Download JSON / Export Page"** or add directly to the bundle.
 
-3. **Deploy no GitHub Pages:**
-   - Execute `npm run build`
-   - O projeto gera a pasta estática `/dist`
-   - Publique os arquivos no seu branch `gh-pages` ou configure o GitHub Actions (incluso no modal de exportação).
+3. **Deploy on GitHub Pages:**
+   - Run `npm run build`
+   - The project generates the static `/dist` folder
+   - Publish the files to your `gh-pages` branch or configure GitHub Actions (included in the export modal).
 
 ---
-*Gerado para a Wikipedia Estática do Addon de Minecraft.*
+*Generated for the Static Wikipedia of the Minecraft Addon.*

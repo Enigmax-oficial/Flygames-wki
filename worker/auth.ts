@@ -289,7 +289,7 @@ export async function handleAuthRequest(
       .first<any>();
 
     if (!adminCheck) {
-      return jsonRes({ success: false, error: 'E-mail não autorizado como administrador. Apenas administradores cadastrados podem acessar.' }, 403);
+      return jsonRes({ success: false, error: 'Email not authorized as administrator. Only registered administrators can access.' }, 403);
     }
     return jsonRes({ success: true, admin: adminCheck });
   }
