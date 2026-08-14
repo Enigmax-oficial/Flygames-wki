@@ -141,7 +141,7 @@ async function handleWorkerRequestDirectly(req: any, res: any) {
       mysql: mysqlClient,
       ASSETS: null,
       RESEND_API_KEY: process.env.RESEND_API_KEY || ['re', '8tAYo41S', '5ssyvS2iDJvG5NhrJNGS2jJr'].join('_'),
-      RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Wiki Team <wkiteam@noreply.flyerserver.uk>',
+      RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Wiki Team <wiki@flyerserver.uk>',
     };
 
     const webResponse = await worker.fetch(webRequest, env as any, {
