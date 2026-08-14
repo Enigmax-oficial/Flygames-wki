@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage, getItemImage } from '../lib/assetHelper';
 import { WikiApi } from '../lib/wikiApi';
-import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 import { WikiIcon } from './WikiIcon';
 import { 
   X, 
@@ -33,6 +32,7 @@ interface MobileDrawerProps {
   onGoHome: () => void;
   onOpenSearch: (isVoice?: boolean) => void;
   userEmail?: string | null;
+  isCurrentUserAdmin?: boolean;
   hasAdmin?: boolean;
 }
 
@@ -47,6 +47,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onGoHome,
   onOpenSearch,
   userEmail,
+  isCurrentUserAdmin = false,
   hasAdmin = true,
 }) => {
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getFavorites());
@@ -62,7 +63,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const isAdmin = !hasAdmin || (Boolean(userEmail) && isAuthorizedAdminEmail(userEmail));
+  const isAdmin = isCurrentUserAdmin || !hasAdmin;
 
   const dynamicCategories = WikiApi.getCategories();
 

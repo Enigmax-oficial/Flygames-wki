@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { WikiPage, CategoryType } from '../types/wiki';
 import { getPageCoverImage, getItemImage } from '../lib/assetHelper';
 import { WikiApi } from '../lib/wikiApi';
-import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 import { WikiIcon } from './WikiIcon';
 import { 
   Home,
@@ -28,6 +27,7 @@ interface DesktopSidebarProps {
   isOpen?: boolean;
   onToggleSidebar?: () => void;
   userEmail?: string | null;
+  isCurrentUserAdmin?: boolean;
   hasAdmin?: boolean;
 }
 
@@ -41,6 +41,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   isOpen = true,
   onToggleSidebar,
   userEmail,
+  isCurrentUserAdmin = false,
   hasAdmin = true,
 }) => {
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getFavorites());
@@ -57,7 +58,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
   if (!isOpen) return null;
 
-  const isAdmin = !hasAdmin || (Boolean(userEmail) && isAuthorizedAdminEmail(userEmail));
+  const isAdmin = isCurrentUserAdmin || !hasAdmin;
   const dynamicCategories = WikiApi.getCategories();
 
   const renderSidebarIcon = (catId: string, iconStr: string) => {

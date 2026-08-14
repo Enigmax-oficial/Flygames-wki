@@ -192,8 +192,8 @@ export async function handleAuthRequest(
     }
 
     const { username, password, email, adminPassword } = body;
-    if (username !== 'admin' || password !== 'admin') {
-      return jsonRes({ error: 'Credenciais de bootstrap inválidas. Use o usuário "admin" e a senha "admin".' }, 401);
+    if (username !== 'adm' || password !== 'admin') {
+      return jsonRes({ error: 'Bootstrap credentials invalid. Use user "adm" and password "admin".' }, 401);
     }
 
     const targetEmail = email || body.email;

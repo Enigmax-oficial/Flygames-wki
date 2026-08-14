@@ -7,7 +7,7 @@ interface AdminSetupPageProps {
 }
 
 export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete, onBackToLogin }) => {
-  const [bootstrapUsername, setBootstrapUsername] = useState('admin');
+  const [bootstrapUsername, setBootstrapUsername] = useState('adm');
   const [bootstrapPassword, setBootstrapPassword] = useState('admin');
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
@@ -20,8 +20,8 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
     e.preventDefault();
     setError('');
 
-    if (bootstrapUsername.trim() !== 'admin' || bootstrapPassword.trim() !== 'admin') {
-      setError('Credenciais de bootstrap inválidas. Use o usuário "admin" e a senha "admin".');
+    if (bootstrapUsername.trim() !== 'adm' || bootstrapPassword.trim() !== 'admin') {
+      setError('Bootstrap credentials invalid. Use user "adm" and password "admin".');
       return;
     }
 
@@ -115,7 +115,7 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
               <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 space-y-1">
                 <p className="font-bold">Credenciais de Instalação:</p>
                 <p className="text-[11px] text-amber-200/80">
-                  Insira o usuário e senha padrão (<code className="bg-black/30 px-1 py-0.5 rounded font-mono">admin</code> / <code className="bg-black/30 px-1 py-0.5 rounded font-mono">admin</code>) para autorizar a criação da conta permanente. Esta página só pode ser usada uma vez.
+                  Enter the default username and password (<code className="bg-black/30 px-1 py-0.5 rounded font-mono">adm</code> / <code className="bg-black/30 px-1 py-0.5 rounded font-mono">admin</code>) to authorize the creation of the permanent account. This page can only be used once.
                 </p>
               </div>
 

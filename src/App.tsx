@@ -44,6 +44,14 @@ export default function App() {
     }
   });
 
+  const [isCurrentUserAdmin, setIsCurrentUserAdmin] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('etherium_user_is_admin') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   // Modals & Navigation state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isVoiceSearchActive, setIsVoiceSearchActive] = useState(false);
@@ -248,9 +256,11 @@ export default function App() {
     const finalEmail = email;
     setUser(userName);
     setUserEmail(finalEmail);
+    setIsCurrentUserAdmin(isAdmin);
     try {
       localStorage.setItem('etherium_user', userName);
       localStorage.setItem('etherium_user_email', finalEmail);
+      localStorage.setItem('etherium_user_is_admin', String(isAdmin));
     } catch (e) {
       console.warn('LocalStorage save user failed:', e);
     }
@@ -259,9 +269,11 @@ export default function App() {
   const handleLogout = () => {
     setUser(null);
     setUserEmail(null);
+    setIsCurrentUserAdmin(false);
     try {
       localStorage.removeItem('etherium_user');
       localStorage.removeItem('etherium_user_email');
+      localStorage.removeItem('etherium_user_is_admin');
       localStorage.removeItem('etherium_admin_token');
       localStorage.removeItem('etherium_auth_token');
       sessionStorage.removeItem('admin_auth_verified');
@@ -355,6 +367,7 @@ export default function App() {
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
         user={user}
         userEmail={userEmail}
+        isCurrentUserAdmin={isCurrentUserAdmin}
         onLogout={handleLogout}
         hasAdmin={hasAdmin}
       />
@@ -371,6 +384,7 @@ export default function App() {
           onSelectPage={(id) => navigateToPage(id)}
           onGoHome={() => navigateToPage('home')}
           userEmail={userEmail}
+          isCurrentUserAdmin={isCurrentUserAdmin}
           hasAdmin={hasAdmin}
         />
 
@@ -386,6 +400,7 @@ export default function App() {
           onGoHome={() => navigateToPage('home')}
           onOpenSearch={handleOpenSearch}
           userEmail={userEmail}
+          isCurrentUserAdmin={isCurrentUserAdmin}
           hasAdmin={hasAdmin}
         />
 

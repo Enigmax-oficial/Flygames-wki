@@ -11,6 +11,18 @@ interface LoginPageProps {
 export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) => {
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [hasAdmin, setHasAdmin] = useState<boolean>(true);
+
+  React.useEffect(() => {
+    fetch('/api/admin/status')
+      .then(res => res.json())
+      .then((data: any) => {
+        if (data.success) {
+          setHasAdmin(data.hasAdmin);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 bg-[#0b0f19] font-sans h-full min-h-[calc(100vh-64px)]">
@@ -66,7 +78,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
               </div>
 
               {/* Google Sign In Component */}
-              <div className="flex justify-center w-full py-4">
+              <div className="flex justify-center w-full py-4 flex-col items-center gap-4">
                 <GoogleLogin
                   onSuccess={async (credentialResponse: CredentialResponse) => {
                     if (credentialResponse.credential) {
@@ -81,36 +93,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
                         let name = 'Google User';
                         let emailVal = 'user@gmail.com';
+                        let isAdmin = false;
 
                         if (data && data.user) {
                           name = data.user.name || name;
                           emailVal = data.user.email || emailVal;
+                          isAdmin = data.user.is_admin === 1;
                         } else {
                           const decoded: any = jwtDecode(idToken);
                           name = decoded.name || decoded.email?.split('@')[0] || name;
                           emailVal = decoded.email || emailVal;
                         }
 
-                        // Verify if email is registered as an admin in database
-                        try {
-                          const checkRes = await fetch('/api/admin/verify-google', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: emailVal })
-                          });
-                          const checkData = await checkRes.json() as any;
-                          if (!checkRes.ok || !checkData.success) {
-                            setErrorMessage(checkData.error || 'Unauthorized email. Only registered administrators can access.');
-                            return;
-                          }
-                        } catch {
-                          setErrorMessage('Error verifying administrator authorization.');
-                          return;
-                        }
-
                         if (data && data.token) {
                           try {
                             localStorage.setItem('etherium_auth_token', data.token);
+                            if (isAdmin) {
+                              localStorage.setItem('etherium_admin_token', data.token);
+                            }
                           } catch (e) {
                             console.warn('LocalStorage save token error', e);
                           }
@@ -118,35 +118,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
                         setSuccess(true);
                         setTimeout(() => {
-                          onLoginSuccess(name, emailVal, true, 'home');
+                          onLoginSuccess(name, emailVal, isAdmin, isAdmin ? 'admin-panel' : 'home');
                           setSuccess(false);
                         }, 600);
-                      } catch {
-                        try {
-                          const decoded: any = jwtDecode(idToken);
-                          const name = decoded.name || decoded.email?.split('@')[0] || 'Google User';
-                          const emailVal = decoded.email || 'user@gmail.com';
-
-                          // Verify admin database
-                          const checkRes = await fetch('/api/admin/verify-google', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: emailVal })
-                          });
-                          const checkData = await checkRes.json() as any;
-                          if (!checkRes.ok || !checkData.success) {
-                            setErrorMessage(checkData.error || 'Unauthorized email. Only registered administrators can access.');
-                            return;
-                          }
-
-                          setSuccess(true);
-                          setTimeout(() => {
-                            onLoginSuccess(name, emailVal, true, 'home');
-                            setSuccess(false);
-                          }, 600);
-                        } catch {
-                          setErrorMessage('Failed to process Google authentication.');
-                        }
+                      } catch (err) {
+                        setErrorMessage('Failed to process authentication.');
                       }
                     }
                   }}
@@ -160,6 +136,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                   logo_alignment="left"
                   width="340"
                 />
+
+                {!hasAdmin && (
+                  <div className="w-full pt-4 border-t border-[#1e293b]">
+                    <button
+                      onClick={() => {
+                        window.history.pushState(null, '', '/admin-setup');
+                        window.dispatchEvent(new Event('popstate'));
+                      }}
+                      className="w-full py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span>Create Account for Administrator (adm)</span>
+                    </button>
+                    <p className="mt-2 text-[10px] text-slate-500">
+                      Initial setup required. Use username "adm" and password "admin".
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}
