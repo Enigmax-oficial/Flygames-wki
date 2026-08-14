@@ -91,7 +91,7 @@ export default {
         let usersList: any[] = [];
         try {
           await ensureSchema(env);
-          const res = await env.mysql.prepare('SELECT COUNT(*) as count FROM pages_contains').first<{ count: number }>();
+          const res = await env.mysql.prepare('SELECT COUNT(*) as count FROM pages_contents').first<{ count: number }>();
           pageCount = res?.count || 0;
           
           const usersRes = await env.mysql.prepare('SELECT id, username, email, is_admin, created_at FROM users ORDER BY created_at DESC').all();
@@ -137,14 +137,14 @@ export default {
         try {
           // 1. Top Visited Pages
           const visitedRes = await env.mysql.prepare(
-            'SELECT id, title, slug, category, image_url, COALESCE(views, 0) as views, created_at, updated_at FROM pages_contains ORDER BY views DESC LIMIT 20'
+            'SELECT id, title, slug, category, image_url, COALESCE(views, 0) as views, created_at, updated_at FROM pages_contents ORDER BY views DESC LIMIT 20'
           ).all();
           topVisited = visitedRes.results || [];
 
           // 2. Top Favorited Pages
           const favoritedRes = await env.mysql.prepare(
             `SELECT p.id, p.title, p.slug, p.category, p.image_url, COALESCE(p.views, 0) as views, COUNT(f.page_id) as favorites_count 
-             FROM pages_contains p 
+             FROM pages_contents p 
              LEFT JOIN users_favorites f ON p.id = f.page_id 
              GROUP BY p.id 
              ORDER BY favorites_count DESC, views DESC LIMIT 20`
@@ -152,7 +152,7 @@ export default {
           topFavorited = favoritedRes.results || [];
 
           // 3. Totals
-          const sumRes = await env.mysql.prepare('SELECT SUM(COALESCE(views, 0)) as total_views, COUNT(*) as total_pages FROM pages_contains').first<any>();
+          const sumRes = await env.mysql.prepare('SELECT SUM(COALESCE(views, 0)) as total_views, COUNT(*) as total_pages FROM pages_contents').first<any>();
           totalViews = sumRes?.total_views || 0;
           totalPages = sumRes?.total_pages || 0;
 

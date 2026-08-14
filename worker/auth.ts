@@ -1239,7 +1239,7 @@ export async function handleFavoritesRequest(
       .prepare(
         `SELECT f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.content, p.image_url, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
          FROM users_favorites f
-         JOIN pages_contains p ON (f.page_id = p.id OR f.page_id = p.slug)
+         JOIN pages_contents p ON (f.page_id = p.id OR f.page_id = p.slug)
          WHERE f.user_id = ? OR f.user_id = ?
          ORDER BY f.created_at DESC`
       )
@@ -1273,7 +1273,7 @@ export async function handleFavoritesRequest(
 
     // Check page existence (by id or slug)
     const pageExists = await env.mysql
-      .prepare('SELECT id, slug FROM pages_contains WHERE id = ? OR slug = ?')
+      .prepare('SELECT id, slug FROM pages_contents WHERE id = ? OR slug = ?')
       .bind(targetPageId, targetPageId)
       .first<{ id: string; slug: string }>();
 
@@ -1320,7 +1320,7 @@ export async function handleFavoritesRequest(
 
     await env.mysql
       .prepare(
-        'DELETE FROM users_favorites WHERE (user_id = ? OR user_id = ?) AND (page_id = ? OR page_id IN (SELECT id FROM pages_contains WHERE slug = ? OR id = ?))'
+        'DELETE FROM users_favorites WHERE (user_id = ? OR user_id = ?) AND (page_id = ? OR page_id IN (SELECT id FROM pages_contents WHERE slug = ? OR id = ?))'
       )
       .bind(currentUser.id, currentUser.email, targetPageId, targetPageId, targetPageId)
       .run();
