@@ -45,7 +45,7 @@ export async function ensureSchema(env: Env): Promise<void> {
       'CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);'
     );
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS email_verifications (email TEXT PRIMARY KEY, code TEXT NOT NULL, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);'
+      'CREATE TABLE IF NOT EXISTS email_verifications (email TEXT PRIMARY KEY, code TEXT NOT NULL, username TEXT, password_hash TEXT, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);'
     );
 
     // Helper to check and add column
@@ -82,6 +82,8 @@ export async function ensureSchema(env: Env): Promise<void> {
     await addColumn('users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0');
     await addColumn('users', 'username', 'TEXT');
     await addColumn('users', 'email_verified', 'INTEGER DEFAULT 0');
+    await addColumn('email_verifications', 'username', 'TEXT');
+    await addColumn('email_verifications', 'password_hash', 'TEXT');
 
     schemaInitialized = true;
   } catch (err: any) {

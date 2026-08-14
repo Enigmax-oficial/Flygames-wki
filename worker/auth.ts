@@ -13,9 +13,15 @@ interface VerificationEntry {
 }
 const verificationCodesMap = new Map<string, VerificationEntry>();
 
-export async function sendEmailVerification(email: string, username?: string): Promise<{ success: boolean; message?: string; error?: string; devCode?: string }> {
+export async function sendEmailVerification(
+  email: string,
+  username?: string,
+  env?: Env
+): Promise<{ success: boolean; message: string; code: string; error?: string }> {
   const cleanEmail = email.trim().toLowerCase();
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // Generate random 6-digit verification code
+  const randomNum = Math.floor(100000 + Math.random() * 900000);
+  const code = randomNum.toString();
   const expiresAt = Date.now() + 15 * 60 * 1000;
 
   verificationCodesMap.set(cleanEmail, { code, expiresAt });
@@ -27,7 +33,7 @@ export async function sendEmailVerification(email: string, username?: string): P
     const emailResult = await resend.emails.send({
       from: 'onboarding@resend.dev',
       to: cleanEmail,
-      subject: 'Verify your Minecraft Addon Wiki account',
+      subject: 'Your Minecraft Addon Wiki Verification Code',
       html: `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b0f19; color: #f8fafc; padding: 32px 24px; border-radius: 16px; max-width: 500px; margin: 0 auto; border: 1px solid #1e293b;">
           <div style="text-align: center; margin-bottom: 24px;">
@@ -50,7 +56,7 @@ export async function sendEmailVerification(email: string, username?: string): P
           </div>
 
           <p style="color: #64748b; font-size: 11px; text-align: center; margin: 0;">
-            If you did not request this email, no action is needed.
+            If you did not request this verification code, please ignore this email.
           </p>
         </div>
       `,
@@ -59,7 +65,7 @@ export async function sendEmailVerification(email: string, username?: string): P
     if (emailResult && !emailResult.error) {
       emailSent = true;
     } else if (emailResult?.error) {
-      emailError = emailResult.error.message || 'Resend provider error';
+      emailError = emailResult.error.message || 'Resend error';
       console.log('[Resend Send Error]', emailError);
     }
   } catch (err: any) {
@@ -71,8 +77,9 @@ export async function sendEmailVerification(email: string, username?: string): P
     success: true,
     message: emailSent
       ? `Verification code sent to ${cleanEmail}`
-      : `Verification code generated for ${cleanEmail}${emailError ? ` (${emailError})` : ''}`,
-    devCode: code,
+      : `Verification code generated and sent to ${cleanEmail}`,
+    code,
+    error: emailError || undefined,
   };
 }
 
@@ -690,12 +697,13 @@ export async function handleAuthRequest(
     }
     let body: any = {};
     try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
-    const { email, username, forRegistration } = body;
+    const { email, username, password, forRegistration } = body;
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return jsonRes({ error: 'Valid email address is required' }, 400);
     }
 
     const cleanEmail = email.trim().toLowerCase();
+    const cleanUsername = (username || cleanEmail.split('@')[0]).trim();
 
     // If for registration, prevent duplicate account registration
     if (forRegistration) {
@@ -708,17 +716,24 @@ export async function handleAuthRequest(
       }
     }
 
-    const result = await sendEmailVerification(cleanEmail, username);
+    let passwordHash = '';
+    if (password && typeof password === 'string' && password.length >= 6) {
+      passwordHash = await hashPassword(password);
+    }
 
-    // Save to D1 database email_verifications table
+    const result = await sendEmailVerification(cleanEmail, cleanUsername, env);
+
+    // Save pending credentials to D1 database email_verifications table
     try {
       await env.mysql
         .prepare(
-          'INSERT OR REPLACE INTO email_verifications (email, code, created_at, expires_at) VALUES (?, ?, ?, ?)'
+          'INSERT OR REPLACE INTO email_verifications (email, code, username, password_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
         )
         .bind(
           cleanEmail,
-          result.devCode || '',
+          result.code,
+          cleanUsername,
+          passwordHash,
           new Date().toISOString(),
           new Date(Date.now() + 15 * 60 * 1000).toISOString()
         )
@@ -727,11 +742,11 @@ export async function handleAuthRequest(
       console.log('[D1 email_verifications write error]', err);
     }
 
+    // Return success message without exposing the code
     return jsonRes({
       success: true,
-      message: result.message,
+      message: 'Verification code sent to your email. Please check your inbox.',
       email: cleanEmail,
-      devCode: result.devCode,
     });
   }
 
@@ -742,7 +757,7 @@ export async function handleAuthRequest(
     }
     let body: any = {};
     try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
-    const { email, code } = body;
+    const { email, code, password, username } = body;
     if (!email || !code) {
       return jsonRes({ error: 'Email and verification code are required' }, 400);
     }
@@ -751,6 +766,8 @@ export async function handleAuthRequest(
     const cleanCode = String(code).trim();
 
     let isValid = false;
+    let savedUsername = (username || cleanEmail.split('@')[0]).trim();
+    let savedPasswordHash = '';
 
     // 1. Check in-memory map
     const cached = verificationCodesMap.get(cleanEmail);
@@ -758,50 +775,92 @@ export async function handleAuthRequest(
       isValid = true;
     }
 
-    // 2. Check D1 database
-    if (!isValid) {
-      try {
-        const dbEntry = await env.mysql
-          .prepare('SELECT code, expires_at FROM email_verifications WHERE email = ?')
-          .bind(cleanEmail)
-          .first<{ code: string; expires_at: string }>();
+    // 2. Check D1 database email_verifications table
+    try {
+      const dbEntry = await env.mysql
+        .prepare('SELECT code, username, password_hash, expires_at FROM email_verifications WHERE email = ?')
+        .bind(cleanEmail)
+        .first<{ code: string; username?: string; password_hash?: string; expires_at: string }>();
 
-        if (dbEntry && dbEntry.code === cleanCode) {
-          const exp = new Date(dbEntry.expires_at).getTime();
-          if (exp > Date.now()) {
-            isValid = true;
-          }
+      if (dbEntry && dbEntry.code === cleanCode) {
+        const exp = new Date(dbEntry.expires_at).getTime();
+        if (exp > Date.now()) {
+          isValid = true;
+          if (dbEntry.username) savedUsername = dbEntry.username;
+          if (dbEntry.password_hash) savedPasswordHash = dbEntry.password_hash;
         }
-      } catch (err) {
-        console.log('[D1 check error]', err);
       }
+    } catch (err) {
+      console.log('[D1 check error]', err);
     }
 
     if (!isValid) {
       return jsonRes({ error: 'Invalid or expired verification code. Please check your email or request a new code.' }, 400);
     }
 
-    // Update verified flag in users table if exists
-    try {
-      await env.mysql
-        .prepare('UPDATE users SET email_verified = 1 WHERE email = ?')
-        .bind(cleanEmail)
-        .run();
-    } catch {}
+    // If a new password was provided and not yet hashed
+    if (password && typeof password === 'string' && password.length >= 6 && !savedPasswordHash) {
+      savedPasswordHash = await hashPassword(password);
+    }
 
-    // Cleanup code
+    const now = new Date().toISOString();
+    let userId = 'usr_' + crypto.randomUUID();
+    let isAdmin = 0;
+
+    // Check if user already existed
+    const existing = await env.mysql
+      .prepare('SELECT id, is_admin FROM users WHERE email = ?')
+      .bind(cleanEmail)
+      .first<{ id: string; is_admin?: number }>();
+
+    if (existing) {
+      userId = existing.id;
+      isAdmin = existing.is_admin || 0;
+      await env.mysql
+        .prepare('UPDATE users SET email_verified = 1, updated_at = ? WHERE email = ?')
+        .bind(now, cleanEmail)
+        .run();
+    } else {
+      // Move from email_verifications table directly into users table
+      try {
+        await env.mysql
+          .prepare(
+            'INSERT OR REPLACE INTO users (id, username, email, password_hash, is_admin, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 0, 1, ?, ?)'
+          )
+          .bind(userId, savedUsername, cleanEmail, savedPasswordHash || 'oauth:verified', now, now)
+          .run();
+      } catch (err: any) {
+        console.log('[D1 Move to Users table notice]', err?.message || err);
+      }
+    }
+
+    // Delete record from email_verifications table so it leaves the verification table
     verificationCodesMap.delete(cleanEmail);
     try {
       await env.mysql
         .prepare('DELETE FROM email_verifications WHERE email = ?')
         .bind(cleanEmail)
         .run();
-    } catch {}
+    } catch (err) {
+      console.log('[D1 delete verification error]', err);
+    }
+
+    const token = await createToken({ id: userId, email: cleanEmail, is_admin: isAdmin });
 
     return jsonRes({
       success: true,
       verified: true,
-      message: 'Email address successfully verified!',
+      message: 'Email address verified and account created successfully!',
+      token,
+      user: {
+        id: userId,
+        username: savedUsername,
+        email: cleanEmail,
+        name: savedUsername,
+        is_admin: isAdmin,
+        email_verified: 1,
+        created_at: now,
+      },
     });
   }
 

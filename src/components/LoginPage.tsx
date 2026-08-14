@@ -40,7 +40,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
   // Email Verification Code
   const [verificationCode, setVerificationCode] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [devCodeHint, setDevCodeHint] = useState<string | null>(null);
 
   // Google user temp state for setting password
   const [pendingGoogleUser, setPendingGoogleUser] = useState<{
@@ -91,12 +90,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
     setIsLoading(true);
 
     try {
-      // 1. Send verification code via Resend
+      // 1. Send verification code via Resend and store in email_verifications table
       const res = await fetch('/api/auth/send-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: cleanEmail,
+          password,
           username: username.trim() || cleanEmail.split('@')[0],
           forRegistration: true,
         }),
@@ -105,9 +105,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       const data = (await res.json().catch(() => ({}))) as any;
 
       if (res.ok && data.success) {
-        if (data.devCode) {
-          setDevCodeHint(data.devCode);
-        }
         setMode('verify_email');
         setResendCooldown(60);
         setSuccessMessage(`Verification email sent to ${cleanEmail}`);
@@ -136,6 +133,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: email.trim().toLowerCase(),
+          password,
           username: username.trim() || email.split('@')[0],
           forRegistration: true,
         }),
@@ -144,11 +142,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       const data = (await res.json().catch(() => ({}))) as any;
 
       if (res.ok && data.success) {
-        if (data.devCode) {
-          setDevCodeHint(data.devCode);
-        }
         setResendCooldown(60);
-        setSuccessMessage('A new verification code has been sent via Resend.');
+        setSuccessMessage('A new verification code has been sent to your email.');
       } else {
         setErrorMessage(data.error || 'Failed to resend verification code.');
       }
@@ -174,14 +169,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch('/api/auth/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: cleanEmail,
+          code: cleanCode,
           password,
           username: username.trim() || cleanEmail.split('@')[0],
-          verificationCode: cleanCode,
         }),
       });
 
@@ -564,12 +559,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                       className="w-full tracking-[10px] text-center font-mono text-xl py-3 bg-[#070a12] border border-slate-800 focus:border-sky-500 rounded-xl text-white outline-none transition placeholder:tracking-normal placeholder:text-slate-600"
                     />
                   </div>
-
-                  {devCodeHint && (
-                    <div className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-[11px] text-slate-400 text-center">
-                      Sandbox Code Hint: <span className="font-mono font-bold text-sky-400">{devCodeHint}</span>
-                    </div>
-                  )}
 
                   <button
                     type="submit"
