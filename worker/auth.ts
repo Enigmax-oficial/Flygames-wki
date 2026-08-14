@@ -840,12 +840,12 @@ export async function handleAuthRequest(
         ? 'Verification code sent to your email. Please check your inbox.'
         : 'Verification code generated.',
       email: cleanEmail,
-      devCode: !result.emailSent ? result.code : undefined,
+      devCode: result.code,
       deliveryNotice: !result.emailSent
         ? (result.error?.includes('domain') || result.error?.includes('verify')
             ? 'The domain noreply.flyerserver.uk is not yet verified on resend.com. Your code is provided for instant testing.'
             : 'Resend sandbox mode is active. Your verification code is provided below for immediate testing.')
-        : undefined,
+        : 'Resend sandbox/dev mode active. If you do not receive the email, please check the devCode.',
     });
   }
 

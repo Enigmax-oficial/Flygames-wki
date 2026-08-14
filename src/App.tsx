@@ -277,12 +277,20 @@ export default function App() {
     const finalEmail = email;
     setUser(userName);
     setUserEmail(finalEmail);
-    if (avatarUrl) setUserAvatar(avatarUrl);
+    if (avatarUrl) {
+      setUserAvatar(avatarUrl);
+    } else {
+      setUserAvatar(null);
+    }
     setIsCurrentUserAdmin(isAdmin);
     try {
       localStorage.setItem('etherium_user', userName);
       localStorage.setItem('etherium_user_email', finalEmail);
-      if (avatarUrl) localStorage.setItem('etherium_user_avatar', avatarUrl);
+      if (avatarUrl) {
+        localStorage.setItem('etherium_user_avatar', avatarUrl);
+      } else {
+        localStorage.removeItem('etherium_user_avatar');
+      }
       localStorage.setItem('etherium_user_is_admin', String(isAdmin));
     } catch (e) {
       console.warn('LocalStorage save user failed:', e);
@@ -411,7 +419,6 @@ export default function App() {
           onSelectPage={(id) => navigateToPage(id)}
           onGoHome={() => navigateToPage('home')}
           userEmail={userEmail}
-        userAvatar={userAvatar}
           isCurrentUserAdmin={isCurrentUserAdmin}
           hasAdmin={hasAdmin}
         />
@@ -428,7 +435,6 @@ export default function App() {
           onGoHome={() => navigateToPage('home')}
           onOpenSearch={handleOpenSearch}
           userEmail={userEmail}
-        userAvatar={userAvatar}
           isCurrentUserAdmin={isCurrentUserAdmin}
           isSqlConnected={isSqlConnected}
           hasAdmin={hasAdmin}
@@ -492,7 +498,6 @@ export default function App() {
               <AdminPanel
                 pages={pages}
                 userEmail={userEmail}
-        userAvatar={userAvatar}
                 onPageCreated={handlePageCreated}
                 onClosePanel={() => navigateToPage('home')}
                 onSelectPage={(id) => navigateToPage(id)}
@@ -505,7 +510,6 @@ export default function App() {
               onGoHome={() => navigateToPage('home')}
               onOpenLogin={() => navigateToPage('login')}
               userEmail={userEmail}
-        userAvatar={userAvatar}
             />
           ) : selectedPageId === 'home' || !activePage ? (
             selectedCategory !== 'all' ? (

@@ -31,6 +31,7 @@ interface AccountModalProps {
   onClose: () => void;
   user: string | null;
   userEmail?: string | null;
+  userAvatar?: string | null;
   onLogout: () => void;
   onUpdateUserName?: (newName: string) => void;
   onUpdateUserEmail?: (newEmail: string) => void;
@@ -47,6 +48,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onClose,
   user,
   userEmail = '',
+  userAvatar = null,
   onLogout,
   onUpdateUserName,
   onUpdateUserEmail,

@@ -52,6 +52,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
     email: string;
     isAdmin: boolean;
     token?: string;
+    avatarUrl?: string | null;
   } | null>(null);
   const [googlePassword, setGooglePassword] = useState('');
   const [confirmGooglePassword, setConfirmGooglePassword] = useState('');
@@ -144,7 +145,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
         setMode('verify_email');
         setResendCooldown(60);
         if (data.devCode) {
-          setSuccessMessage(`Test mode active. Use verification code: ${data.devCode}`);
+          setSuccessMessage(`Verification email sent to ${cleanEmail}. (Sandbox Backup: ${data.devCode})`);
         } else {
           setSuccessMessage(`Verification email sent to ${cleanEmail}. Please check your inbox.`);
         }
@@ -185,7 +186,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       if (res.ok && data.success) {
         setResendCooldown(60);
         if (data.devCode) {
-          setSuccessMessage(`Test mode active. Use verification code: ${data.devCode}`);
+          setSuccessMessage(`A new verification code has been sent. (Sandbox Backup: ${data.devCode})`);
         } else {
           setSuccessMessage('A new verification code has been sent to your email.');
         }
