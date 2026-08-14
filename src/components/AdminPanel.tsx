@@ -2809,10 +2809,10 @@ wikiApi.createPage({
             <div className="border-b border-[#1e293b] pb-3">
               <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
                 <UserPlus className="w-4 h-4 text-amber-400" />
-                <span>Registrar Novo Administrador</span>
+                <span>Register New Administrator</span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                O novo administrador terá permissões totais para gerenciar páginas, categorias e configurações.
+                The new administrator will have full permissions to manage pages, categories, and settings.
               </p>
             </div>
 
@@ -2932,7 +2932,7 @@ wikiApi.createPage({
                   {isCreatingAdmin ? (
                     <>
                       <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                      <span>Registrando Administrador...</span>
+                      <span>Registering Administrator...</span>
                     </>
                   ) : (
                     <>

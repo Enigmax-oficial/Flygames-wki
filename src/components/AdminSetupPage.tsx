@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, User, Mail, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { motion } from 'motion/react';
 
 interface AdminSetupPageProps {
   onSetupComplete: (email: string) => void;
@@ -70,150 +71,152 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
   };
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center p-4 bg-[#0b0f19] font-sans h-full min-h-[calc(100vh-64px)]">
-      <div className="w-full max-w-md bg-[#111827] border border-amber-500/30 rounded-2xl shadow-2xl overflow-hidden">
+    <div className="flex-1 flex flex-col items-center justify-center p-4 bg-[#05070a] font-sans h-full min-h-[calc(100vh-64px)] relative overflow-hidden">
+      {/* Subtle Background */}
+      <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,#f59e0b_0%,transparent_70%)] opacity-20" />
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="z-10 w-full max-w-md bg-[#0b0f19]/80 backdrop-blur-xl border border-amber-500/30 rounded-3xl shadow-2xl overflow-hidden"
+      >
         {/* Header */}
-        <div className="p-6 bg-[#1f293d]/50 border-b border-slate-800 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onBackToLogin}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-            title="Back"
+        <div className="p-8 pb-4 text-center">
+          <motion.div 
+            initial={{ y: -10 }}
+            animate={{ y: 0 }}
+            className="flex flex-col items-center gap-3 mb-4"
           >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white">Initial Administrator Setup</h3>
-            <p className="text-xs text-slate-400">
-              First Access • Single Use
-            </p>
-          </div>
+            <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <ShieldCheck className="w-8 h-8 text-black" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black text-white tracking-tighter uppercase italic">
+                Master <span className="text-amber-500">Initialization</span>
+              </h1>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                First Time Setup
+              </p>
+            </div>
+          </motion.div>
         </div>
 
-        {/* Body */}
-        <div className="p-6 space-y-6">
+        {/* Form Body */}
+        <div className="p-8 pt-0 space-y-6">
           {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 text-xs flex items-center gap-3"
+            >
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span className="font-medium">{error}</span>
+            </motion.div>
           )}
 
           {success ? (
-            <div className="py-8 text-center space-y-3">
-              <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto animate-bounce" />
-              <h4 className="text-lg font-bold text-white">Administrator Created Successfully!</h4>
-              <p className="text-xs text-slate-400">
-                Redirecting to system...
+            <div className="py-12 text-center space-y-4">
+              <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto animate-bounce" />
+              <h4 className="text-xl font-black text-white uppercase tracking-tight">Account Created</h4>
+              <p className="text-sm text-slate-400">
+                Granting administrative privileges...
               </p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 space-y-1">
-                <p className="font-bold">Installation Credentials:</p>
-                <p className="text-[11px] text-amber-200/80">
-                  Enter the default username and password (<code className="bg-black/30 px-1 py-0.5 rounded font-mono">adm</code> / <code className="bg-black/30 px-1 py-0.5 rounded font-mono">admin</code>) to authorize the creation of the permanent account. This page can only be used once.
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
+                <p className="text-[11px] text-amber-200/60 leading-relaxed text-center italic">
+                  Complete the form below to create your permanent administrator account. This access will be used to manage the entire wiki database.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
-                    Default User
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                    Admin Email Address
                   </label>
-                  <input
-                    type="text"
-                    value={bootstrapUsername}
-                    onChange={(e) => setBootstrapUsername(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm font-mono focus:outline-none focus:border-amber-500"
-                    required
-                  />
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="email"
+                      placeholder="admin@domain.com"
+                      value={newAdminEmail}
+                      onChange={(e) => setNewAdminEmail(e.target.value)}
+                      className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-800 rounded-2xl text-white text-sm focus:outline-none focus:border-amber-500 transition-all font-mono placeholder:text-slate-700"
+                      required
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider">
-                    Default Password
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                    Secure Password
                   </label>
-                  <input
-                    type="password"
-                    value={bootstrapPassword}
-                    onChange={(e) => setBootstrapPassword(e.target.value)}
-                    className="w-full px-3 py-2 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm font-mono focus:outline-none focus:border-amber-500"
-                    required
-                  />
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={newAdminPassword}
+                      onChange={(e) => setNewAdminPassword(e.target.value)}
+                      className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-800 rounded-2xl text-white text-sm focus:outline-none focus:border-amber-500 transition-all font-mono tracking-widest placeholder:tracking-normal placeholder:text-slate-700"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-800 rounded-2xl text-white text-sm focus:outline-none focus:border-amber-500 transition-all font-mono tracking-widest placeholder:tracking-normal placeholder:text-slate-700"
+                      required
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t border-slate-800 pt-3 space-y-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-slate-400" />
-                    <span>New Administrator Email</span>
-                  </label>
-                  <input
-                    type="email"
-                    placeholder="ex: admin@youremail.com"
-                    value={newAdminEmail}
-                    onChange={(e) => setNewAdminEmail(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 font-mono placeholder:text-slate-600"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Password (minimum 6 characters)</span>
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={newAdminPassword}
-                    onChange={(e) => setNewAdminPassword(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 font-mono tracking-widest placeholder:tracking-normal placeholder:text-slate-600"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1 uppercase tracking-wider flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Confirm Password</span>
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500 font-mono tracking-widest placeholder:tracking-normal placeholder:text-slate-600"
-                    required
-                  />
-                </div>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-black font-black rounded-2xl text-xs uppercase tracking-widest transition-all cursor-pointer disabled:opacity-50 shadow-xl shadow-amber-500/10 flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <>
+                      <ShieldCheck className="w-4 h-4" />
+                      Initialize System
+                    </>
+                  )}
+                </button>
               </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-black font-extrabold rounded-xl text-xs transition cursor-pointer disabled:opacity-50 shadow-md flex items-center justify-center gap-2 mt-2"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                    <span>Creating Administrator...</span>
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck className="w-4 h-4" />
-                    <span>Create Administrator Account</span>
-                  </>
-                )}
-              </button>
+              <div className="flex justify-center">
+                <button 
+                  type="button"
+                  onClick={onBackToLogin} 
+                  className="text-slate-600 hover:text-slate-400 transition-colors flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest"
+                >
+                  <ArrowLeft className="w-3 h-3" />
+                  Cancel Setup
+                </button>
+              </div>
             </form>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
+
   );
 };
