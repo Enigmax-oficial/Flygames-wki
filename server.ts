@@ -44,8 +44,10 @@ async function queryRemoteD1IfAvailable(sql: string, params: any[] = []): Promis
     });
     
     if (!res.ok) {
-      const errText = await res.text();
-      console.warn(`[Cloudflare D1 REST API] Response status ${res.status}: ${errText}. Falling back to local persistent D1 database engine.`);
+      if (res.status !== 404 && res.status !== 403) {
+        const errText = await res.text();
+        console.warn(`[Cloudflare D1 REST API] Response status ${res.status}: ${errText}. Falling back to local persistent D1 database engine.`);
+      }
       return null;
     }
     
@@ -72,6 +74,14 @@ async function queryRemoteD1IfAvailable(sql: string, params: any[] = []): Promis
 const dbPath = path.join(process.cwd(), '.d1_data.sqlite');
 const sqlite = new DatabaseSync(dbPath);
 
+// Enable WAL mode for better concurrency and stability to prevent corruption
+try {
+  sqlite.exec('PRAGMA journal_mode = WAL;');
+  console.log('[SQLite] Journal mode set to WAL');
+} catch (err: any) {
+  console.warn(`[SQLite] Failed to set journal mode to WAL: ${err.message}`);
+}
+
 // D1 Database binding client (binding = "mysql", database_name = "my-sql", database_id = "d7f3eefe-63ff-4b62-8baf-6dc44381abab")
 const mysqlClient = {
   async exec(sql: string): Promise<void> {
@@ -80,7 +90,12 @@ const mysqlClient = {
       if (!remote.success) throw new Error(remote.error || 'Failed to execute query on Cloudflare D1');
       return;
     }
-    sqlite.exec(sql);
+    try {
+      sqlite.exec(sql);
+    } catch (err: any) {
+      console.error(`[SQLite Exec Error] ${err.message} | SQL: ${sql}`);
+      throw err;
+    }
   },
   prepare(sql: string) {
     let boundParams: any[] = [];
@@ -107,6 +122,7 @@ const mysqlClient = {
             },
           };
         } catch (err: any) {
+          console.error(`[SQLite Run Error] ${err.message} | SQL: ${sql}`);
           return {
             success: false,
             results: [],
@@ -132,6 +148,7 @@ const mysqlClient = {
             success: true,
           };
         } catch (err: any) {
+          console.error(`[SQLite All Error] ${err.message} | SQL: ${sql}`);
           return {
             results: [],
             success: false,
@@ -156,8 +173,9 @@ const mysqlClient = {
             return row[key] as T;
           }
           return row as T;
-        } catch {
-          return null;
+        } catch (err: any) {
+          console.error(`[SQLite First Error] ${err.message} | SQL: ${sql}`);
+          throw err;
         }
       },
     };
@@ -247,7 +265,8 @@ app.all([
   '/auth/admin/bootstrap*',
   '/api/auth/admin/bootstrap*',
   '/api/categories*',
-  '/api/sql/categories*'
+  '/api/sql/categories*',
+  '/api/settings*'
 ], handleWorkerRequestDirectly);
 
 // Helper to scan a directory recursively for functional images
@@ -276,7 +295,22 @@ function scanDirRecursive(dirPath: string, rootDir: string): string[] {
 
 // API Health Check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', sqlServer: 'connected', databaseEngine: 'Cloudflare D1', timestamp: new Date().toISOString() });
+  let sqlStatus = 'connected';
+  let error = null;
+  try {
+    sqlite.prepare('SELECT 1').get();
+  } catch (err: any) {
+    sqlStatus = 'disconnected';
+    error = err.message;
+    console.error(`[Database Error] Health check failed: ${error}`);
+  }
+  res.json({ 
+    status: 'ok', 
+    sqlServer: sqlStatus, 
+    error,
+    databaseEngine: 'Cloudflare D1', 
+    timestamp: new Date().toISOString() 
+  });
 });
 
 // Endpoint to list all functional wiki image assets
@@ -329,6 +363,12 @@ async function startServer() {
     const numericPort = typeof effectivePort === 'string' ? parseInt(effectivePort, 10) || 3000 : effectivePort;
     app.listen(numericPort, '0.0.0.0', () => {
       console.log(`[Cloudflare D1 Server & Express] Server running on port ${numericPort}`);
+      try {
+        sqlite.prepare('SELECT 1').get();
+        console.log(`[Cloudflare D1 Server] Database connection verified: ${dbPath}`);
+      } catch (err: any) {
+        console.error(`[Cloudflare D1 Server] Database connection FAILED: ${err.message}`);
+      }
     });
   }
 }

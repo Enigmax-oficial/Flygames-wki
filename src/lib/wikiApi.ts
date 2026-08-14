@@ -235,7 +235,8 @@ export class WikiApi {
     try {
       const res = await fetch('/api/pages');
       if (!res.ok) {
-        notifyConnectivityWarning();
+        const errData = (await res.json().catch(() => ({}))) as any;
+        notifyConnectivityWarning(errData.error || `Server error: ${res.status}`);
         return this.cachedPages;
       }
       const data = (await res.json()) as { results?: Array<{ id: string; title: string; slug: string; content: string; category?: string; image_url?: string; created_at?: string; updated_at?: string; createdAt?: string; updatedAt?: string; views?: number; view_count?: number }> };
@@ -262,8 +263,8 @@ export class WikiApi {
       this.cachedPages = pages;
       window.dispatchEvent(new Event('wiki_data_updated'));
       return pages;
-    } catch {
-      notifyConnectivityWarning();
+    } catch (err: any) {
+      notifyConnectivityWarning(err.message || "Failed to connect to server");
       return this.cachedPages;
     }
   }
@@ -275,7 +276,8 @@ export class WikiApi {
         return null;
       }
       if (!res.ok) {
-        notifyConnectivityWarning();
+        const errData = (await res.json().catch(() => ({}))) as any;
+        notifyConnectivityWarning(errData.error || `Server error: ${res.status}`);
         return this.cachedPages.find(p => p.id === slug) || null;
       }
       const r = (await res.json()) as any;
@@ -298,8 +300,8 @@ export class WikiApi {
         templateId: 'standard',
         views: r.views || r.view_count || 0,
       } as unknown as WikiPage;
-    } catch {
-      notifyConnectivityWarning();
+    } catch (err: any) {
+      notifyConnectivityWarning(err.message || "Failed to connect to server");
       return this.cachedPages.find(p => p.id === slug) || null;
     }
   }
@@ -339,7 +341,8 @@ export class WikiApi {
       });
 
       if (!res.ok) {
-        notifyConnectivityWarning();
+        const errData = (await res.json().catch(() => ({}))) as any;
+        notifyConnectivityWarning(errData.error || `Server error: ${res.status}`);
         return page;
       }
 
@@ -356,8 +359,8 @@ export class WikiApi {
       this.cachedPages = [savedPage, ...this.cachedPages.filter(p => p.id !== savedPage.id)];
       window.dispatchEvent(new Event('wiki_data_updated'));
       return savedPage;
-    } catch {
-      notifyConnectivityWarning();
+    } catch (err: any) {
+      notifyConnectivityWarning(err.message || "Failed to connect to server");
       return page;
     }
   }
@@ -367,14 +370,15 @@ export class WikiApi {
       const identifier = slug || pageId;
       const res = await fetch(`/api/pages/${encodeURIComponent(identifier)}`, { method: "DELETE" });
       if (!res.ok && res.status !== 204) {
-        notifyConnectivityWarning();
+        const errData = (await res.json().catch(() => ({}))) as any;
+        notifyConnectivityWarning(errData.error || `Server error: ${res.status}`);
         return false;
       }
       this.cachedPages = this.cachedPages.filter(p => p.id !== pageId && p.id !== slug);
       window.dispatchEvent(new Event('wiki_data_updated'));
       return true;
-    } catch {
-      notifyConnectivityWarning();
+    } catch (err: any) {
+      notifyConnectivityWarning(err.message || "Failed to connect to server");
       return false;
     }
   }
@@ -442,7 +446,8 @@ export class WikiApi {
     try {
       const res = await fetch('/api/favorites', { headers });
       if (!res.ok) {
-        notifyConnectivityWarning();
+        const errData = (await res.json().catch(() => ({}))) as any;
+        notifyConnectivityWarning(errData.error || `Server error: ${res.status}`);
         return this.cachedFavorites;
       }
       const data = (await res.json()) as any;
@@ -453,8 +458,8 @@ export class WikiApi {
         return this.cachedFavorites;
       }
       return this.cachedFavorites;
-    } catch {
-      notifyConnectivityWarning();
+    } catch (err: any) {
+      notifyConnectivityWarning(err.message || "Failed to connect to server");
       return this.cachedFavorites;
     }
   }
@@ -491,7 +496,8 @@ export class WikiApi {
       });
 
       if (!res.ok) {
-        notifyConnectivityWarning();
+        const errData = (await res.json().catch(() => ({}))) as any;
+        notifyConnectivityWarning(errData.error || `Server error: ${res.status}`);
         return false;
       }
 
@@ -500,8 +506,8 @@ export class WikiApi {
         window.dispatchEvent(new Event('wiki_favorites_updated'));
       }
       return true;
-    } catch {
-      notifyConnectivityWarning();
+    } catch (err: any) {
+      notifyConnectivityWarning(err.message || "Failed to connect to server");
       return false;
     }
   }
@@ -525,15 +531,16 @@ export class WikiApi {
       });
 
       if (!res.ok) {
-        notifyConnectivityWarning();
+        const errData = (await res.json().catch(() => ({}))) as any;
+        notifyConnectivityWarning(errData.error || `Server error: ${res.status}`);
         return false;
       }
 
       this.cachedFavorites = this.cachedFavorites.filter(id => id !== pageId);
       window.dispatchEvent(new Event('wiki_favorites_updated'));
       return true;
-    } catch {
-      notifyConnectivityWarning();
+    } catch (err: any) {
+      notifyConnectivityWarning(err.message || "Failed to connect to server");
       return false;
     }
   }

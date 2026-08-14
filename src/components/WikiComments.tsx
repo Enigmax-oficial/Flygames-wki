@@ -167,179 +167,164 @@ export const WikiComments: React.FC<WikiCommentsProps> = ({
   };
 
   return (
-    <div id="comments-section" className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 sm:p-6 shadow-xl space-y-6 text-[#cbd5e1] font-sans">
+    <div id="comments-section" className="space-y-8 text-[#cbd5e1] font-sans max-w-3xl mx-auto">
       
-      {/* Title block */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1e293b] pb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-            <MessageSquare className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-bold text-lg text-white flex items-center gap-2.5">
-              Discussions & Questions
-            </h3>
-            <p className="text-xs text-[#94a3b8]">
-              Ask questions or share feedback about the "{pageTitle}" article.
-            </p>
-          </div>
-        </div>
+      {/* minimalist Title block */}
+      <div className="flex items-center gap-4">
+        <div className="w-1.5 h-6 bg-sky-500 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.5)]"></div>
+        <h3 className="font-black text-xl text-white uppercase tracking-tighter">
+          Community Discussions
+        </h3>
+        <div className="flex-1 border-b border-[#1e293b]"></div>
       </div>
 
-      {/* Message feedback */}
+      {/* Message feedback - Error only, silent success */}
       {error && (
-        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs sm:text-sm flex gap-3 animate-in fade-in">
-          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <p className="font-bold">Execution Error</p>
-            <p>{error}</p>
-          </div>
-        </div>
-      )}
-
-      {success && (
-        <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs sm:text-sm flex items-center gap-2.5 animate-in fade-in">
-          <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />
-          <span>{success}</span>
+        <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-[11px] flex gap-3 animate-in fade-in">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <p>{error}</p>
         </div>
       )}
 
       {/* List of Comments */}
-      <div className="bg-[#0b0f19] border border-[#1e293b] rounded-xl overflow-hidden flex flex-col">
-        <div className="p-4 max-h-[380px] overflow-y-auto space-y-4">
-          {isLoading ? (
-            <div className="py-12 flex flex-col items-center justify-center text-[#94a3b8] gap-2">
-              <Loader2 className="w-8 h-8 animate-spin text-sky-400" />
-              <p className="text-xs">Loading comment thread...</p>
-            </div>
-          ) : comments.length === 0 ? (
-            <div className="py-12 text-center text-[#475569] space-y-2">
-              <HelpCircle className="w-10 h-10 mx-auto opacity-30 text-sky-400" />
-              <p className="text-sm font-semibold text-[#94a3b8]">No questions yet</p>
-              <p className="text-xs max-w-xs mx-auto text-[#64748b]">Have a query about recipes, attributes, or stats? Be the first to ask!</p>
-            </div>
-          ) : (
-            comments.map((item) => {
+      <div className="space-y-6">
+        {isLoading ? (
+          <div className="py-12 flex flex-col items-center justify-center text-[#94a3b8] gap-3">
+            <div className="w-6 h-6 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Retrieving thread...</p>
+          </div>
+        ) : comments.length === 0 ? (
+          <div className="py-12 text-center space-y-3 bg-[#111827]/30 border border-[#1e293b]/50 rounded-2xl">
+            <MessageSquare className="w-8 h-8 mx-auto opacity-10 text-sky-400" />
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">No entries yet</p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {comments.map((item) => {
               const isMine = currentUserEmail && item.userEmail.toLowerCase().trim() === currentUserEmail.toLowerCase().trim();
               return (
                 <div 
                   key={item.id} 
-                  className={`flex gap-3 items-start max-w-[90%] p-3 rounded-xl border border-transparent transition-all ${
-                    isMine 
-                      ? 'ml-auto flex-row-reverse bg-sky-500/5 border-sky-500/10' 
-                      : 'bg-[#111827]/40 hover:bg-[#111827] hover:border-[#1e293b]'
-                  }`}
+                  className="group relative flex gap-4 animate-in fade-in duration-500"
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 border ${
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shrink-0 border-2 shadow-sm transition-transform group-hover:scale-105 ${
                     isMine 
-                      ? 'bg-sky-500/20 text-sky-300 border-sky-500/30' 
-                      : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                      ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' 
+                      : 'bg-slate-800 text-slate-400 border-slate-700'
                   }`}>
                     {item.userName.charAt(0).toUpperCase()}
                   </div>
 
-                  <div className="space-y-1.5 flex-1 min-w-0">
-                    <div className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5 ${isMine ? 'justify-end' : ''}`}>
-                      <span className="text-xs font-extrabold text-white truncate">
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-white uppercase tracking-tight">
                         {item.userName}
                       </span>
-                      <span className="text-[10px] text-[#64748b] font-mono flex items-center gap-1 max-w-[140px] sm:max-w-none truncate" title={item.userEmail}>
-                        <Mail className="w-2.5 h-2.5" />
-                        {item.userEmail}
-                      </span>
-                      <span className="text-[9px] text-[#475569] font-mono flex items-center gap-1 ml-auto">
-                        <Clock className="w-2.5 h-2.5" />
+                      <span className="w-1 h-1 rounded-full bg-slate-700"></span>
+                      <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">
                         {formatTime(item.createdAt)}
                       </span>
+                      {isMine && (
+                        <span className="px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[8px] font-black uppercase ml-1">You</span>
+                      )}
                     </div>
-                    <div className={`text-xs sm:text-sm leading-relaxed text-[#cbd5e1] whitespace-pre-line break-words`}>
+                    <div className="text-sm leading-relaxed text-slate-300 whitespace-pre-line break-words bg-[#111827]/40 p-4 rounded-2xl rounded-tl-none border border-[#1e293b]/50 group-hover:border-sky-500/20 transition-colors">
                       {item.comment}
                     </div>
                   </div>
                 </div>
               );
-            })
+            })}
+            <div ref={commentsEndRef} />
+          </div>
+        )}
+      </div>
+
+      {/* Input area */}
+      <div className="mt-12 bg-[#111827] border border-[#1e293b] rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-500/50 to-emerald-500/50 opacity-30 group-hover:opacity-100 transition-opacity"></div>
+        
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Guest Form Fields if not logged in */}
+          {!currentUser && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Your Name</label>
+                <input
+                  type="text"
+                  required
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  placeholder="Steve"
+                  className="w-full bg-[#0b0f19] border border-[#1e293b] rounded-2xl py-3 px-4 text-xs text-white focus:outline-none focus:border-sky-500/50 transition-all placeholder:text-slate-800"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={guestEmail}
+                  onChange={(e) => setGuestEmail(e.target.value)}
+                  placeholder="steve@minecraft.net"
+                  className="w-full bg-[#0b0f19] border border-[#1e293b] rounded-2xl py-3 px-4 text-xs text-white focus:outline-none focus:border-sky-500/50 transition-all placeholder:text-slate-800"
+                />
+              </div>
+            </div>
           )}
-        </div>
 
-        {/* Input area */}
-        <div className="p-4 bg-[#070a12] border-t border-[#1e293b]">
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            
-            {/* Guest Form Fields if not logged in */}
-            {!currentUser && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] flex items-center gap-1">
-                    <User className="w-3 h-3 text-sky-400" />
-                    Your Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="e.g. Alex"
-                    className="w-full bg-[#111827] border border-[#1e293b] rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-[#94a3b8] flex items-center gap-1">
-                    <Mail className="w-3 h-3 text-sky-400" />
-                    Your Email Address <span className="text-rose-400 font-bold">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={guestEmail}
-                    onChange={(e) => setGuestEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    className="w-full bg-[#111827] border border-[#1e293b] rounded-xl py-2 px-3 text-xs text-white focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20"
-                  />
-                </div>
-              </div>
-            )}
+          {/* Logged in state info */}
+          {currentUser && (
+            <div className="flex items-center gap-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              <span>
+                Verified as <span className="text-white">{currentUser}</span>
+              </span>
+            </div>
+          )}
 
-            {/* Logged in state info */}
-            {currentUser && (
-              <div className="flex items-center gap-2 text-xs text-[#94a3b8] bg-[#111827] border border-[#1e293b] px-3 py-2 rounded-xl">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span>
-                  Commenting as <strong className="text-white">{currentUser}</strong> (<span className="font-mono text-sky-400">{currentUserEmail}</span>)
-                </span>
-              </div>
-            )}
-
-            {/* Textarea comment */}
-            <div className="relative flex items-center gap-2">
+          {/* Textarea comment */}
+          <div className="space-y-3">
+            <div className="relative">
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder={currentUser ? `Ask a question or leave a comment...` : `Please enter your details above to leave a comment...`}
-                rows={2}
+                placeholder="Share your thoughts or ask a question..."
+                rows={3}
                 maxLength={800}
                 required
-                className="flex-1 bg-[#111827] border border-[#1e293b] rounded-xl py-2 px-4 text-xs sm:text-sm text-white focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400/20 disabled:opacity-60 resize-none min-h-[50px]"
+                className="w-full bg-[#0b0f19] border border-[#1e293b] rounded-2xl p-4 text-sm text-slate-200 focus:outline-none focus:border-sky-500/50 transition-all resize-none placeholder:text-slate-700"
               />
+              <div className="absolute bottom-3 right-3 text-[9px] font-bold text-slate-600">
+                {inputText.length}/800
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-[9px] text-slate-600 max-w-[200px] leading-tight font-medium uppercase tracking-tighter">
+                * Entries are moderated and saved to the global expansion database.
+              </p>
               <button
                 type="submit"
                 disabled={isPosting || !inputText.trim() || (!currentUser && (!guestName.trim() || !guestEmail.trim()))}
-                className="h-10 w-10 shrink-0 rounded-xl bg-sky-500 hover:bg-sky-400 disabled:bg-[#1e293b] text-black disabled:text-[#475569] transition-all flex items-center justify-center cursor-pointer shadow-[0_0_12px_rgba(56,189,248,0.2)] disabled:shadow-none"
-                title="Post Comment"
+                className="px-8 py-3 rounded-2xl bg-white hover:bg-sky-400 text-black font-black text-xs uppercase tracking-widest transition-all disabled:opacity-20 disabled:grayscale cursor-pointer shadow-xl hover:scale-105 active:scale-95 flex items-center gap-2"
               >
                 {isPosting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Processing</span>
+                  </>
                 ) : (
-                  <Send className="w-4 h-4" />
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Post Entry</span>
+                  </>
                 )}
               </button>
             </div>
-            
-            <p className="text-[10px] text-[#64748b] leading-normal">
-              * Email address is strictly stored in database to register comments and ensure authenticity. No marketing emails or spam will be sent.
-            </p>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   );

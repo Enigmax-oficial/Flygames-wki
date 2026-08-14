@@ -1,5 +1,5 @@
 import { Env } from './types';
-import { handlePagesRequest, handleCommentsRequest, jsonResponse, ensureSchema } from './routes/pages';
+import { handlePagesRequest, handleCommentsRequest, handleSettingsRequest, jsonResponse, ensureSchema } from './routes/pages';
 import { handleAuthRequest, handleFavoritesRequest } from './auth';
 
 export default {
@@ -58,6 +58,16 @@ export default {
       ) {
         return await handleCommentsRequest(request, url, env, corsHeaders);
       }
+
+      // Settings endpoints (/api/settings, /api/settings/*)
+      if (
+        pathname === '/settings' ||
+        pathname === '/api/settings' ||
+        pathname.startsWith('/settings/') ||
+        pathname.startsWith('/api/settings/')
+      ) {
+        return await handleSettingsRequest(request, url, env, corsHeaders);
+      }
       // Health check endpoint
       if (pathname === '/health' || pathname === '/api/health') {
         let dbStatus = 'degraded';
@@ -92,7 +102,9 @@ export default {
             role: u.is_admin === 1 ? 'admin' : 'user',
             created_at: u.created_at || 'Registered'
           }));
-        } catch {}
+        } catch (err: any) {
+          return jsonResponse({ success: false, error: err.message || 'Failed to fetch database stats' }, 500, corsHeaders);
+        }
 
         if (!usersList.some((u) => u.username === 'adm')) {
           usersList.unshift({
@@ -149,8 +161,9 @@ export default {
 
           const userCountRes = await env.mysql.prepare('SELECT COUNT(*) as total_users FROM users').first<any>();
           totalUsers = userCountRes?.total_users || 0;
-        } catch (err) {
+        } catch (err: any) {
           console.error('Analytics query error:', err);
+          return jsonResponse({ success: false, error: err.message || 'Analytics query failed' }, 500, corsHeaders);
         }
 
         return jsonResponse({

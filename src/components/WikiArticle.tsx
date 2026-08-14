@@ -59,6 +59,19 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
   const [isTocCollapsed, setIsTocCollapsed] = useState(false);
   const [isFavorited, setIsFavorited] = useState<boolean>(() => WikiApi.isFavorite(page.id));
   const [favNotification, setFavNotification] = useState<string | null>(null);
+  const [commentsEnabled, setCommentsEnabled] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    // Fetch global settings
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then((data: any) => {
+        if (data.success && data.settings) {
+          setCommentsEnabled(data.settings.comments_enabled === 'true');
+        }
+      })
+      .catch(err => console.error('Failed to fetch settings:', err));
+  }, []);
 
   React.useEffect(() => {
     setIsFavorited(WikiApi.isFavorite(page.id));
@@ -322,12 +335,14 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
     }
 
     // 10. Comments
-    items.push({
-      id: 'toc-comments',
-      title: 'Community Comments',
-      level: 1,
-      numberStr: `${mainCounter++}.`
-    });
+    if (commentsEnabled) {
+      items.push({
+        id: 'toc-comments',
+        title: 'Community Comments',
+        level: 1,
+        numberStr: `${mainCounter++}.`
+      });
+    }
 
     return items;
   };
@@ -747,14 +762,16 @@ export const WikiArticle: React.FC<WikiArticleProps> = ({
       )}
 
       {/* Comments and Q&A Section */}
-      <div id="toc-comments" className="mt-8 border-t border-[#1e293b] pt-8 scroll-mt-24">
-        <WikiComments 
-          pageId={page.id} 
-          pageTitle={page.title} 
-          currentUser={currentUser || null}
-          currentUserEmail={currentUserEmail || null}
-        />
-      </div>
+      {commentsEnabled && (
+        <div id="toc-comments" className="mt-8 border-t border-[#1e293b] pt-8 scroll-mt-24">
+          <WikiComments 
+            pageId={page.id} 
+            pageTitle={page.title} 
+            currentUser={currentUser || null}
+            currentUserEmail={currentUserEmail || null}
+          />
+        </div>
+      )}
 
       {/* Bottom Identifier Chip */}
       <div className="pt-6 border-t border-[#1e293b] text-xs font-mono text-[#64748b]">

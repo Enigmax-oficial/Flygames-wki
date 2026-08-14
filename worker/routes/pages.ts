@@ -41,36 +41,41 @@ export async function ensureSchema(env: Env): Promise<void> {
     await env.mysql.exec(
       'CREATE TABLE IF NOT EXISTS adm (id TEXT PRIMARY KEY, username TEXT, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL);'
     );
-    try {
-      await env.mysql.exec('ALTER TABLE pages ADD COLUMN category TEXT;');
-    } catch (e) {
-      // Ignore if column already exists
+    await env.mysql.exec(
+      'CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);'
+    );
+
+    // Helper to check and add column
+    const addColumn = async (tableName: string, colName: string, typeDef: string) => {
+      try {
+        const info = await env.mysql.prepare(`PRAGMA table_info(${tableName})`).all();
+        const exists = (info.results || []).some((col: any) => col.name === colName);
+        if (!exists) {
+          await env.mysql.exec(`ALTER TABLE ${tableName} ADD COLUMN ${colName} ${typeDef};`);
+        }
+      } catch (e) {
+        // Fallback for environments where PRAGMA might behave differently
+        try {
+          await env.mysql.exec(`ALTER TABLE ${tableName} ADD COLUMN ${colName} ${typeDef};`);
+        } catch (inner) {
+          // Ignore
+        }
+      }
+    };
+
+    // Initialize default settings if not exists
+    const commentsEnabled = await env.mysql.prepare('SELECT value FROM settings WHERE key = ?').bind('comments_enabled').first();
+    if (!commentsEnabled) {
+      await env.mysql.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').bind('comments_enabled', 'false').run();
     }
-    try {
-      await env.mysql.exec('ALTER TABLE pages ADD COLUMN image_url TEXT;');
-    } catch (e) {
-      // Ignore if column already exists
-    }
-    try {
-      await env.mysql.exec('ALTER TABLE pages ADD COLUMN views INTEGER DEFAULT 0;');
-    } catch (e) {
-      // Ignore if column already exists
-    }
-    try {
-      await env.mysql.exec('ALTER TABLE pages ADD COLUMN view_count INTEGER DEFAULT 0;');
-    } catch (e) {
-      // Ignore if column already exists
-    }
-    try {
-      await env.mysql.exec('ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;');
-    } catch (e) {
-      // Ignore if column already exists
-    }
-    try {
-      await env.mysql.exec('ALTER TABLE users ADD COLUMN username TEXT;');
-    } catch (e) {
-      // Ignore if column already exists
-    }
+    
+    await addColumn('pages', 'category', 'TEXT');
+    await addColumn('pages', 'image_url', 'TEXT');
+    await addColumn('pages', 'views', 'INTEGER DEFAULT 0');
+    await addColumn('pages', 'view_count', 'INTEGER DEFAULT 0');
+    await addColumn('users', 'is_admin', 'INTEGER NOT NULL DEFAULT 0');
+    await addColumn('users', 'username', 'TEXT');
+
     schemaInitialized = true;
   } catch (err) {
     console.error('Failed to ensure D1 pages table schema:', err);
@@ -303,6 +308,55 @@ export async function handlePagesRequest(request: Request, url: URL, env: Env, c
   }
 }
 
+export async function handleSettingsRequest(request: Request, url: URL, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
+  await ensureSchema(env);
+  const method = request.method;
+
+  try {
+    // GET /api/settings or /api/settings/:key
+    if (method === 'GET') {
+      const pathParts = url.pathname.split('/').filter(Boolean);
+      const key = pathParts[2]; // e.g. /api/settings/comments_enabled
+
+      if (key) {
+        const setting = await env.mysql.prepare('SELECT value FROM settings WHERE key = ?').bind(key).first<{ value: string }>();
+        return jsonResponse({ success: true, key, value: setting ? setting.value : null }, 200, corsHeaders);
+      }
+
+      const { results } = await env.mysql.prepare('SELECT key, value FROM settings').all<{ key: string; value: string }>();
+      const settingsMap = (results || []).reduce((acc: any, curr) => {
+        acc[curr.key] = curr.value;
+        return acc;
+      }, {});
+      return jsonResponse({ success: true, settings: settingsMap }, 200, corsHeaders);
+    }
+
+    // POST /api/settings
+    if (method === 'POST') {
+      let body: any = {};
+      try {
+        body = await request.json();
+      } catch {
+        return jsonResponse({ error: 'Invalid JSON body' }, 400, corsHeaders);
+      }
+
+      const { key, value } = body;
+      if (!key || value === undefined) {
+        return jsonResponse({ error: 'key and value are required' }, 400, corsHeaders);
+      }
+
+      await env.mysql.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').bind(key, String(value)).run();
+      return jsonResponse({ success: true, key, value: String(value) }, 200, corsHeaders);
+    }
+
+    return jsonResponse({ error: 'Method not allowed' }, 405, corsHeaders);
+  } catch (err: unknown) {
+    console.error('Settings request error:', err);
+    const message = err instanceof Error ? err.message : 'Internal Server Error';
+    return jsonResponse({ error: message }, 500, corsHeaders);
+  }
+}
+
 export async function handleCommentsRequest(request: Request, url: URL, env: Env, corsHeaders: Record<string, string>): Promise<Response> {
   await ensureSchema(env);
   const method = request.method;
@@ -368,3 +422,4 @@ export async function handleCommentsRequest(request: Request, url: URL, env: Env
     return jsonResponse({ error: message }, 500, corsHeaders);
   }
 }
+

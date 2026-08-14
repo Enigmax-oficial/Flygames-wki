@@ -2,7 +2,7 @@ module.exports = {
   apps: [
     {
       name: "minecraft-addon-wiki",
-      script: "dist/server.cjs",
+      script: "server.cjs",
       instances: 1,
       exec_mode: "fork",
       env: {

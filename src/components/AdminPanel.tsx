@@ -173,7 +173,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
 
   // Navigation Tab State (defaults to admin account creation and management)
-  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'analytics' | 'api-playground' | 'assets' | 'database' | 'admin-users'>('admin-users');
+  const [activeTab, setActiveTab] = useState<'create-page' | 'categories' | 'analytics' | 'api-playground' | 'assets' | 'database' | 'admin-users' | 'settings'>('admin-users');
   const [pageSortBy, setPageSortBy] = useState<'default' | 'views'>('default');
 
   // Admin Accounts Management State
@@ -189,6 +189,50 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [createAdminSuccess, setCreateAdminSuccess] = useState('');
   const [createAdminError, setCreateAdminError] = useState('');
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+
+  // Global Settings State
+  const [globalSettings, setGlobalSettings] = useState<Record<string, string>>({});
+  const [isSettingsLoading, setIsSettingsLoading] = useState(false);
+  const [settingsError, setSettingsError] = useState('');
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+
+  const fetchGlobalSettings = () => {
+    setIsSettingsLoading(true);
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then((data: any) => {
+        if (data.success) {
+          setGlobalSettings(data.settings || {});
+        }
+      })
+      .catch(err => console.error('Failed to fetch settings:', err))
+      .finally(() => setIsSettingsLoading(false));
+  };
+
+  const updateGlobalSetting = async (key: string, value: string) => {
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value })
+      });
+      const data = await res.json() as any;
+      if (data.success) {
+        setGlobalSettings(prev => ({ ...prev, [key]: value }));
+        setSettingsSuccess(`Setting "${key}" updated successfully.`);
+        setTimeout(() => setSettingsSuccess(''), 3000);
+      }
+    } catch (err) {
+      setSettingsError('Failed to update setting.');
+      setTimeout(() => setSettingsError(''), 3000);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      fetchGlobalSettings();
+    }
+  }, [activeTab]);
 
   const fetchAdminAccounts = () => {
     setIsAdminAccountsLoading(true);
@@ -1084,6 +1128,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         >
           <ShieldCheck className="w-4 h-4 text-amber-400" />
           <span>Administrator Management</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('settings')}
+          className={`px-4 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer shrink-0 ${
+            activeTab === 'settings'
+              ? 'border-sky-400 text-sky-400 bg-sky-500/5'
+              : 'border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700'
+          }`}
+        >
+          <Settings className="w-4 h-4" />
+          <span>General Settings</span>
         </button>
       </div>
 
@@ -3019,10 +3075,77 @@ wikiApi.createPage({
               </div>
             )}
           </div>
-
         </div>
       )}
 
+      {activeTab === 'settings' && (
+        <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 space-y-8 shadow-xl animate-in fade-in duration-300">
+          <div className="border-b border-[#1e293b] pb-4">
+            <h2 className="text-base font-extrabold text-white flex items-center gap-2">
+              <Settings className="w-5 h-5 text-sky-400" />
+              <span>General Wiki Settings</span>
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Configure global system parameters and feature visibility across the entire Etherium Wiki.
+            </p>
+          </div>
+
+          {isSettingsLoading ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-2">
+              <div className="w-6 h-6 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+              <span className="text-xs text-slate-400">Loading system settings...</span>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Comments Toggle */}
+              <div className="p-5 bg-[#0b0f19] border border-[#1e293b] rounded-2xl flex items-center justify-between group hover:border-sky-500/30 transition-all">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-white">Global Comments System</h3>
+                    {globalSettings.comments_enabled === 'true' ? (
+                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase">Active</span>
+                    ) : (
+                      <span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-500 border border-slate-700 text-[9px] font-black uppercase">Disabled</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-500 max-w-md">
+                    Enable or disable the community discussion and feedback sections on all wiki articles. When disabled, the comments area will be hidden from the UI.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => updateGlobalSetting('comments_enabled', globalSettings.comments_enabled === 'true' ? 'false' : 'true')}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    globalSettings.comments_enabled === 'true' ? 'bg-sky-500' : 'bg-slate-700'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                      globalSettings.comments_enabled === 'true' ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Feedback Messages */}
+              {(settingsSuccess || settingsError) && (
+                <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 animate-in slide-in-from-bottom-2 ${
+                  settingsSuccess ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                }`}>
+                  {settingsSuccess ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                  <span>{settingsSuccess || settingsError}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="p-4 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+            <p className="text-[10px] text-amber-200/60 leading-relaxed">
+              <strong>System Notice:</strong> These settings are persisted globally in the Cloudflare D1 database. Changes take effect immediately for all visitors without requiring a server restart. Use the Comments toggle to manage community engagement during expansion updates.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
