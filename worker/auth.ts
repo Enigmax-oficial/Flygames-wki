@@ -13,6 +13,35 @@ interface VerificationEntry {
 }
 const verificationCodesMap = new Map<string, VerificationEntry>();
 
+async function downloadAndUploadGoogleAvatar(userId: string, pictureUrl: string, env: Env): Promise<string | null> {
+  if (!pictureUrl || !env.AVATAR_BUCKET) {
+    return null;
+  }
+  try {
+    const res = await fetch(pictureUrl);
+    if (!res.ok) {
+      console.log(`[Google Avatar Sync] Failed to fetch image: status ${res.status}`);
+      return null;
+    }
+    const arrayBuffer = await res.arrayBuffer();
+    const key = `avatars/${userId}.webp`;
+    
+    // Upload to AVATAR_BUCKET
+    await env.AVATAR_BUCKET.put(key, arrayBuffer, {
+      httpMetadata: {
+        contentType: 'image/webp',
+        cacheControl: 'public, max-age=31536000, immutable',
+      }
+    });
+    
+    console.log(`[Google Avatar Sync] Successfully uploaded google picture to R2 bucket key: ${key}`);
+    return key;
+  } catch (err: any) {
+    console.log(`[Google Avatar Sync Error] Failed to process or upload:`, err?.message || err);
+    return null;
+  }
+}
+
 export async function sendEmailVerification(
   email: string,
   username?: string,
@@ -674,9 +703,9 @@ export async function handleAuthRequest(
 
     // Check if user exists in D1 database
     let existingUser = await env.mysql
-      .prepare('SELECT id, username, email, password_hash, is_admin, created_at, avatar_url FROM users WHERE email = ?')
+      .prepare('SELECT id, username, email, password_hash, is_admin, created_at, avatar_url, avatar_key FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; username?: string; email: string; password_hash?: string; is_admin?: number; created_at: string; avatar_url?: string }>();
+      .first<{ id: string; username?: string; email: string; password_hash?: string; is_admin?: number; created_at: string; avatar_url?: string; avatar_key?: string }>();
 
     let userId = existingUser?.id;
     const isAdmin = existingUser?.is_admin || 0;
@@ -690,30 +719,62 @@ export async function handleAuthRequest(
 
     if (!existingUser) {
       userId = 'usr_' + crypto.randomUUID();
+      let avatarKey: string | undefined = undefined;
+      
+      // Attempt to download and upload Google avatar
+      if (picture) {
+        const uploadedKey = await downloadAndUploadGoogleAvatar(userId, picture, env);
+        if (uploadedKey) {
+          avatarKey = uploadedKey;
+        }
+      }
+
       try {
         await env.mysql
           .prepare(
-            'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at, avatar_url) VALUES (?, ?, ?, ?, 0, ?, ?, ?)'
+            'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at, avatar_url, avatar_key) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)'
           )
-          .bind(userId, name, cleanEmail, 'oauth:google', now, now, picture || null)
+          .bind(userId, name, cleanEmail, 'oauth:google', now, now, null, avatarKey || null)
           .run();
       } catch (err: any) {
         console.log('[Google User Insert Notice]', err?.message || err);
       }
 
-      existingUser = { id: userId, username: name, email: cleanEmail, is_admin: 0, created_at: now, avatar_url: picture || undefined };
+      existingUser = { 
+        id: userId, 
+        username: name, 
+        email: cleanEmail, 
+        is_admin: 0, 
+        created_at: now, 
+        avatar_url: undefined,
+        avatar_key: avatarKey
+      };
     } else {
       try {
-        const currentAvatar = existingUser.avatar_url;
-        let updatedAvatar: string | undefined = currentAvatar;
-        if (!currentAvatar || currentAvatar === '' || currentAvatar.includes('googleusercontent.com') || currentAvatar.includes('google')) {
-          updatedAvatar = picture || currentAvatar || undefined;
+        let avatarKey = existingUser.avatar_key;
+        let nowUpdated = false;
+
+        // If avatar_key is empty/null, attempt to fetch Google picture as initial default
+        if (!avatarKey && picture) {
+          const uploadedKey = await downloadAndUploadGoogleAvatar(existingUser.id, picture, env);
+          if (uploadedKey) {
+            avatarKey = uploadedKey;
+            await env.mysql
+              .prepare('UPDATE users SET updated_at = ?, avatar_key = ?, avatar_url = NULL WHERE id = ?')
+              .bind(now, avatarKey, userId)
+              .run();
+            existingUser.avatar_key = avatarKey;
+            existingUser.avatar_url = undefined;
+            nowUpdated = true;
+          }
         }
-        await env.mysql
-          .prepare('UPDATE users SET updated_at = ?, avatar_url = ? WHERE id = ?')
-          .bind(now, updatedAvatar || null, userId)
-          .run();
-        existingUser.avatar_url = updatedAvatar;
+
+        if (!nowUpdated) {
+          await env.mysql
+            .prepare('UPDATE users SET updated_at = ? WHERE id = ?')
+            .bind(now, userId)
+            .run();
+        }
       } catch (err: any) {
         console.log('[Google User Update Notice]', err?.message || err);
       }
@@ -722,7 +783,11 @@ export async function handleAuthRequest(
     const createdAt = existingUser ? existingUser.created_at : now;
     const finalUserId = userId || 'usr_' + crypto.randomUUID();
     const finalUsername = existingUser?.username || name || cleanEmail.split('@')[0];
-    const finalAvatarUrl = existingUser?.avatar_url || picture || null;
+    
+    // Resolve safe avatar_url: if avatar_key exists, return /api/avatars/{userId}.webp (mapped as /api/avatars/...)
+    const finalAvatarUrl = existingUser?.avatar_key 
+      ? `/api/${existingUser.avatar_key}` 
+      : (existingUser?.avatar_url || null);
 
     const token = await createToken({ id: finalUserId, email: cleanEmail, is_admin: isAdmin });
 
@@ -768,14 +833,16 @@ export async function handleAuthRequest(
     const now = new Date().toISOString();
 
     let existingUser = await env.mysql
-      .prepare('SELECT id, username, email, is_admin, created_at, avatar_url FROM users WHERE email = ?')
+      .prepare('SELECT id, username, email, is_admin, created_at, avatar_url, avatar_key FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; username?: string; email: string; is_admin?: number; created_at: string; avatar_url?: string }>();
+      .first<{ id: string; username?: string; email: string; is_admin?: number; created_at: string; avatar_url?: string; avatar_key?: string }>();
 
     let userId = existingUser?.id;
     let isAdmin = existingUser?.is_admin || 0;
     const username = body.username || existingUser?.username || cleanEmail.split('@')[0];
-    const finalAvatarUrl = existingUser?.avatar_url || null;
+    const finalAvatarUrl = existingUser?.avatar_key
+      ? `/api/${existingUser.avatar_key}`
+      : (existingUser?.avatar_url || null);
 
     if (!existingUser) {
       userId = 'usr_' + crypto.randomUUID();
@@ -1148,9 +1215,9 @@ export async function handleAuthRequest(
 
     // Internal select of password_hash strictly for verification
     const user = await env.mysql
-      .prepare('SELECT id, email, password_hash, is_admin, avatar_url FROM users WHERE email = ?')
+      .prepare('SELECT id, email, password_hash, is_admin, avatar_url, avatar_key FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; email: string; password_hash: string; is_admin?: number; avatar_url?: string }>();
+      .first<{ id: string; email: string; password_hash: string; is_admin?: number; avatar_url?: string; avatar_key?: string }>();
 
     if (!user) {
       return jsonRes({ error: 'Invalid email or password' }, 401);
@@ -1172,7 +1239,7 @@ export async function handleAuthRequest(
         id: user.id,
         email: user.email,
         is_admin: isAdmin,
-        avatar_url: user.avatar_url || null,
+        avatar_url: user.avatar_key ? `/api/${user.avatar_key}` : (user.avatar_url || null),
       },
     });
   }
@@ -1222,15 +1289,15 @@ export async function handleAuthRequest(
     let user: any = null;
     try {
       user = await env.mysql
-        .prepare('SELECT id, username, email, password_hash, is_admin, avatar_url FROM users WHERE email = ? OR LOWER(username) = ? OR id = ?')
+        .prepare('SELECT id, username, email, password_hash, is_admin, avatar_url, avatar_key FROM users WHERE email = ? OR LOWER(username) = ? OR id = ?')
         .bind(identifier, identifier, identifier)
-        .first<{ id: string; username?: string; email: string; password_hash: string; is_admin: number }>();
+        .first<{ id: string; username?: string; email: string; password_hash: string; is_admin: number; avatar_url?: string; avatar_key?: string }>();
     } catch {
       // fallback without username column if not present yet
       user = await env.mysql
-        .prepare('SELECT id, email, password_hash, is_admin, avatar_url FROM users WHERE email = ? OR id = ?')
+        .prepare('SELECT id, email, password_hash, is_admin, avatar_url, avatar_key FROM users WHERE email = ? OR id = ?')
         .bind(identifier, identifier)
-        .first<{ id: string; email: string; password_hash: string; is_admin: number }>();
+        .first<{ id: string; email: string; password_hash: string; is_admin: number; avatar_url?: string; avatar_key?: string }>();
     }
 
     if (!user) {
@@ -1256,7 +1323,7 @@ export async function handleAuthRequest(
         username: user.username || user.email?.split('@')[0] || 'Admin',
         email: user.email,
         is_admin: 1,
-        avatar_url: user.avatar_url || null,
+        avatar_url: user.avatar_key ? `/api/${user.avatar_key}` : (user.avatar_url || null),
       },
       message: 'Administrator authentication successful.',
     });

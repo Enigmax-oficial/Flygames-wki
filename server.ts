@@ -108,6 +108,67 @@ const mysqlClient = {
   },
 };
 
+// Local Filesystem R2 Mock Bucket for avatars and local development
+const avatarBucketLocalMock = {
+  async put(key: string, body: any, options?: any) {
+    console.log(`[R2 Mock Bucket] Put object: ${key}`);
+    const publicPath = path.join(process.cwd(), 'public');
+    const targetFile = path.join(publicPath, key);
+    const targetDir = path.dirname(targetFile);
+    if (!fs.existsSync(targetDir)) {
+      fs.mkdirSync(targetDir, { recursive: true });
+    }
+    
+    let buffer: Buffer;
+    if (Buffer.isBuffer(body)) {
+      buffer = body;
+    } else if (body instanceof ArrayBuffer) {
+      buffer = Buffer.from(body);
+    } else if (typeof body === 'string') {
+      buffer = Buffer.from(body);
+    } else if (body && body.buffer instanceof ArrayBuffer) {
+      buffer = Buffer.from(body.buffer);
+    } else {
+      buffer = Buffer.from(JSON.stringify(body));
+    }
+    
+    fs.writeFileSync(targetFile, buffer);
+    
+    // Write to dist folder too if it exists, so we don't have to wait for server rebuild
+    const distPath = path.join(process.cwd(), 'dist');
+    if (fs.existsSync(distPath)) {
+      const distTargetFile = path.join(distPath, key);
+      const distTargetDir = path.dirname(distTargetFile);
+      if (!fs.existsSync(distTargetDir)) {
+        fs.mkdirSync(distTargetDir, { recursive: true });
+      }
+      fs.writeFileSync(distTargetFile, buffer);
+    }
+    
+    return {
+      key,
+      size: buffer.length,
+      etag: crypto.randomUUID(),
+    };
+  },
+  async get(key: string) {
+    console.log(`[R2 Mock Bucket] Get object: ${key}`);
+    const publicPath = path.join(process.cwd(), 'public');
+    const targetFile = path.join(publicPath, key);
+    if (fs.existsSync(targetFile)) {
+      const content = fs.readFileSync(targetFile);
+      return {
+        key,
+        body: content,
+        arrayBuffer: async () => content.buffer,
+        text: async () => content.toString(),
+        json: async () => JSON.parse(content.toString()),
+      };
+    }
+    return null;
+  }
+};
+
 // Direct Worker Request Handler - routes Express requests directly to Cloudflare Worker entrypoint in-process
 async function handleWorkerRequestDirectly(req: any, res: any) {
   try {
@@ -140,6 +201,7 @@ async function handleWorkerRequestDirectly(req: any, res: any) {
     const env = {
       mysql: mysqlClient,
       ASSETS: null,
+      AVATAR_BUCKET: avatarBucketLocalMock,
       RESEND_API_KEY: process.env.RESEND_API_KEY || ['re', '8tAYo41S', '5ssyvS2iDJvG5NhrJNGS2jJr'].join('_'),
       RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Wiki Team <onboarding@resend.dev>',
     };
@@ -194,7 +256,9 @@ app.all([
   '/api/auth/admin/bootstrap*',
   '/api/categories*',
   '/api/sql/categories*',
-  '/api/settings*'
+  '/api/settings*',
+  '/api/avatars*',
+  '/avatars*'
 ], handleWorkerRequestDirectly);
 
 // Helper to scan a directory recursively for functional images

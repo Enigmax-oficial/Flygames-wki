@@ -51,6 +51,30 @@ export default {
         return await handleFavoritesRequest(request, url, env, corsHeaders);
       }
 
+      // Serve avatars from R2 AVATAR_BUCKET
+      if (pathname.startsWith('/api/avatars/') || pathname.startsWith('/avatars/')) {
+        const key = pathname.replace(/^\/(api\/)?avatars\//, 'avatars/');
+        if (env.AVATAR_BUCKET) {
+          const obj = await env.AVATAR_BUCKET.get(key);
+          if (obj) {
+            let data: any;
+            if (typeof obj.arrayBuffer === 'function') {
+              data = await obj.arrayBuffer();
+            } else {
+              data = obj.body;
+            }
+            return new Response(data, {
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Content-Type': 'image/webp',
+                'Cache-Control': 'public, max-age=31536000, immutable',
+              }
+            });
+          }
+        }
+        return jsonResponse({ error: 'Avatar not found' }, 404, corsHeaders);
+      }
+
       // Comments endpoints (/comments, /api/comments)
       if (
         pathname === '/comments' ||

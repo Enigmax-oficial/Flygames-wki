@@ -114,7 +114,9 @@ export async function ensureSchema(env: Env): Promise<void> {
     await addColumn('users', 'username', 'TEXT');
     await addColumn('users', 'email_verified', 'INTEGER DEFAULT 0');
     await addColumn('users', 'avatar_url', 'TEXT');
+    await addColumn('users', 'avatar_key', 'TEXT');
     await addColumn('email_verifications', 'avatar_url', 'TEXT');
+    await addColumn('email_verifications', 'avatar_key', 'TEXT');
     await addColumn('email_verifications', 'username', 'TEXT');
     await addColumn('email_verifications', 'password_hash', 'TEXT');
 

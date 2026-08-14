@@ -6,6 +6,7 @@ export interface Env {
   ADMIN_PASSWORD?: string;
   ADMIN_USERNAMES?: string;
   ADMIN_EMAILS?: string;
+  AVATAR_BUCKET?: any;
 }
 
 export interface PageRecord {
