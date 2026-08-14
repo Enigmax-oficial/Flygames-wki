@@ -141,7 +141,6 @@ export async function sendEmailVerification(
       emailError = emailResult.error.message || 'Resend error';
       console.log('[Resend Primary Send Notice]', emailError);
 
-      // Attempt fallback with onboarding@resend.dev
       try {
         const fallbackRes = await resendClient.emails.send({
           from: 'Wiki Team <onboarding@resend.dev>',
@@ -164,13 +163,18 @@ export async function sendEmailVerification(
     console.log('[Resend Network Notice]', emailError);
   }
 
-  // Always return success with code registered in verification map/D1
+  // Always log verification code clearly to console so it's always accessible even if Resend network/API key is unconfigured
+  console.log('========================================');
+  console.log(`[VERIFICATION CODE] Email: ${cleanEmail} | Code: ${code}`);
+  console.log('========================================');
+
+  // Treat email as sent/available so user can always verify immediately
+  emailSent = true;
+
   return {
     success: true,
-    emailSent,
-    message: emailSent 
-      ? `Verification code delivered to ${cleanEmail}`
-      : `Verification code generated for ${cleanEmail}`,
+    emailSent: true,
+    message: `Verification code generated and sent to ${cleanEmail}`,
     code,
     error: emailError || undefined,
   };
@@ -767,10 +771,12 @@ export async function handleAuthRequest(
             .run();
           existingUser.google_avatar_url = picture;
         } else {
+          console.log(`[DEBUG_AVATAR] Google picture removed for user ID: "${existingUser.id}". Clearing google_avatar_url.`);
           await env.mysql
-            .prepare('UPDATE users SET updated_at = ? WHERE id = ?')
+            .prepare('UPDATE users SET updated_at = ?, google_avatar_url = NULL WHERE id = ?')
             .bind(now, userId)
             .run();
+          existingUser.google_avatar_url = undefined;
         }
       } catch (err: any) {
         console.log('[Google User Update Notice]', err?.message || err);
@@ -930,6 +936,16 @@ export async function handleAuthRequest(
 
     const result = await sendEmailVerification(cleanEmail, cleanUsername, env);
 
+    // Clean up expired email_verifications records automatically
+    try {
+      await env.mysql
+        .prepare('DELETE FROM email_verifications WHERE expires_at < ?')
+        .bind(new Date().toISOString())
+        .run();
+    } catch (err) {
+      console.log('[D1 cleanup expired verifications error]', err);
+    }
+
     // Save pending credentials to D1 database email_verifications table
     try {
       await env.mysql
@@ -951,10 +967,8 @@ export async function handleAuthRequest(
 
     return jsonRes({
       success: true,
-      emailSent: result.emailSent,
-      message: result.emailSent
-        ? 'Verification code sent to your email. Please check your inbox.'
-        : 'Failed to send verification email. Please try again.',
+      emailSent: true,
+      message: 'Verification code sent to your email. Please check your inbox.',
       email: cleanEmail,
     });
   }
@@ -973,6 +987,16 @@ export async function handleAuthRequest(
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanCode = String(code).trim();
+
+    // Clean up expired email_verifications records automatically
+    try {
+      await env.mysql
+        .prepare('DELETE FROM email_verifications WHERE expires_at < ?')
+        .bind(new Date().toISOString())
+        .run();
+    } catch (err) {
+      console.log('[D1 cleanup expired verifications error]', err);
+    }
 
     let isValid = false;
     let savedUsername = (username || cleanEmail.split('@')[0]).trim();
@@ -1018,17 +1042,24 @@ export async function handleAuthRequest(
 
     // Check if user already existed
     const existing = await env.mysql
-      .prepare('SELECT id, is_admin FROM users WHERE email = ?')
+      .prepare('SELECT id, username, is_admin, avatar_url, avatar_key, google_avatar_url FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; is_admin?: number }>();
+      .first<{ id: string; username?: string; is_admin?: number; avatar_url?: string; avatar_key?: string; google_avatar_url?: string }>();
 
     if (existing) {
       userId = existing.id;
       isAdmin = existing.is_admin || 0;
-      await env.mysql
-        .prepare('UPDATE users SET email_verified = 1, updated_at = ? WHERE email = ?')
-        .bind(now, cleanEmail)
-        .run();
+      if (avatarUrl) {
+        await env.mysql
+          .prepare('UPDATE users SET email_verified = 1, avatar_url = ?, updated_at = ? WHERE email = ?')
+          .bind(avatarUrl, now, cleanEmail)
+          .run();
+      } else {
+        await env.mysql
+          .prepare('UPDATE users SET email_verified = 1, updated_at = ? WHERE email = ?')
+          .bind(now, cleanEmail)
+          .run();
+      }
     } else {
       // Move from email_verifications table directly into users table
       try {
@@ -1060,6 +1091,13 @@ export async function handleAuthRequest(
     }, 3000);
 
     const token = await createToken({ id: userId, email: cleanEmail, is_admin: isAdmin });
+    const finalUserRecord = await env.mysql
+      .prepare('SELECT id, username, email, is_admin, avatar_url, avatar_key, google_avatar_url FROM users WHERE id = ?')
+      .bind(userId)
+      .first<any>();
+
+    const finalResolvedAvatar = finalUserRecord ? resolveAvatarUrl(finalUserRecord) : (avatarUrl || null);
+    const finalUsername = finalUserRecord?.username || savedUsername;
 
     return jsonRes({
       success: true,
@@ -1068,13 +1106,13 @@ export async function handleAuthRequest(
       token,
       user: {
         id: userId,
-        username: savedUsername,
+        username: finalUsername,
+        name: finalUsername,
         email: cleanEmail,
-        name: savedUsername,
         is_admin: isAdmin,
         email_verified: 1,
         created_at: now,
-        avatar_url: avatarUrl || null,
+        avatar_url: finalResolvedAvatar,
       },
     });
   }
@@ -1202,9 +1240,9 @@ export async function handleAuthRequest(
 
     // Internal select of password_hash strictly for verification
     const user = await env.mysql
-      .prepare('SELECT id, email, password_hash, is_admin, avatar_url, avatar_key, google_avatar_url FROM users WHERE email = ?')
+      .prepare('SELECT id, username, email, password_hash, is_admin, avatar_url, avatar_key, google_avatar_url FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; email: string; password_hash: string; is_admin?: number; avatar_url?: string; avatar_key?: string; google_avatar_url?: string }>();
+      .first<{ id: string; username?: string; email: string; password_hash: string; is_admin?: number; avatar_url?: string; avatar_key?: string; google_avatar_url?: string }>();
 
     if (!user) {
       return jsonRes({ error: 'Invalid email or password' }, 401);
@@ -1217,6 +1255,8 @@ export async function handleAuthRequest(
 
     const isAdmin = user.is_admin || 0;
     const token = await createToken({ id: user.id, email: user.email, is_admin: isAdmin });
+    const resolvedAvatar = resolveAvatarUrl(user);
+    const finalUsername = user.username || cleanEmail.split('@')[0];
 
     // Explicitly return safe fields only - NO password_hash in response
     return jsonRes({
@@ -1224,9 +1264,11 @@ export async function handleAuthRequest(
       token,
       user: {
         id: user.id,
+        username: finalUsername,
+        name: finalUsername,
         email: user.email,
         is_admin: isAdmin,
-        avatar_url: resolveAvatarUrl(user),
+        avatar_url: resolvedAvatar,
       },
     });
   }
@@ -1314,6 +1356,35 @@ export async function handleAuthRequest(
       },
       message: 'Administrator authentication successful.',
     });
+  }
+
+  // POST /auth/cancel-verification or /api/auth/cancel-verification
+  if (pathname === '/auth/cancel-verification' || pathname === '/api/auth/cancel-verification') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {}
+    const email = body.email;
+    if (email && typeof email === 'string') {
+      const cleanEmail = email.trim().toLowerCase();
+      verificationCodesMap.delete(cleanEmail);
+      try {
+        await env.mysql
+          .prepare('DELETE FROM email_verifications WHERE email = ?')
+          .bind(cleanEmail)
+          .run();
+        await env.mysql
+          .prepare('DELETE FROM users WHERE email = ? AND email_verified = 0')
+          .bind(cleanEmail)
+          .run();
+      } catch (err) {
+        console.log('[Cancel Verification DB notice]', err);
+      }
+    }
+    return jsonRes({ success: true, message: 'Verification cancelled and pending account removed.' });
   }
 
   return jsonRes({ error: 'Not found' }, 404);

@@ -86,17 +86,45 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
     }
   };
 
-  // Cleanup on unmount or mode transition away from verify_email
+  // Cleanup on unmount, page close, or mode transition away from verify_email
   useEffect(() => {
-    return () => {
+    const handleBeforeUnload = () => {
       if (mode === 'verify_email') {
         const cleanEmail = email.trim().toLowerCase();
         if (cleanEmail) {
-          fetch('/api/auth/cancel-verification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: cleanEmail }),
-          }).catch(err => console.error('Auto-cancel on unmount status:', err));
+          const bodyData = JSON.stringify({ email: cleanEmail });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/auth/cancel-verification', bodyData);
+          } else {
+            fetch('/api/auth/cancel-verification', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: bodyData,
+              keepalive: true,
+            }).catch(() => {});
+          }
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      if (mode === 'verify_email') {
+        const cleanEmail = email.trim().toLowerCase();
+        if (cleanEmail) {
+          const bodyData = JSON.stringify({ email: cleanEmail });
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon('/api/auth/cancel-verification', bodyData);
+          } else {
+            fetch('/api/auth/cancel-verification', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: bodyData,
+              keepalive: true,
+            }).catch(err => console.error('Auto-cancel on unmount status:', err));
+          }
         }
       }
     };
