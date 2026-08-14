@@ -57,8 +57,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [devCode, setDevCode] = useState<string | null>(null);
-  const [deliveryNotice, setDeliveryNotice] = useState<string | null>(null);
 
   // Resend cooldown timer
   useEffect(() => {
@@ -139,13 +137,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       if (res.ok && data.success) {
         setMode('verify_email');
         setResendCooldown(60);
-        setDevCode(data.devCode || null);
-        setDeliveryNotice(data.deliveryNotice || null);
-        if (data.emailSent) {
-          setSuccessMessage(`Verification email sent to ${cleanEmail}. Please check your inbox.`);
-        } else {
-          setSuccessMessage(`Verification code generated for ${cleanEmail}.`);
-        }
+        setSuccessMessage(`Verification email sent to ${cleanEmail}. Please check your inbox.`);
       } else {
         if (res.status === 409) {
           setErrorMessage(data.error || 'An account with this email is already registered. Please sign in instead.');
@@ -181,13 +173,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
       if (res.ok && data.success) {
         setResendCooldown(60);
-        setDevCode(data.devCode || null);
-        setDeliveryNotice(data.deliveryNotice || null);
-        if (data.emailSent) {
-          setSuccessMessage('A new verification code has been sent to your email.');
-        } else {
-          setSuccessMessage('A new verification code has been generated.');
-        }
+        setSuccessMessage('A new verification code has been sent to your email.');
       } else {
         setErrorMessage(data.error || 'Failed to resend verification code.');
       }
@@ -567,30 +553,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                   </p>
                 </div>
 
-                {devCode && (
-                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5 font-bold text-amber-400">
-                        <KeyRound className="w-4 h-4" />
-                        <span>Code: <span className="font-mono text-white text-sm bg-slate-900 px-2 py-0.5 rounded border border-amber-500/40 select-all">{devCode}</span></span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setVerificationCode(devCode)}
-                        className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold rounded-lg border border-amber-500/30 text-[10px] transition cursor-pointer"
-                      >
-                        Use Code
-                      </button>
-                    </div>
-                    {deliveryNotice && (
-                      <p className="text-[11px] text-slate-400 leading-snug">
-                        {deliveryNotice}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                 {errorMessage && (
+                {errorMessage && (
                   <motion.div 
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}

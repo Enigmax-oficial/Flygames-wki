@@ -508,13 +508,14 @@ async function sendEmailVerification(email, username, env) {
   verificationCodesMap.set(cleanEmail, { code, expiresAt });
   const apiKey = env?.RESEND_API_KEY || typeof process !== "undefined" && process.env?.RESEND_API_KEY || DEFAULT_RESEND_API_KEY;
   const configuredFrom = env?.RESEND_FROM_EMAIL || typeof process !== "undefined" && process.env?.RESEND_FROM_EMAIL;
-  let primaryFromAddress = configuredFrom || "Wiki Team <onboarding@resend.dev>";
+  let primaryFromAddress = configuredFrom || "Wiki Team <noreply@flyerserver.uk>";
   if (primaryFromAddress.includes("@resend.dev") && !primaryFromAddress.includes("onboarding@resend.dev")) {
     primaryFromAddress = primaryFromAddress.replace(/<[^>]+>/, "<onboarding@resend.dev>").replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, "onboarding@resend.dev");
   }
   const resendClient = new Resend(apiKey);
   let emailSent = false;
   let emailError = null;
+  const displaySenderEmail = primaryFromAddress.includes("<") ? primaryFromAddress.match(/<([^>]+)>/)?.[1] || "noreply@flyerserver.uk" : primaryFromAddress;
   const emailHtml = `
     <!DOCTYPE html>
     <html>
@@ -545,7 +546,7 @@ async function sendEmailVerification(email, username, env) {
                             Wiki Team
                           </div>
                           <div style="font-size: 12px; color: #38bdf8; font-family: monospace; margin-top: 3px;">
-                            onboarding@resend.dev
+                            ${displaySenderEmail}
                           </div>
                         </td>
                       </tr>
@@ -587,7 +588,7 @@ async function sendEmailVerification(email, username, env) {
                 <tr>
                   <td style="padding: 16px 24px; background-color: #080c14; border-top: 1px solid #1e293b; text-align: center;">
                     <p style="margin: 0; font-size: 11px; color: #475569;">
-                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">onboarding@resend.dev</span>)
+                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">${displaySenderEmail}</span>)
                     </p>
                   </td>
                 </tr>
@@ -1060,7 +1061,7 @@ async function handleAuthRequest(request, url, env, corsHeaders) {
     const toEmail = (body.to || "enigmaxhd20@gmail.com").trim();
     const apiKey = env?.RESEND_API_KEY || typeof process !== "undefined" && process.env?.RESEND_API_KEY || DEFAULT_RESEND_API_KEY;
     const resendClient = new Resend(apiKey);
-    let fromAddress = env?.RESEND_FROM_EMAIL || typeof process !== "undefined" && process.env?.RESEND_FROM_EMAIL || "Wiki Team <onboarding@resend.dev>";
+    let fromAddress = env?.RESEND_FROM_EMAIL || typeof process !== "undefined" && process.env?.RESEND_FROM_EMAIL || "Wiki Team <noreply@flyerserver.uk>";
     if (fromAddress.includes("@resend.dev") && !fromAddress.includes("onboarding@resend.dev")) {
       fromAddress = fromAddress.replace(/<[^>]+>/, "<onboarding@resend.dev>").replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, "onboarding@resend.dev");
     }
@@ -1121,14 +1122,18 @@ async function handleAuthRequest(request, url, env, corsHeaders) {
     } catch (err) {
       console.log("[D1 email_verifications write error]", err);
     }
-    const isSandboxRestriction = result.error?.includes("domain") || result.error?.includes("verify") || result.error?.includes("testing emails") || result.error?.includes("own email address");
+    if (!result.emailSent) {
+      return jsonRes({
+        success: false,
+        emailSent: false,
+        error: result.error || "Failed to send verification email via Resend API. Please verify your email address."
+      }, 400);
+    }
     return jsonRes({
       success: true,
-      emailSent: result.emailSent,
-      message: result.emailSent ? "Verification code sent to your email. Please check your inbox." : "Verification code generated.",
-      email: cleanEmail,
-      devCode: !result.emailSent ? result.code : void 0,
-      deliveryNotice: !result.emailSent ? isSandboxRestriction ? "Resend API sandbox limits email delivery to registered owner (enigmaxhd20@gmail.com). Your 6-digit code is provided below so you can complete verification immediately." : result.error || "Resend active. Code provided for testing." : void 0
+      emailSent: true,
+      message: "Verification code sent to your email via Resend. Please check your inbox.",
+      email: cleanEmail
     });
   }
   if (pathname === "/auth/cancel-verification" || pathname === "/api/auth/cancel-verification") {
@@ -1432,7 +1437,7 @@ async function handleFavoritesRequest(request, url, env, corsHeaders) {
     } catch {
     }
     const { results } = await env.mysql.prepare(
-      `SELECT f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.description, p.image_url, p.icon, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
+      `SELECT f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.content, p.image_url, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
          FROM users_favorites f
          JOIN pages_contents p ON (f.page_id = p.id OR f.page_id = p.slug)
          WHERE f.user_id = ? OR f.user_id = ?
