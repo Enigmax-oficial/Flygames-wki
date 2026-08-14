@@ -36,6 +36,14 @@ export default function App() {
     }
   });
 
+  const [userAvatar, setUserAvatar] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('etherium_user_avatar');
+    } catch {
+      return null;
+    }
+  });
+
   const [userEmail, setUserEmail] = useState<string | null>(() => {
     try {
       return localStorage.getItem('etherium_user_email');
@@ -265,14 +273,16 @@ export default function App() {
 
   // (Redundant localStorage sync removed to avoid poisoning state)
 
-  const handleLoginSuccess = (userName: string, email: string, isAdmin: boolean = false, redirectTarget?: string) => {
+  const handleLoginSuccess = (userName: string, email: string, isAdmin: boolean = false, redirectTarget?: string, avatarUrl?: string) => {
     const finalEmail = email;
     setUser(userName);
     setUserEmail(finalEmail);
+    if (avatarUrl) setUserAvatar(avatarUrl);
     setIsCurrentUserAdmin(isAdmin);
     try {
       localStorage.setItem('etherium_user', userName);
       localStorage.setItem('etherium_user_email', finalEmail);
+      if (avatarUrl) localStorage.setItem('etherium_user_avatar', avatarUrl);
       localStorage.setItem('etherium_user_is_admin', String(isAdmin));
     } catch (e) {
       console.warn('LocalStorage save user failed:', e);
@@ -281,11 +291,13 @@ export default function App() {
 
   const handleLogout = () => {
     setUser(null);
+    setUserAvatar(null);
     setUserEmail(null);
     setIsCurrentUserAdmin(false);
     try {
       localStorage.removeItem('etherium_user');
       localStorage.removeItem('etherium_user_email');
+      localStorage.removeItem('etherium_user_avatar');
       localStorage.removeItem('etherium_user_is_admin');
       localStorage.removeItem('etherium_admin_token');
       localStorage.removeItem('etherium_auth_token');
@@ -380,6 +392,7 @@ export default function App() {
         onOpenAccountModal={() => setIsAccountModalOpen(true)}
         user={user}
         userEmail={userEmail}
+        userAvatar={userAvatar}
         isCurrentUserAdmin={isCurrentUserAdmin}
         isSqlConnected={isSqlConnected}
         onLogout={handleLogout}
@@ -398,6 +411,7 @@ export default function App() {
           onSelectPage={(id) => navigateToPage(id)}
           onGoHome={() => navigateToPage('home')}
           userEmail={userEmail}
+        userAvatar={userAvatar}
           isCurrentUserAdmin={isCurrentUserAdmin}
           hasAdmin={hasAdmin}
         />
@@ -414,6 +428,7 @@ export default function App() {
           onGoHome={() => navigateToPage('home')}
           onOpenSearch={handleOpenSearch}
           userEmail={userEmail}
+        userAvatar={userAvatar}
           isCurrentUserAdmin={isCurrentUserAdmin}
           isSqlConnected={isSqlConnected}
           hasAdmin={hasAdmin}
@@ -477,6 +492,7 @@ export default function App() {
               <AdminPanel
                 pages={pages}
                 userEmail={userEmail}
+        userAvatar={userAvatar}
                 onPageCreated={handlePageCreated}
                 onClosePanel={() => navigateToPage('home')}
                 onSelectPage={(id) => navigateToPage(id)}
@@ -489,6 +505,7 @@ export default function App() {
               onGoHome={() => navigateToPage('home')}
               onOpenLogin={() => navigateToPage('login')}
               userEmail={userEmail}
+        userAvatar={userAvatar}
             />
           ) : selectedPageId === 'home' || !activePage ? (
             selectedCategory !== 'all' ? (
@@ -565,6 +582,7 @@ export default function App() {
         onClose={() => setIsAccountModalOpen(false)}
         user={user}
         userEmail={userEmail}
+        userAvatar={userAvatar}
         isCurrentUserAdmin={isCurrentUserAdmin}
         isSqlConnected={isSqlConnected}
         onLogout={handleLogout}

@@ -21,9 +21,10 @@ import {
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { motion, AnimatePresence } from 'motion/react';
+import { ImageCropper } from './ImageCropper';
 
 interface LoginPageProps {
-  onLoginSuccess: (userName: string, email: string, isAdmin?: boolean, redirectTarget?: string) => void;
+  onLoginSuccess: (userName: string, email: string, isAdmin?: boolean, redirectTarget?: string, avatarUrl?: string) => void;
   onBack: () => void;
 }
 
@@ -35,7 +36,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Image Cropping states
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Email Verification Code
   const [verificationCode, setVerificationCode] = useState('');
@@ -128,6 +133,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
           email: cleanEmail,
           password,
           username: username.trim() || cleanEmail.split('@')[0],
+          avatarUrl,
           forRegistration: true,
         }),
       });
@@ -165,6 +171,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
           email: email.trim().toLowerCase(),
           password,
           username: username.trim() || email.split('@')[0],
+          avatarUrl,
           forRegistration: true,
         }),
       });
@@ -207,6 +214,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
           code: cleanCode,
           password,
           username: username.trim() || cleanEmail.split('@')[0],
+          avatarUrl,
         }),
       });
 
@@ -231,7 +239,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
         setSuccessMessage('Email verified & Account created successfully!');
         
         setTimeout(() => {
-          onLoginSuccess(displayName, cleanEmail, isAdmin, isAdmin ? 'admin-panel' : 'home');
+          onLoginSuccess(displayName, cleanEmail, isAdmin, isAdmin ? 'admin-panel' : 'home', data.user?.avatar_url);
           setSuccess(false);
         }, 700);
       } else {
@@ -293,7 +301,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
         setSuccessMessage('Signed in successfully!');
         
         setTimeout(() => {
-          onLoginSuccess(displayName, cleanEmail, isAdmin, isAdmin ? 'admin-panel' : 'home');
+          onLoginSuccess(displayName, cleanEmail, isAdmin, isAdmin ? 'admin-panel' : 'home', data.user?.avatar_url);
           setSuccess(false);
         }, 600);
       } else {
@@ -367,7 +375,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       setSuccess(true);
       setSuccessMessage('Signed in with Google!');
       setTimeout(() => {
-        onLoginSuccess(name, emailVal, isAdmin, isAdmin ? 'admin-panel' : 'home');
+        onLoginSuccess(name, emailVal, isAdmin, isAdmin ? 'admin-panel' : 'home', data.user?.avatar_url);
         setSuccess(false);
       }, 600);
     } catch {
@@ -440,8 +448,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        setErrorMessage('Image size should be less than 5MB');
+        return;
+      }
+      setErrorMessage('');
+      const reader = new FileReader();
+      reader.onload = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 bg-[#05070a] font-sans h-full min-h-[calc(100vh-64px)] relative overflow-hidden">
+      {selectedImage && (
+        <ImageCropper
+          imageSrc={selectedImage}
+          onCropComplete={(croppedBase64) => {
+            setAvatarUrl(croppedBase64);
+            setSelectedImage(null);
+          }}
+          onCancel={() => {
+            setSelectedImage(null);
+            // reset file input if needed, but not strictly required
+          }}
+        />
+      )}
       {/* Background Ambience */}
       <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,#1e293b_0%,transparent_70%)]" />
@@ -774,6 +811,25 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                   onSubmit={mode === 'register' ? handleStartRegistration : handleStandardLogin} 
                   className="space-y-3.5"
                 >
+                  {mode === 'register' && (
+                    <div className="flex flex-col items-center gap-2 mb-4">
+                      <div className="relative group">
+                        <div className="w-16 h-16 rounded-full bg-[#070a12] border-2 border-slate-800 overflow-hidden flex items-center justify-center">
+                          {avatarUrl ? (
+                            <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                          ) : (
+                            <User className="w-6 h-6 text-slate-500" />
+                          )}
+                        </div>
+                        <label className="absolute inset-0 bg-black/60 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                          <span className="text-[9px] font-bold text-white uppercase tracking-wider">Upload</span>
+                          <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                        </label>
+                      </div>
+                      <span className="text-[10px] text-slate-500">Max 5MB</span>
+                    </div>
+                  )}
+
                   {mode === 'register' && (
                     <div className="space-y-1">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">

@@ -3,7 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import crypto from 'crypto';
 import fs from 'fs';
-import worker from './worker/index';
+import worker from './worker/index.ts';
 
 // Polyfill/alias console.warning to console.warn to ensure compatibility
 if (!(console as any).warning) {

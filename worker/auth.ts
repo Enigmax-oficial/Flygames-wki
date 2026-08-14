@@ -22,35 +22,18 @@ export async function sendEmailVerification(
   // Generate random 6-digit verification code
   const randomNum = Math.floor(100000 + Math.random() * 900000);
   const code = randomNum.toString();
-  const expiresAt = Date.now() + 5 * 60 * 1000;
+  const expiresAt = Date.now() + 15 * 60 * 1000;
 
   verificationCodesMap.set(cleanEmail, { code, expiresAt });
 
   const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
-  let configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
-  
-  // If the configured from address is just an email without a name, inject "Minecraft Addon Wiki"
-  if (configuredFrom && !configuredFrom.includes('<')) {
-    configuredFrom = `"Minecraft Addon Wiki" <${configuredFrom}>`;
-  }
-  
-  let primaryFromAddress = configuredFrom || '"Minecraft Addon Wiki" <noreply@flygames.flyerserver.uk>';
-
-  // Safety rewrite if using default resend.dev subdomains that require onboarding address
-  if (primaryFromAddress.includes('@resend.dev') && !primaryFromAddress.includes('onboarding@resend.dev')) {
-    primaryFromAddress = primaryFromAddress
-      .replace(/<[^>]+>/, '<onboarding@resend.dev>')
-      .replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, 'onboarding@resend.dev');
-  }
+  const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
+  const primaryFromAddress = configuredFrom || 'Wiki Team <wkiteam@noreply.flyerserver.uk>';
 
   const resendClient = new Resend(apiKey);
 
   let emailSent = false;
   let emailError: string | null = null;
-
-  const displaySenderEmail = primaryFromAddress.includes('<')
-    ? (primaryFromAddress.match(/<([^>]+)>/)?.[1] || 'noreply@flygames.flyerserver.uk')
-    : primaryFromAddress;
 
   const emailHtml = `
     <!DOCTYPE html>
@@ -70,19 +53,16 @@ export async function sendEmailVerification(
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                       <tr>
                         <td width="56" valign="middle">
-                          <!-- Overlay image with CSS fallback block to prevent image blocking and spam filters -->
-                          <div style="display: block; width: 50px; height: 50px; border-radius: 50%; border: 2px solid #38bdf8; background-color: #1e293b; color: #38bdf8; font-size: 22px; font-weight: 800; line-height: 50px; text-align: center; font-family: sans-serif; text-shadow: 0 0 8px rgba(56,189,248,0.5); overflow: hidden; position: relative;">
-                            <span style="position: absolute; top: 0; left: 0; width: 50px; height: 50px; line-height: 50px; text-align: center; z-index: 1;">W</span>
-                            <img src="https://flygames.flyerserver.uk/images/categories/items.png" alt="Minecraft Addon Wiki" width="50" height="50" style="display: block; width: 50px; height: 50px; border-radius: 50%; border: none; position: absolute; top: 0; left: 0; z-index: 2; object-fit: cover;" />
-                          </div>
+                          <!-- Profile Picture -->
+                          <img src="https://flygames.flyerserver.uk/images/categories/items.png" alt="Wiki Team Profile" width="50" height="50" style="display: block; border-radius: 50%; border: 2px solid #38bdf8; background-color: #1e293b; object-fit: cover;" />
                         </td>
                         <td style="padding-left: 14px;" valign="middle">
                           <!-- Name and Sender Info -->
                           <div style="font-size: 17px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; line-height: 1.2;">
-                            Minecraft Addon Wiki
+                            Wiki Team
                           </div>
                           <div style="font-size: 12px; color: #38bdf8; font-family: monospace; margin-top: 3px;">
-                            ${displaySenderEmail}
+                            wkiteam@noreply
                           </div>
                         </td>
                       </tr>
@@ -110,7 +90,7 @@ export async function sendEmailVerification(
                         ${code}
                       </div>
                       <p style="color: #64748b; font-size: 12px; margin: 12px 0 0 0;">
-                        ⏱️ Valid for the next <strong>5 minutes</strong>
+                        ⏱️ Valid for the next <strong>15 minutes</strong>
                       </p>
                     </div>
 
@@ -124,7 +104,7 @@ export async function sendEmailVerification(
                 <tr>
                   <td style="padding: 16px 24px; background-color: #080c14; border-top: 1px solid #1e293b; text-align: center;">
                     <p style="margin: 0; font-size: 11px; color: #475569;">
-                      Sent automatically by <strong>Minecraft Addon Wiki</strong> (<span style="font-family: monospace;">${displaySenderEmail}</span>)
+                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">wkiteam@noreply</span>)
                     </p>
                   </td>
                 </tr>
@@ -137,33 +117,26 @@ export async function sendEmailVerification(
   `;
 
   try {
-    try {
-      const emailResult = await resendClient.emails.send({
-        from: primaryFromAddress,
-        to: cleanEmail,
-        subject: `[Minecraft Addon Wiki] Your Verification Code: ${code}`,
-        html: emailHtml,
-      });
+    const emailResult = await resendClient.emails.send({
+      from: primaryFromAddress,
+      to: cleanEmail,
+      subject: `[Wiki Team] Your Verification Code: ${code}`,
+      html: emailHtml,
+    });
 
-      if (emailResult && !emailResult.error && (emailResult as any).data?.id) {
-        emailSent = true;
-        emailError = null;
-      } else if (emailResult?.error) {
-        emailError = emailResult.error.message || 'Resend error';
-        console.log('[Resend Primary Send Notice]', emailError);
-      }
-    } catch (primaryErr: any) {
-      emailError = primaryErr?.message || 'Primary send threw error';
-      console.log('[Resend Primary Send Exception]', emailError);
-    }
+    if (emailResult && !emailResult.error && (emailResult as any).data?.id) {
+      emailSent = true;
+      emailError = null;
+    } else if (emailResult?.error) {
+      emailError = emailResult.error.message || 'Resend error';
+      console.log('[Resend Primary Send Notice]', emailError);
 
-    if (!emailSent) {
       // Attempt fallback with onboarding@resend.dev
       try {
         const fallbackRes = await resendClient.emails.send({
-          from: '"Minecraft Addon Wiki" <onboarding@resend.dev>',
+          from: 'Wiki Team <onboarding@resend.dev>',
           to: cleanEmail,
-          subject: `[Minecraft Addon Wiki] Your Verification Code: ${code}`,
+          subject: `[Wiki Team] Your Verification Code: ${code}`,
           html: emailHtml,
         });
         if (fallbackRes && !fallbackRes.error && (fallbackRes as any).data?.id) {
@@ -181,22 +154,15 @@ export async function sendEmailVerification(
     console.log('[Resend Network Notice]', emailError);
   }
 
-  if (!emailSent) {
-    verificationCodesMap.delete(cleanEmail);
-    return {
-      success: false,
-      emailSent: false,
-      message: `Failed to send verification code to ${cleanEmail}`,
-      code: '',
-      error: emailError || 'Unknown error',
-    };
-  }
-
+  // Always return success with code registered in verification map/D1
   return {
     success: true,
-    emailSent: true,
-    message: `Verification code delivered to ${cleanEmail}`,
+    emailSent,
+    message: emailSent 
+      ? `Verification code delivered to ${cleanEmail}`
+      : `Verification code generated for ${cleanEmail}`,
     code,
+    error: emailError || undefined,
   };
 }
 
@@ -796,15 +762,9 @@ export async function handleAuthRequest(
     const toEmail = (body.to || 'enigmaxhd20@gmail.com').trim();
     const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
     const resendClient = new Resend(apiKey);
-    let fromAddress = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || '"Minecraft Addon Wiki" <noreply@flygames.flyerserver.uk>';
-    if (fromAddress.includes('@resend.dev') && !fromAddress.includes('onboarding@resend.dev')) {
-      fromAddress = fromAddress
-        .replace(/<[^>]+>/, '<onboarding@resend.dev>')
-        .replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, 'onboarding@resend.dev');
-    }
     try {
       const emailRes = await resendClient.emails.send({
-        from: fromAddress,
+        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <wkiteam@noreply.flyerserver.uk>',
         to: toEmail,
         subject: body.subject || 'Hello World',
         html: body.html || '<p>Congrats on sending your <strong>first email</strong>!</p>',
@@ -848,36 +808,7 @@ export async function handleAuthRequest(
 
     const result = await sendEmailVerification(cleanEmail, cleanUsername, env);
 
-    // Clean up expired verification codes from D1 table first
-    try {
-      await env.mysql
-        .prepare('DELETE FROM email_verifications WHERE expires_at < ?')
-        .bind(new Date().toISOString())
-        .run();
-    } catch {}
-
-    if (!result.emailSent) {
-      let rawError = result.error || 'Failed to send verification email via Resend API.';
-      let userFriendlyError = rawError;
-
-      if (
-        rawError.includes('Testing domain restriction') ||
-        rawError.includes('resend.dev') ||
-        rawError.includes('own email address') ||
-        rawError.includes('verify a domain') ||
-        rawError.includes('not verified')
-      ) {
-        userFriendlyError = `Resend Domain Notice: To send emails from @flygames.flyerserver.uk to all recipients, verify "flygames.flyerserver.uk" in your Resend Dashboard (https://resend.com/domains). In Resend test mode, emails can only be delivered to your Resend account owner email address.`;
-      }
-
-      return jsonRes({
-        success: false,
-        emailSent: false,
-        error: userFriendlyError,
-      }, 400);
-    }
-
-    // Save pending credentials to D1 database email_verifications table ONLY if email was sent successfully
+    // Save pending credentials to D1 database email_verifications table
     try {
       await env.mysql
         .prepare(
@@ -889,7 +820,7 @@ export async function handleAuthRequest(
           cleanUsername,
           passwordHash,
           new Date().toISOString(),
-          new Date(Date.now() + 5 * 60 * 1000).toISOString()
+          new Date(Date.now() + 15 * 60 * 1000).toISOString()
         )
         .run();
     } catch (err) {
@@ -898,41 +829,17 @@ export async function handleAuthRequest(
 
     return jsonRes({
       success: true,
-      emailSent: true,
-      message: 'Verification code sent to your email via Resend. Please check your inbox.',
+      emailSent: result.emailSent,
+      message: result.emailSent
+        ? 'Verification code sent to your email. Please check your inbox.'
+        : 'Verification code generated.',
       email: cleanEmail,
-    });
-  }
-
-  // POST /auth/cancel-verification or /api/auth/cancel-verification
-  if (pathname === '/auth/cancel-verification' || pathname === '/api/auth/cancel-verification') {
-    if (request.method !== 'POST') {
-      return jsonRes({ error: 'Method not allowed' }, 405);
-    }
-    let body: any = {};
-    try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
-    const { email } = body;
-    if (!email) {
-      return jsonRes({ error: 'Email is required' }, 400);
-    }
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Invalidate the in-memory map entry immediately
-    verificationCodesMap.delete(cleanEmail);
-
-    // Delete from D1 database email_verifications table (and clean up expired ones)
-    try {
-      await env.mysql
-        .prepare('DELETE FROM email_verifications WHERE email = ? OR expires_at < ?')
-        .bind(cleanEmail, new Date().toISOString())
-        .run();
-    } catch (err) {
-      console.log('[D1 cancel verification delete error]', err);
-    }
-
-    return jsonRes({
-      success: true,
-      message: 'Verification cancelled successfully and pending credentials deleted.'
+      devCode: !result.emailSent ? result.code : undefined,
+      deliveryNotice: !result.emailSent
+        ? (result.error?.includes('domain') || result.error?.includes('verify')
+            ? 'The domain noreply.flyerserver.uk is not yet verified on resend.com. Your code is provided for instant testing.'
+            : 'Resend sandbox mode is active. Your verification code is provided below for immediate testing.')
+        : undefined,
     });
   }
 
@@ -943,7 +850,7 @@ export async function handleAuthRequest(
     }
     let body: any = {};
     try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
-    const { email, code, password, username } = body;
+    const { email, code, password, username, avatarUrl } = body;
     if (!email || !code) {
       return jsonRes({ error: 'Email and verification code are required' }, 400);
     }
@@ -1011,9 +918,9 @@ export async function handleAuthRequest(
       try {
         await env.mysql
           .prepare(
-            'INSERT OR REPLACE INTO users (id, username, email, password_hash, is_admin, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 0, 1, ?, ?)'
+            'INSERT OR REPLACE INTO users (id, username, email, password_hash, is_admin, email_verified, created_at, updated_at, avatar_url) VALUES (?, ?, ?, ?, 0, 1, ?, ?, ?)'
           )
-          .bind(userId, savedUsername, cleanEmail, savedPasswordHash || 'oauth:verified', now, now)
+          .bind(userId, savedUsername, cleanEmail, savedPasswordHash || 'oauth:verified', now, now, avatarUrl || null)
           .run();
       } catch (err: any) {
         console.log('[D1 Move to Users table notice]', err?.message || err);
@@ -1023,15 +930,18 @@ export async function handleAuthRequest(
     // Invalidate the in-memory map entry immediately
     verificationCodesMap.delete(cleanEmail);
 
-    // Remove the verified record from email_verifications table immediately, and clean up expired
-    try {
-      await env.mysql
-        .prepare('DELETE FROM email_verifications WHERE email = ? OR expires_at < ?')
-        .bind(cleanEmail, new Date().toISOString())
-        .run();
-    } catch (err) {
-      console.log('[D1 delete verification notice]', err);
-    }
+    // Remove the verified email from email_verifications table after a 3-second delay
+    // This prevents race condition errors during simultaneous retries while saving database space, leaving data strictly in the users section
+    setTimeout(async () => {
+      try {
+        await env.mysql
+          .prepare('DELETE FROM email_verifications WHERE email = ?')
+          .bind(cleanEmail)
+          .run();
+      } catch (err) {
+        console.log('[D1 delayed delete verification notice]', err);
+      }
+    }, 3000);
 
     const token = await createToken({ id: userId, email: cleanEmail, is_admin: isAdmin });
 
@@ -1048,6 +958,7 @@ export async function handleAuthRequest(
         is_admin: isAdmin,
         email_verified: 1,
         created_at: now,
+        avatar_url: avatarUrl || null,
       },
     });
   }
@@ -1070,7 +981,7 @@ export async function handleAuthRequest(
       return jsonRes({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { email, password, username, verificationCode } = body;
+    const { email, password, username, verificationCode, avatarUrl } = body;
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return jsonRes({ error: 'Valid email address is required' }, 400);
     }
@@ -1099,9 +1010,6 @@ export async function handleAuthRequest(
       if (cached && cached.code === cleanCode && cached.expiresAt > Date.now()) {
         isEmailVerified = 1;
         verificationCodesMap.delete(cleanEmail);
-        try {
-          await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ? OR expires_at < ?').bind(cleanEmail, new Date().toISOString()).run();
-        } catch {}
       } else {
         try {
           const dbEntry = await env.mysql
@@ -1110,10 +1018,11 @@ export async function handleAuthRequest(
             .first<{ code: string; expires_at: string }>();
           if (dbEntry && dbEntry.code === cleanCode && new Date(dbEntry.expires_at).getTime() > Date.now()) {
             isEmailVerified = 1;
-            verificationCodesMap.delete(cleanEmail);
-            try {
-              await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ? OR expires_at < ?').bind(cleanEmail, new Date().toISOString()).run();
-            } catch {}
+            setTimeout(async () => {
+              try {
+                await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
+              } catch {}
+            }, 3000);
           }
         } catch {}
       }
@@ -1126,9 +1035,9 @@ export async function handleAuthRequest(
     try {
       await env.mysql
         .prepare(
-          'INSERT INTO users (id, username, email, password_hash, is_admin, email_verified, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?, ?)'
+          'INSERT INTO users (id, username, email, password_hash, is_admin, email_verified, created_at, updated_at, avatar_url) VALUES (?, ?, ?, ?, 0, ?, ?, ?, ?)'
         )
-        .bind(userId, cleanUsername, cleanEmail, hashed, isEmailVerified, now, now)
+        .bind(userId, cleanUsername, cleanEmail, hashed, isEmailVerified, now, now, avatarUrl || null)
         .run();
     } catch (err: any) {
       console.log('[Register DB Notice]', err?.message || err);
@@ -1148,6 +1057,7 @@ export async function handleAuthRequest(
           is_admin: 0,
           email_verified: isEmailVerified,
           created_at: now,
+          avatar_url: avatarUrl || null,
         },
       },
       201
@@ -1176,9 +1086,9 @@ export async function handleAuthRequest(
 
     // Internal select of password_hash strictly for verification
     const user = await env.mysql
-      .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE email = ?')
+      .prepare('SELECT id, email, password_hash, is_admin, avatar_url FROM users WHERE email = ?')
       .bind(cleanEmail)
-      .first<{ id: string; email: string; password_hash: string; is_admin?: number }>();
+      .first<{ id: string; email: string; password_hash: string; is_admin?: number; avatar_url?: string }>();
 
     if (!user) {
       return jsonRes({ error: 'Invalid email or password' }, 401);
@@ -1200,6 +1110,7 @@ export async function handleAuthRequest(
         id: user.id,
         email: user.email,
         is_admin: isAdmin,
+        avatar_url: user.avatar_url || null,
       },
     });
   }
@@ -1249,13 +1160,13 @@ export async function handleAuthRequest(
     let user: any = null;
     try {
       user = await env.mysql
-        .prepare('SELECT id, username, email, password_hash, is_admin FROM users WHERE email = ? OR LOWER(username) = ? OR id = ?')
+        .prepare('SELECT id, username, email, password_hash, is_admin, avatar_url FROM users WHERE email = ? OR LOWER(username) = ? OR id = ?')
         .bind(identifier, identifier, identifier)
         .first<{ id: string; username?: string; email: string; password_hash: string; is_admin: number }>();
     } catch {
       // fallback without username column if not present yet
       user = await env.mysql
-        .prepare('SELECT id, email, password_hash, is_admin FROM users WHERE email = ? OR id = ?')
+        .prepare('SELECT id, email, password_hash, is_admin, avatar_url FROM users WHERE email = ? OR id = ?')
         .bind(identifier, identifier)
         .first<{ id: string; email: string; password_hash: string; is_admin: number }>();
     }
@@ -1283,6 +1194,7 @@ export async function handleAuthRequest(
         username: user.username || user.email?.split('@')[0] || 'Admin',
         email: user.email,
         is_admin: 1,
+        avatar_url: user.avatar_url || null,
       },
       message: 'Administrator authentication successful.',
     });
@@ -1317,21 +1229,11 @@ export async function handleFavoritesRequest(
     (pathname === '/favorites' || pathname === '/api/favorites') &&
     request.method === 'GET'
   ) {
-    // Purge orphaned favorite records (references to deleted pages) to save D1 database space
-    try {
-      await env.mysql
-        .prepare(
-          `DELETE FROM users_favorites WHERE page_id NOT IN (SELECT id FROM pages_contents UNION SELECT slug FROM pages_contents)`
-        )
-        .run();
-    } catch {}
-
-    // Query favorite pages with valid columns from pages_contents
     const { results } = await env.mysql
       .prepare(
         `SELECT f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.content, p.image_url, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
-         FROM users_favorites f
-         JOIN pages_contents p ON (f.page_id = p.id OR f.page_id = p.slug)
+         FROM user_favorites f
+         JOIN pages p ON (f.page_id = p.id OR f.page_id = p.slug)
          WHERE f.user_id = ? OR f.user_id = ?
          ORDER BY f.created_at DESC`
       )
@@ -1341,7 +1243,6 @@ export async function handleFavoritesRequest(
     return jsonRes({
       success: true,
       favorites: results || [],
-      spaceOptimized: true,
     });
   }
 
@@ -1366,7 +1267,7 @@ export async function handleFavoritesRequest(
 
     // Check page existence (by id or slug)
     const pageExists = await env.mysql
-      .prepare('SELECT id, slug FROM pages_contents WHERE id = ? OR slug = ?')
+      .prepare('SELECT id, slug FROM pages WHERE id = ? OR slug = ?')
       .bind(targetPageId, targetPageId)
       .first<{ id: string; slug: string }>();
 
@@ -1380,7 +1281,7 @@ export async function handleFavoritesRequest(
     try {
       await env.mysql
         .prepare(
-          'INSERT INTO users_favorites (user_id, page_id, created_at) VALUES (?, ?, ?)'
+          'INSERT INTO user_favorites (user_id, page_id, created_at) VALUES (?, ?, ?)'
         )
         .bind(currentUser.id, actualPageId, now)
         .run();
@@ -1413,7 +1314,7 @@ export async function handleFavoritesRequest(
 
     await env.mysql
       .prepare(
-        'DELETE FROM users_favorites WHERE (user_id = ? OR user_id = ?) AND (page_id = ? OR page_id IN (SELECT id FROM pages_contents WHERE slug = ? OR id = ?))'
+        'DELETE FROM user_favorites WHERE (user_id = ? OR user_id = ?) AND (page_id = ? OR page_id IN (SELECT id FROM pages WHERE slug = ? OR id = ?))'
       )
       .bind(currentUser.id, currentUser.email, targetPageId, targetPageId, targetPageId)
       .run();

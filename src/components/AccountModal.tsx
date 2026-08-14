@@ -122,8 +122,12 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         <div className="px-6 pb-4 relative -mt-12 flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 border-b border-[#1e293b]">
           <div className="flex items-end gap-4">
             <div className="relative">
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-black text-4xl text-black shadow-2xl border-4 border-[#0b0f19]">
-                {(user || 'U').charAt(0).toUpperCase()}
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-sky-400 to-indigo-600 flex items-center justify-center font-black text-4xl text-black shadow-2xl border-4 border-[#0b0f19] overflow-hidden">
+                {userAvatar ? (
+                  <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  (user || 'U').charAt(0).toUpperCase()
+                )}
               </div>
               <div className="absolute -bottom-1 -right-1 bg-emerald-500 text-black p-1.5 rounded-full border-2 border-[#0b0f19] shadow" title="Online Status">
                 <div className="w-2.5 h-2.5 bg-black rounded-full animate-pulse" />

@@ -14,6 +14,7 @@ interface HeaderProps {
   onOpenAccountModal?: () => void;
   user: string | null;
   userEmail?: string | null;
+  userAvatar?: string | null;
   isCurrentUserAdmin?: boolean;
   isSqlConnected?: boolean;
   onLogout: () => void;
@@ -34,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAccountModal,
   user,
   userEmail,
+  userAvatar,
   isCurrentUserAdmin = false,
   isSqlConnected = false,
   onLogout,
@@ -136,8 +138,12 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-2 bg-[#1e293b]/80 border border-sky-500/30 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-[#1e293b] transition-colors"
               title="Manage Account"
             >
-              <div className="w-6 h-6 rounded-full bg-sky-500 text-black flex items-center justify-center font-bold text-xs">
-                {user.charAt(0).toUpperCase()}
+              <div className="w-6 h-6 rounded-full bg-sky-500 text-black flex items-center justify-center font-bold text-xs overflow-hidden">
+                {userAvatar ? (
+                  <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  user.charAt(0).toUpperCase()
+                )}
               </div>
               <span className="text-xs font-bold text-white max-w-[100px] truncate hidden sm:inline">
                 {user}
