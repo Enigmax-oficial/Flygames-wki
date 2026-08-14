@@ -68,6 +68,36 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
     }
   }, [resendCooldown]);
 
+  const handleCancelVerification = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) return;
+    try {
+      await fetch('/api/auth/cancel-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+    } catch (e) {
+      console.error('Failed to cancel verification', e);
+    }
+  };
+
+  // Cleanup on unmount or mode transition away from verify_email
+  useEffect(() => {
+    return () => {
+      if (mode === 'verify_email') {
+        const cleanEmail = email.trim().toLowerCase();
+        if (cleanEmail) {
+          fetch('/api/auth/cancel-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: cleanEmail }),
+          }).catch(err => console.error('Auto-cancel on unmount status:', err));
+        }
+      }
+    };
+  }, [mode, email]);
+
   const handleStartRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
@@ -616,7 +646,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                 <div className="flex items-center justify-between pt-2 text-xs">
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
+                      await handleCancelVerification();
                       setMode('register');
                       setErrorMessage('');
                       setSuccessMessage('');

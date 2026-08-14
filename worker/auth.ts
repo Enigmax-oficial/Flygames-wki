@@ -853,6 +853,38 @@ export async function handleAuthRequest(
     });
   }
 
+  // POST /auth/cancel-verification or /api/auth/cancel-verification
+  if (pathname === '/auth/cancel-verification' || pathname === '/api/auth/cancel-verification') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+    let body: any = {};
+    try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
+    const { email } = body;
+    if (!email) {
+      return jsonRes({ error: 'Email is required' }, 400);
+    }
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Invalidate the in-memory map entry immediately
+    verificationCodesMap.delete(cleanEmail);
+
+    // Delete from D1 database email_verifications table
+    try {
+      await env.mysql
+        .prepare('DELETE FROM email_verifications WHERE email = ?')
+        .bind(cleanEmail)
+        .run();
+    } catch (err) {
+      console.log('[D1 cancel verification delete error]', err);
+    }
+
+    return jsonRes({
+      success: true,
+      message: 'Verification cancelled successfully and pending credentials deleted.'
+    });
+  }
+
   // POST /auth/verify-code or /api/auth/verify-code
   if (pathname === '/auth/verify-code' || pathname === '/api/auth/verify-code') {
     if (request.method !== 'POST') {
