@@ -26,28 +26,17 @@ export default {
     try {
       // Auth & Admin Auth endpoints (/auth/*, /api/auth/*, /api/admin/*)
       if (
-        pathname.startsWith('/auth/') ||
-        pathname.startsWith('/api/auth/') ||
-        pathname === '/auth/signup' ||
-        pathname === '/api/auth/signup' ||
-        pathname === '/auth/register' ||
-        pathname === '/api/auth/register' ||
-        pathname === '/auth/login' ||
-        pathname === '/api/auth/login' ||
-        pathname === '/auth/google' ||
-        pathname === '/api/auth/google' ||
-        pathname === '/api/admin/verify' ||
-        pathname === '/admin/verify' ||
-        pathname === '/api/admin/verify-google' ||
-        pathname === '/auth/admin/verify-google' ||
-        pathname === '/api/admin/status' ||
-        pathname === '/auth/admin/status' ||
-        pathname === '/api/admin/admins' ||
-        pathname === '/auth/admin/list' ||
-        pathname === '/api/admin/users' ||
-        pathname.startsWith('/api/admin/users/') ||
-        pathname === '/auth/admin/bootstrap' ||
-        pathname === '/api/auth/admin/bootstrap'
+        pathname.startsWith('/auth') ||
+        pathname.startsWith('/api/auth') ||
+        pathname.startsWith('/api/admin/verify') ||
+        pathname.startsWith('/admin/verify') ||
+        pathname.startsWith('/api/admin/status') ||
+        pathname.startsWith('/auth/admin/status') ||
+        pathname.startsWith('/api/admin/admins') ||
+        pathname.startsWith('/auth/admin/list') ||
+        pathname.startsWith('/api/admin/users') ||
+        pathname.startsWith('/auth/admin/bootstrap') ||
+        pathname.startsWith('/api/auth/admin/bootstrap')
       ) {
         return await handleAuthRequest(request, url, env, corsHeaders);
       }
