@@ -759,32 +759,14 @@ export async function handleAuthRequest(
       } as any;
     } else {
       try {
-        let googleAvatar = existingUser.google_avatar_url;
-        let nowUpdated = false;
-
-        const isGoogleAvatarNullOrEmpty = !googleAvatar || googleAvatar.trim() === '';
-        console.log(`[DEBUG_AVATAR] Existing user login. google_avatar_url currently is "${googleAvatar || 'NULL/empty'}". Is null/empty condition check result: ${isGoogleAvatarNullOrEmpty}`);
-
-        if (isGoogleAvatarNullOrEmpty && picture) {
-          console.log(`[DEBUG_AVATAR] Condition met! Saving Google picture directly for user ID: "${existingUser.id}"`);
-          console.log(`[DEBUG_AVATAR] Executing SQL UPDATE to assign google_avatar_url: "${picture}" for user: "${userId}"`);
+        if (picture) {
+          console.log(`[DEBUG_AVATAR] Updating Google picture on every login for user ID: "${existingUser.id}" to: "${picture}"`);
           await env.mysql
             .prepare('UPDATE users SET updated_at = ?, google_avatar_url = ? WHERE id = ?')
             .bind(now, picture, userId)
             .run();
           existingUser.google_avatar_url = picture;
-          nowUpdated = true;
-
-          // SELECT verify
-          const verificationSelect = await env.mysql
-            .prepare('SELECT id, email, avatar_key, avatar_url, google_avatar_url FROM users WHERE id = ?')
-            .bind(userId)
-            .first<{ id: string; email: string; avatar_key?: string; avatar_url?: string; google_avatar_url?: string }>();
-          console.log(`[DEBUG_AVATAR] UPDATE row verification from D1:`, JSON.stringify(verificationSelect));
-        }
-
-        if (!nowUpdated) {
-          console.log(`[DEBUG_AVATAR] No avatar update needed or skipped. Touching updated_at timestamp for user: "${userId}"`);
+        } else {
           await env.mysql
             .prepare('UPDATE users SET updated_at = ? WHERE id = ?')
             .bind(now, userId)
