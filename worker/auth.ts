@@ -28,7 +28,15 @@ export async function sendEmailVerification(
 
   const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
   const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
-  const primaryFromAddress = configuredFrom || 'Wiki Team <onboarding@resend.dev>';
+  let primaryFromAddress = configuredFrom || 'Wiki Team <onboarding@resend.dev>';
+
+  // Safety rewrite: Resend only allows sending from onboarding@resend.dev on the resend.dev domain.
+  // Any other address at @resend.dev (like flygames@resend.dev) will cause Resend to reject the API call.
+  if (primaryFromAddress.includes('@resend.dev') && !primaryFromAddress.includes('onboarding@resend.dev')) {
+    primaryFromAddress = primaryFromAddress
+      .replace(/<[^>]+>/, '<onboarding@resend.dev>')
+      .replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, 'onboarding@resend.dev');
+  }
 
   const resendClient = new Resend(apiKey);
 
@@ -772,9 +780,15 @@ export async function handleAuthRequest(
     const toEmail = (body.to || 'enigmaxhd20@gmail.com').trim();
     const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
     const resendClient = new Resend(apiKey);
+    let fromAddress = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <onboarding@resend.dev>';
+    if (fromAddress.includes('@resend.dev') && !fromAddress.includes('onboarding@resend.dev')) {
+      fromAddress = fromAddress
+        .replace(/<[^>]+>/, '<onboarding@resend.dev>')
+        .replace(/[a-zA-Z0-9._%+-]+@resend\.dev/g, 'onboarding@resend.dev');
+    }
     try {
       const emailRes = await resendClient.emails.send({
-        from: (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || 'Wiki Team <onboarding@resend.dev>',
+        from: fromAddress,
         to: toEmail,
         subject: body.subject || 'Hello World',
         html: body.html || '<p>Congrats on sending your <strong>first email</strong>!</p>',
