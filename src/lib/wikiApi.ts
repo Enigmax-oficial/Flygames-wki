@@ -557,6 +557,34 @@ export class WikiApi {
     window.dispatchEvent(new Event('wiki_favorites_updated'));
     return true;
   }
+
+  static async updateProfileOnServer(username?: string, avatarUrl?: string | null): Promise<boolean> {
+    const email = localStorage.getItem('etherium_user_email');
+    const token = localStorage.getItem('etherium_auth_token');
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (email) headers['X-User-Email'] = email;
+
+    try {
+      const res = await fetch('/api/auth/update-profile', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ username, avatarUrl })
+      });
+      if (!res.ok) {
+        const errData = (await res.json().catch(() => ({}))) as any;
+        console.warn('Update profile server warning:', errData.error || res.statusText);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.warn('Update profile server failure:', err);
+      return false;
+    }
+  }
 }
 
 // Attach to window for easy developer access (API availability)

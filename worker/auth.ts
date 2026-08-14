@@ -432,6 +432,56 @@ export async function handleAuthRequest(
     );
   }
 
+  // POST /auth/update-profile or /api/auth/update-profile
+  if (pathname === '/auth/update-profile' || pathname === '/api/auth/update-profile') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+    const userPayload = await authenticateRequest(request, env);
+    if (!userPayload) {
+      return jsonRes({ error: 'Unauthorized' }, 401);
+    }
+
+    let body: any = {};
+    try {
+      body = await request.json();
+    } catch {
+      return jsonRes({ error: 'Invalid JSON body' }, 400);
+    }
+
+    const { username, avatarUrl } = body;
+    const now = new Date().toISOString();
+
+    try {
+      if (username !== undefined && avatarUrl !== undefined) {
+        await env.mysql
+          .prepare('UPDATE users SET username = ?, avatar_url = ?, updated_at = ? WHERE id = ? OR email = ?')
+          .bind(username.trim(), avatarUrl || null, now, userPayload.id, userPayload.email)
+          .run();
+      } else if (username !== undefined) {
+        await env.mysql
+          .prepare('UPDATE users SET username = ?, updated_at = ? WHERE id = ? OR email = ?')
+          .bind(username.trim(), now, userPayload.id, userPayload.email)
+          .run();
+      } else if (avatarUrl !== undefined) {
+        await env.mysql
+          .prepare('UPDATE users SET avatar_url = ?, updated_at = ? WHERE id = ? OR email = ?')
+          .bind(avatarUrl || null, now, userPayload.id, userPayload.email)
+          .run();
+      }
+
+      return jsonRes({
+        success: true,
+        message: 'Profile updated successfully.',
+        username: username !== undefined ? username.trim() : undefined,
+        avatarUrl: avatarUrl !== undefined ? (avatarUrl || null) : undefined,
+      });
+    } catch (err: any) {
+      console.log('[Update profile error]', err);
+      return jsonRes({ error: err?.message || 'Failed to update profile in database' }, 500);
+    }
+  }
+
   // POST /api/admin/verify-google or /auth/admin/verify-google
   if (pathname === '/api/admin/verify-google' || pathname === '/auth/admin/verify-google') {
     if (request.method !== 'POST') {

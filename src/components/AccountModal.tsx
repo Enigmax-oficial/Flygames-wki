@@ -26,6 +26,39 @@ import { WikiPage } from '../types/wiki';
 import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 import { WikiApi } from '../lib/wikiApi';
 
+const PRESET_AVATARS = [
+  {
+    id: 'steve',
+    name: 'Steve',
+    url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=150&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'alex',
+    name: 'Alex',
+    url: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'creeper',
+    name: 'Creeper',
+    url: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?w=150&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'enderman',
+    name: 'Ender Mage',
+    url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'redstone',
+    name: 'Redstone Mech',
+    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80'
+  },
+  {
+    id: 'gold_apple',
+    name: 'Gold Apple',
+    url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=150&auto=format&fit=crop&q=80'
+  }
+];
+
 interface AccountModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -35,6 +68,7 @@ interface AccountModalProps {
   onLogout: () => void;
   onUpdateUserName?: (newName: string) => void;
   onUpdateUserEmail?: (newEmail: string) => void;
+  onUpdateUserAvatar?: (newAvatar: string | null) => void;
   onOpenAdminPanel?: () => void;
   pages?: WikiPage[];
   onSelectPage?: (pageId: string) => void;
@@ -52,6 +86,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onLogout,
   onUpdateUserName,
   onUpdateUserEmail,
+  onUpdateUserAvatar,
   onOpenAdminPanel,
   pages = [],
   onSelectPage,
@@ -66,6 +101,14 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [newEmail, setNewEmail] = useState(userEmail || '');
   const [copiedScript, setCopiedScript] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getFavorites());
+  const [customAvatarUrl, setCustomAvatarUrl] = useState(userAvatar || '');
+  const [googleAvatarUrl, setGoogleAvatarUrl] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem('etherium_google_avatar');
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     const handleFavUpdate = () => {
@@ -273,6 +316,122 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     <span className="text-sky-300 font-bold">{displayEmail}</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Profile Picture Customize Card */}
+              <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-5 space-y-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-sky-400" />
+                  <span>Customize Profile Picture</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Pick a Minecraft-themed voxel preset avatar, paste a custom image URL, or toggle back to your Google Account picture.
+                </p>
+
+                {/* Google Avatar Option (if available) */}
+                {googleAvatarUrl && (
+                  <div className="p-3 bg-[#0b0f19] border border-sky-500/20 rounded-xl flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <img 
+                        src={googleAvatarUrl} 
+                        alt="Google avatar" 
+                        className="w-10 h-10 rounded-xl object-cover border border-[#1e293b]" 
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-white block">Google Account Photo</span>
+                        <span className="text-[11px] text-slate-400">Synced from your Google security profile</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onUpdateUserAvatar && onUpdateUserAvatar(googleAvatarUrl)}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                        userAvatar === googleAvatarUrl 
+                          ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' 
+                          : 'bg-[#1e293b] hover:bg-[#2d3748] text-white border border-[#334155]'
+                      }`}
+                    >
+                      {userAvatar === googleAvatarUrl ? 'Active' : 'Use Google Photo'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Preset Avatars Grid */}
+                <div className="space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Voxel & Explorer Presets</span>
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                    {PRESET_AVATARS.map((preset) => {
+                      const isSelected = userAvatar === preset.url;
+                      return (
+                        <button
+                          key={preset.id}
+                          onClick={() => onUpdateUserAvatar && onUpdateUserAvatar(preset.url)}
+                          className={`relative group p-1 rounded-xl bg-[#0b0f19] border transition flex flex-col items-center gap-1.5 cursor-pointer ${
+                            isSelected 
+                              ? 'border-sky-500 bg-sky-950/20 shadow-[0_0_12px_rgba(14,165,233,0.15)]' 
+                              : 'border-[#1e293b] hover:border-[#334155]'
+                          }`}
+                          title={preset.name}
+                        >
+                          <div className="w-12 h-12 rounded-lg overflow-hidden relative">
+                            <img src={preset.url} alt={preset.name} className="w-full h-full object-cover transition duration-300 group-hover:scale-110" />
+                            {isSelected && (
+                              <div className="absolute inset-0 bg-sky-500/20 flex items-center justify-center">
+                                <div className="bg-sky-500 text-black rounded-full p-0.5 shadow">
+                                  <Check className="w-3 h-3 stroke-[3]" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <span className="text-[9px] font-bold text-slate-400 truncate w-full text-center group-hover:text-white transition-colors">
+                            {preset.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom URL Input */}
+                <div className="space-y-2 pt-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Or Paste Custom Image Link</span>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://example.com/avatar.png"
+                      value={customAvatarUrl}
+                      onChange={(e) => setCustomAvatarUrl(e.target.value)}
+                      className="flex-1 bg-[#0b0f19] border border-[#1e293b] focus:border-sky-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none placeholder-slate-600 font-mono"
+                    />
+                    <button
+                      onClick={() => {
+                        if (customAvatarUrl.trim() && onUpdateUserAvatar) {
+                          onUpdateUserAvatar(customAvatarUrl.trim());
+                        }
+                      }}
+                      className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-black font-extrabold text-xs rounded-xl transition cursor-pointer shrink-0"
+                    >
+                      Apply Link
+                    </button>
+                  </div>
+                </div>
+
+                {/* Remove avatar / Reset */}
+                {userAvatar && (
+                  <div className="flex justify-end pt-1">
+                    <button
+                      onClick={() => {
+                        if (onUpdateUserAvatar) {
+                          onUpdateUserAvatar(null);
+                          setCustomAvatarUrl('');
+                        }
+                      }}
+                      className="text-slate-400 hover:text-rose-400 text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove Profile Photo & Use Initials</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Admin Tools preview if admin */}

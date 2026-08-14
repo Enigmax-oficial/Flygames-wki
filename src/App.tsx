@@ -288,6 +288,9 @@ export default function App() {
       localStorage.setItem('etherium_user_email', finalEmail);
       if (avatarUrl) {
         localStorage.setItem('etherium_user_avatar', avatarUrl);
+        if (avatarUrl.includes('googleusercontent.com') || avatarUrl.includes('google')) {
+          localStorage.setItem('etherium_google_avatar', avatarUrl);
+        }
       } else {
         localStorage.removeItem('etherium_user_avatar');
       }
@@ -597,6 +600,20 @@ export default function App() {
           } catch (e) {
             console.warn('LocalStorage save user failed:', e);
           }
+          WikiApi.updateProfileOnServer(newName, undefined);
+        }}
+        onUpdateUserAvatar={(newAvatar) => {
+          setUserAvatar(newAvatar);
+          try {
+            if (newAvatar) {
+              localStorage.setItem('etherium_user_avatar', newAvatar);
+            } else {
+              localStorage.removeItem('etherium_user_avatar');
+            }
+          } catch (e) {
+            console.warn('LocalStorage save avatar failed:', e);
+          }
+          WikiApi.updateProfileOnServer(undefined, newAvatar);
         }}
         onOpenAdminPanel={() => navigateToPage('admin-panel')}
         hasAdmin={hasAdmin}
