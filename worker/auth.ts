@@ -704,10 +704,16 @@ export async function handleAuthRequest(
       existingUser = { id: userId, username: name, email: cleanEmail, is_admin: 0, created_at: now, avatar_url: picture || undefined };
     } else {
       try {
+        const currentAvatar = existingUser.avatar_url;
+        let updatedAvatar: string | undefined = currentAvatar;
+        if (!currentAvatar || currentAvatar === '' || currentAvatar.includes('googleusercontent.com') || currentAvatar.includes('google')) {
+          updatedAvatar = picture || currentAvatar || undefined;
+        }
         await env.mysql
-          .prepare('UPDATE users SET updated_at = ?, avatar_url = COALESCE(avatar_url, ?) WHERE id = ?')
-          .bind(now, picture || null, userId)
+          .prepare('UPDATE users SET updated_at = ?, avatar_url = ? WHERE id = ?')
+          .bind(now, updatedAvatar || null, userId)
           .run();
+        existingUser.avatar_url = updatedAvatar;
       } catch (err: any) {
         console.log('[Google User Update Notice]', err?.message || err);
       }
