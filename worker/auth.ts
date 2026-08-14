@@ -832,6 +832,14 @@ export async function handleAuthRequest(
 
     const result = await sendEmailVerification(cleanEmail, cleanUsername, env);
 
+    // Clean up expired verification codes from D1 table first
+    try {
+      await env.mysql
+        .prepare('DELETE FROM email_verifications WHERE expires_at < ?')
+        .bind(new Date().toISOString())
+        .run();
+    } catch {}
+
     // Save pending credentials to D1 database email_verifications table
     try {
       await env.mysql
@@ -851,19 +859,19 @@ export async function handleAuthRequest(
       console.log('[D1 email_verifications write error]', err);
     }
 
+    if (!result.emailSent) {
+      return jsonRes({
+        success: false,
+        emailSent: false,
+        error: result.error || 'Failed to send verification email via Resend. Please check your email address.',
+      }, 400);
+    }
+
     return jsonRes({
       success: true,
-      emailSent: result.emailSent,
-      message: result.emailSent
-        ? 'Verification code sent to your email. Please check your inbox.'
-        : 'Verification code generated.',
+      emailSent: true,
+      message: 'Verification code sent to your email. Please check your inbox.',
       email: cleanEmail,
-      devCode: !result.emailSent ? result.code : undefined,
-      deliveryNotice: !result.emailSent
-        ? (result.error?.includes('domain') || result.error?.includes('verify') || result.error?.includes('testing emails') || result.error?.includes('own email address')
-            ? 'Resend sandbox limits delivery to registered owner address (enigmaxhd20@gmail.com). Your 6-digit code is provided below so you can complete verification immediately.'
-            : (result.error || 'Resend sandbox active. Code provided for testing.'))
-        : undefined,
     });
   }
 
@@ -986,18 +994,15 @@ export async function handleAuthRequest(
     // Invalidate the in-memory map entry immediately
     verificationCodesMap.delete(cleanEmail);
 
-    // Remove the verified email from email_verifications table after a 3-second delay
-    // This prevents race condition errors during simultaneous retries while saving database space, leaving data strictly in the users section
-    setTimeout(async () => {
-      try {
-        await env.mysql
-          .prepare('DELETE FROM email_verifications WHERE email = ?')
-          .bind(cleanEmail)
-          .run();
-      } catch (err) {
-        console.log('[D1 delayed delete verification notice]', err);
-      }
-    }, 3000);
+    // Remove the verified record from email_verifications table immediately
+    try {
+      await env.mysql
+        .prepare('DELETE FROM email_verifications WHERE email = ?')
+        .bind(cleanEmail)
+        .run();
+    } catch (err) {
+      console.log('[D1 delete verification notice]', err);
+    }
 
     const token = await createToken({ id: userId, email: cleanEmail, is_admin: isAdmin });
 
@@ -1065,6 +1070,9 @@ export async function handleAuthRequest(
       if (cached && cached.code === cleanCode && cached.expiresAt > Date.now()) {
         isEmailVerified = 1;
         verificationCodesMap.delete(cleanEmail);
+        try {
+          await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
+        } catch {}
       } else {
         try {
           const dbEntry = await env.mysql
@@ -1073,11 +1081,10 @@ export async function handleAuthRequest(
             .first<{ code: string; expires_at: string }>();
           if (dbEntry && dbEntry.code === cleanCode && new Date(dbEntry.expires_at).getTime() > Date.now()) {
             isEmailVerified = 1;
-            setTimeout(async () => {
-              try {
-                await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
-              } catch {}
-            }, 3000);
+            verificationCodesMap.delete(cleanEmail);
+            try {
+              await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
+            } catch {}
           }
         } catch {}
       }
