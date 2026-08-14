@@ -15,6 +15,7 @@ interface HeaderProps {
   user: string | null;
   userEmail?: string | null;
   isCurrentUserAdmin?: boolean;
+  isSqlConnected?: boolean;
   onLogout: () => void;
   addonVersion: string;
   hasAdmin?: boolean;
@@ -34,11 +35,12 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   userEmail,
   isCurrentUserAdmin = false,
+  isSqlConnected = false,
   onLogout,
   addonVersion,
   hasAdmin = true,
 }) => {
-  const isAdmin = isCurrentUserAdmin || !hasAdmin;
+  const canShowAdmin = Boolean(user) && Boolean(isCurrentUserAdmin) && Boolean(isSqlConnected);
   return (
     <header className="sticky top-0 z-30 bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1e293b] text-[#e2e8f0] px-4 sm:px-6 py-3 shadow-xl">
       <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-3">
@@ -64,8 +66,8 @@ export const Header: React.FC<HeaderProps> = ({
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Admin Panel Button - Only visible when logged in */}
-          {isAdmin && onOpenAdminPanel && (
+          {/* Admin Panel Button - Only visible when logged in, admin, and SQL connected */}
+          {canShowAdmin && onOpenAdminPanel && (
             <button
               onClick={onOpenAdminPanel}
               className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs font-bold transition-all cursor-pointer shadow-sm hover:border-amber-500/50"

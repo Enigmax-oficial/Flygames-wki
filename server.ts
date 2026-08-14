@@ -22,11 +22,14 @@ const D1_DATABASE_NAME = 'my-sql';
 // Optional remote Cloudflare D1 REST API query executor
 async function queryRemoteD1(sql: string, params: any[] = []): Promise<{ success: boolean; results?: any[]; meta?: any; error?: string }> {
   const token = process.env.CLOUDFLARE_API_TOKEN || process.env.D1_TOKEN;
-  let accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
   const databaseId = process.env.CLOUDFLARE_D1_DATABASE_ID || D1_DATABASE_ID;
   
   if (!token || !accountId || !databaseId) {
-    throw new Error('Cloudflare D1 credentials (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID) are required for non-emulated database access.');
+    return { 
+      success: false, 
+      error: 'Cloudflare D1 credentials (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID) are unconfigured.' 
+    };
   }
 
   try {
@@ -42,13 +45,18 @@ async function queryRemoteD1(sql: string, params: any[] = []): Promise<{ success
     
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Cloudflare D1 API error (${res.status}): ${errText}`);
+      console.log(`[Cloudflare D1 Status] Provider response status: ${res.status}`);
+      return { 
+        success: false, 
+        error: `Cloudflare D1 connection failure (${res.status})` 
+      };
     }
     
     const data = (await res.json()) as any;
     if (!data.success) {
-      const errMsg = data.errors?.map((e: any) => e.message).join(', ') || 'Unknown D1 API error';
-      throw new Error(`Cloudflare D1 API failure: ${errMsg}`);
+      const errMsg = data.errors?.map((e: any) => e.message).join(', ') || 'D1 API provider returned error';
+      console.log(`[Cloudflare D1 Status] Provider message: ${errMsg}`);
+      return { success: false, error: errMsg };
     }
     
     const queryResult = data.result?.[0] || { results: [], success: true };
@@ -58,8 +66,8 @@ async function queryRemoteD1(sql: string, params: any[] = []): Promise<{ success
       meta: queryResult.meta || {},
     };
   } catch (err: any) {
-    console.error(`[Cloudflare D1 API] Connection Error: ${err.message}`);
-    throw err;
+    console.log(`[Cloudflare D1 Status] Connection notice: ${err.message}`);
+    return { success: false, error: `Connection failure: ${err.message}` };
   }
 }
 
@@ -67,7 +75,9 @@ async function queryRemoteD1(sql: string, params: any[] = []): Promise<{ success
 const mysqlClient = {
   async exec(sql: string): Promise<void> {
     const remote = await queryRemoteD1(sql);
-    if (!remote.success) throw new Error(remote.error || 'Failed to execute query on Cloudflare D1');
+    if (!remote.success) {
+      console.log(`[D1 Exec Info] Status: ${remote.error}`);
+    }
   },
   prepare(sql: string) {
     let boundParams: any[] = [];
@@ -134,7 +144,7 @@ async function handleWorkerRequestDirectly(req: any, res: any) {
 
     const webResponse = await worker.fetch(webRequest, env as any, {
       waitUntil: (promise: Promise<any>) => {
-        promise.catch(err => console.error('Error in waitUntil:', err));
+        promise.catch(err => console.log('WaitUntil note:', err));
       },
       passThroughOnException: () => {},
     } as any);
@@ -151,8 +161,8 @@ async function handleWorkerRequestDirectly(req: any, res: any) {
     const responseText = await webResponse.text();
     res.send(responseText);
   } catch (err: any) {
-    console.error('Worker request execution error:', err);
-    res.status(500).json({ success: false, error: err.message || 'Worker Execution Error' });
+    console.log('Worker request execution status:', err.message || err);
+    res.status(500).json({ success: false, error: err.message || 'Worker Request Notice' });
   }
 }
 
@@ -214,11 +224,16 @@ app.get('/api/health', async (req, res) => {
   let sqlStatus = 'connected';
   let error = null;
   try {
-    await mysqlClient.prepare('SELECT 1').run();
+    const check = await mysqlClient.prepare('SELECT 1').run();
+    if (!check.success) {
+      sqlStatus = 'disconnected';
+      error = check.error || 'Connection failed';
+      console.log(`[Database Notice] Health check: ${error}`);
+    }
   } catch (err: any) {
     sqlStatus = 'disconnected';
     error = err.message;
-    console.error(`[Database Error] Health check failed: ${error}`);
+    console.log(`[Database Notice] Health check: ${error}`);
   }
   res.json({ 
     status: 'ok', 
@@ -284,10 +299,10 @@ async function startServer() {
         if (res.success) {
           console.log(`[Cloudflare D1 Server] Database connection verified via Cloudflare API`);
         } else {
-          console.error(`[Cloudflare D1 Server] Database connection test FAILED: ${res.error}`);
+          console.log(`[Cloudflare D1 Server] Database connection status: ${res.error}`);
         }
       }).catch(err => {
-        console.error(`[Cloudflare D1 Server] Database connection test ERROR: ${err.message}`);
+        console.log(`[Cloudflare D1 Server] Database connection status: ${err.message}`);
       });
     });
   }

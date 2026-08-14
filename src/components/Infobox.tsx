@@ -254,7 +254,7 @@ export const Infobox: React.FC<InfoboxProps> = ({ page }) => {
           <span className="text-[9px] uppercase font-bold text-sky-400 tracking-widest font-mono">Download Free Addon</span>
         </div>
         <div className="space-y-1">
-          <h4 className="font-extrabold text-xs text-white uppercase tracking-tight">Etherium v1.4.0 Addon</h4>
+          <h4 className="font-extrabold text-xs text-white uppercase tracking-tight">Minecraft Addon v1.4.0</h4>
           <p className="text-[10px] text-[#94a3b8] leading-normal">
             Get the full custom .mcaddon bundle containing all mobs, dimensions, and blocks.
           </p>

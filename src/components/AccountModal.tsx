@@ -37,6 +37,8 @@ interface AccountModalProps {
   onOpenAdminPanel?: () => void;
   pages?: WikiPage[];
   onSelectPage?: (pageId: string) => void;
+  isCurrentUserAdmin?: boolean;
+  isSqlConnected?: boolean;
   hasAdmin?: boolean;
 }
 
@@ -51,6 +53,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onOpenAdminPanel,
   pages = [],
   onSelectPage,
+  isCurrentUserAdmin = false,
+  isSqlConnected = false,
   hasAdmin = true,
 }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'contributions' | 'bookmarks' | 'security'>('overview');
@@ -74,8 +78,9 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
   const displayEmail = userEmail || '';
   
-  // Administrator condition
-  const isAdmin = !hasAdmin || (Boolean(userEmail) && isAuthorizedAdminEmail(displayEmail));
+  // Administrator condition - requires logged in user, admin status, and SQL connected
+  const canShowAdmin = Boolean(user) && Boolean(isCurrentUserAdmin) && Boolean(isSqlConnected);
+  const isAdmin = Boolean(user) && Boolean(isCurrentUserAdmin);
 
   const handleSaveName = () => {
     if (newName.trim() && onUpdateUserName) {
@@ -164,7 +169,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 pb-1">
-            {isAdmin && onOpenAdminPanel && (
+            {canShowAdmin && onOpenAdminPanel && (
               <button
                 onClick={() => {
                   onClose();

@@ -72,11 +72,11 @@ export const PortalHomePage: React.FC<PortalHomePageProps> = ({
           </div>
 
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-            Etherium Knowledge Base
+            Addon Knowledge Base
           </h1>
 
           <p className="text-sm sm:text-base text-[#94a3b8] leading-relaxed max-w-2xl">
-            Explore complete stats, behavioral tactics, drop rates, and crafting recipes for all mobs, items, bosses, and biomes in the Etherium Bedrock Addon.
+            Explore complete stats, behavioral tactics, drop rates, and crafting recipes for all mobs, items, bosses, and biomes in the Bedrock Addon.
           </p>
 
           {/* Action Buttons Row */}

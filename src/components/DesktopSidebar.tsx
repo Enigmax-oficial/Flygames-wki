@@ -310,7 +310,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
 
       {/* 5. Compact Footer */}
       <div className="p-2.5 border-t border-[#1e293b] bg-[#070a12] text-center text-[10px] font-mono text-slate-500 flex items-center justify-between px-4">
-        <span>Etherium Addon Wiki</span>
+        <span>Minecraft Addon Wiki</span>
         <span className="text-sky-400 font-bold">v1.4.0</span>
       </div>
     </aside>

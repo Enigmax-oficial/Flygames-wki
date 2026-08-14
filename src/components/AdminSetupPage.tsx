@@ -8,8 +8,7 @@ interface AdminSetupPageProps {
 }
 
 export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete, onBackToLogin }) => {
-  const [bootstrapUsername, setBootstrapUsername] = useState('adm');
-  const [bootstrapPassword, setBootstrapPassword] = useState('admin');
+  const [adminUsername, setAdminUsername] = useState('Admin');
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -20,11 +19,6 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (bootstrapUsername.trim() !== 'adm' || bootstrapPassword.trim() !== 'admin') {
-      setError('Bootstrap credentials invalid. Use user "adm" and password "admin".');
-      return;
-    }
 
     if (!newAdminEmail || !newAdminEmail.includes('@')) {
       setError('Please enter a valid email for the administrator.');
@@ -47,24 +41,29 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: bootstrapUsername,
-          password: bootstrapPassword,
-          email: newAdminEmail,
-          adminPassword: newAdminPassword
+          username: adminUsername.trim() || 'Admin',
+          email: newAdminEmail.trim().toLowerCase(),
+          password: newAdminPassword,
         }),
       });
       const data = await res.json() as any;
 
       if (res.ok && data.success) {
+        if (data.token) {
+          try {
+            localStorage.setItem('etherium_auth_token', data.token);
+            localStorage.setItem('etherium_admin_token', data.token);
+          } catch {}
+        }
         setSuccess(true);
         setTimeout(() => {
           onSetupComplete(newAdminEmail);
-        }, 1000);
+        }, 800);
       } else {
         setError(data.error || 'Failed to create administrator account.');
       }
     } catch {
-      setError('Connection error with the server.');
+      setError('Connection to the server failed.');
     } finally {
       setIsLoading(false);
     }
@@ -133,6 +132,23 @@ export const AdminSetupPage: React.FC<AdminSetupPageProps> = ({ onSetupComplete,
               </div>
 
               <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                    Administrator Name / Handle
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="Admin"
+                      value={adminUsername}
+                      onChange={(e) => setAdminUsername(e.target.value)}
+                      className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-800 rounded-2xl text-white text-sm focus:outline-none focus:border-amber-500 transition-all placeholder:text-slate-700"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
                     Admin Email Address

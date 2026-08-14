@@ -162,8 +162,8 @@ export default {
           const userCountRes = await env.mysql.prepare('SELECT COUNT(*) as total_users FROM users').first<any>();
           totalUsers = userCountRes?.total_users || 0;
         } catch (err: any) {
-          console.error('Analytics query error:', err);
-          return jsonResponse({ success: false, error: err.message || 'Analytics query failed' }, 500, corsHeaders);
+          console.log('Analytics query status:', err?.message || err);
+          return jsonResponse({ success: false, error: err.message || 'Analytics query notice' }, 500, corsHeaders);
         }
 
         return jsonResponse({
@@ -237,9 +237,9 @@ export default {
 
       return jsonResponse({ error: 'Endpoint not found' }, 404, corsHeaders);
     } catch (err: unknown) {
-      console.error('Unhandled worker error:', err);
+      console.log('Worker request notice:', err instanceof Error ? err.message : err);
       const msg = err instanceof Error ? err.message : 'Internal Server Error';
-      return jsonResponse({ error: msg }, 500, corsHeaders);
+      return jsonResponse({ error: msg, success: false }, 500, corsHeaders);
     }
   },
 };

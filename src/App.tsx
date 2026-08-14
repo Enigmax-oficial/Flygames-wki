@@ -110,20 +110,33 @@ export default function App() {
   });
 
   const [hasAdmin, setHasAdmin] = useState<boolean>(true);
+  const [isSqlConnected, setIsSqlConnected] = useState<boolean>(false);
 
   useEffect(() => {
-    fetch('/api/admin/status')
-      .then(res => res.json())
-      .then((data: any) => {
-        if (data.success) {
-          const adminExists = Boolean(data.hasAdmin);
-          setHasAdmin(adminExists);
-          if (!adminExists && window.location.pathname !== '/admin-setup') {
-            navigateToPage('admin-setup');
+    const checkStatus = () => {
+      fetch('/api/health')
+        .then(res => res.json())
+        .then((data: any) => {
+          const connected = data?.sqlServer === 'connected';
+          setIsSqlConnected(connected);
+        })
+        .catch(() => {
+          setIsSqlConnected(false);
+        });
+
+      fetch('/api/admin/status')
+        .then(res => res.json())
+        .then((data: any) => {
+          if (data.success) {
+            setHasAdmin(Boolean(data.hasAdmin));
           }
-        }
-      })
-      .catch(() => {});
+        })
+        .catch(() => {});
+    };
+
+    checkStatus();
+    const interval = setInterval(checkStatus, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const toggleDesktopSidebar = () => {
@@ -297,7 +310,7 @@ export default function App() {
     WikiApi.fetchPagesFromSql().then((fetched) => {
       setPages(fetched);
     }).catch(err => {
-      console.error("Failed to synchronize with Cloudflare D1 on mount:", err);
+      console.log("Cloudflare D1 sync status on mount:", err?.message || err);
     });
 
     return () => window.removeEventListener('wiki_data_updated', handleUpdate);
@@ -368,6 +381,7 @@ export default function App() {
         user={user}
         userEmail={userEmail}
         isCurrentUserAdmin={isCurrentUserAdmin}
+        isSqlConnected={isSqlConnected}
         onLogout={handleLogout}
         hasAdmin={hasAdmin}
       />
@@ -401,19 +415,73 @@ export default function App() {
           onOpenSearch={handleOpenSearch}
           userEmail={userEmail}
           isCurrentUserAdmin={isCurrentUserAdmin}
+          isSqlConnected={isSqlConnected}
           hasAdmin={hasAdmin}
         />
 
         {/* Main Content View */}
         <main className="flex-1 p-4 sm:p-6 md:p-8 min-w-0 overflow-x-hidden">
           {selectedPageId === 'admin-panel' ? (
-            <AdminPanel
-              pages={pages}
-              userEmail={userEmail}
-              onPageCreated={handlePageCreated}
-              onClosePanel={() => navigateToPage('home')}
-              onSelectPage={(id) => navigateToPage(id)}
-            />
+            !user ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0b0f19] text-center text-slate-300 min-h-[400px]">
+                <div className="max-w-md p-8 bg-[#111827] border border-slate-800 rounded-2xl space-y-4 shadow-xl">
+                  <h3 className="text-lg font-bold text-white">Login Required</h3>
+                  <p className="text-xs text-slate-400">
+                    You must be signed in with an administrator account to view the Admin Control Panel.
+                  </p>
+                  <div className="pt-2">
+                    <button
+                      onClick={() => navigateToPage('login')}
+                      className="px-5 py-2.5 bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs rounded-xl transition cursor-pointer"
+                    >
+                      Sign In
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : !isSqlConnected ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0b0f19] text-center text-slate-300 min-h-[400px]">
+                <div className="max-w-md p-8 bg-[#111827] border border-amber-500/30 rounded-2xl space-y-4 shadow-xl">
+                  <h3 className="text-lg font-bold text-white">Database Offline</h3>
+                  <p className="text-xs text-slate-400">
+                    The Admin Control Panel is unavailable because there is currently no active connection to the SQL server.
+                  </p>
+                  <div className="pt-2 flex justify-center gap-3">
+                    <button
+                      onClick={() => navigateToPage('home')}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                    >
+                      Return to Portal
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : !isCurrentUserAdmin ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0b0f19] text-center text-slate-300 min-h-[400px]">
+                <div className="max-w-md p-8 bg-[#111827] border border-rose-500/30 rounded-2xl space-y-4 shadow-xl">
+                  <h3 className="text-lg font-bold text-white">Access Denied</h3>
+                  <p className="text-xs text-slate-400">
+                    Your account does not have administrator privileges.
+                  </p>
+                  <div className="pt-2">
+                    <button
+                      onClick={() => navigateToPage('home')}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+                    >
+                      Return to Portal
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <AdminPanel
+                pages={pages}
+                userEmail={userEmail}
+                onPageCreated={handlePageCreated}
+                onClosePanel={() => navigateToPage('home')}
+                onSelectPage={(id) => navigateToPage(id)}
+              />
+            )
           ) : selectedPageId === 'favorites' || selectedCategory === 'favorites' ? (
             <FavoritesPage
               pages={pages}
@@ -456,9 +524,9 @@ export default function App() {
       <footer className="py-4 bg-[#070a12] border-t border-[#1e293b] px-6 text-[12px] text-[#64748b] font-sans mt-auto">
         <div className="max-w-7xl w-full mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="flex items-center gap-1.5">
-            <span>Etherium Knowledge Base</span>
+            <span>Addon Knowledge Base</span>
             <span>•</span>
-            <span className="text-sky-400 font-bold">Etherium Team</span>
+            <span className="text-sky-400 font-bold">Wiki Team</span>
             <span>© 2026</span>
           </p>
 
@@ -497,6 +565,8 @@ export default function App() {
         onClose={() => setIsAccountModalOpen(false)}
         user={user}
         userEmail={userEmail}
+        isCurrentUserAdmin={isCurrentUserAdmin}
+        isSqlConnected={isSqlConnected}
         onLogout={handleLogout}
         onUpdateUserName={(newName) => {
           setUser(newName);

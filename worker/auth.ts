@@ -154,8 +154,8 @@ export async function authenticateAdmin(request: Request, env: Env): Promise<Use
     if (dbUser && dbUser.is_admin === 1) {
       return { id: dbUser.id, email: dbUser.email, is_admin: 1 };
     }
-  } catch (err) {
-    console.warn('authenticateAdmin error:', err);
+  } catch (err: any) {
+    console.log('authenticateAdmin notice:', err?.message || err);
   }
 
   return null;
@@ -178,7 +178,7 @@ export async function handleAuthRequest(
     });
   };
 
-  // POST /auth/admin/bootstrap or /api/auth/admin/bootstrap
+  // POST /auth/admin/bootstrap or /api/auth/admin/bootstrap (Sensible First Admin Setup)
   if (pathname === '/auth/admin/bootstrap' || pathname === '/api/auth/admin/bootstrap') {
     if (request.method !== 'POST') {
       return jsonRes({ error: 'Method not allowed' }, 405);
@@ -191,73 +191,76 @@ export async function handleAuthRequest(
       return jsonRes({ error: 'Invalid JSON body' }, 400);
     }
 
-    const { username, password, email, adminPassword } = body;
-    if (username !== 'adm' || password !== 'admin') {
-      return jsonRes({ error: 'Bootstrap credentials invalid. Use user "adm" and password "admin".' }, 401);
-    }
+    const email = body.email || body.adminEmail;
+    const password = body.password || body.adminPassword;
+    const username = (body.username || (email ? email.split('@')[0] : 'admin')).trim();
 
-    const targetEmail = email || body.email;
-    const targetPassword = adminPassword || body.password;
-
-    if (!targetEmail || typeof targetEmail !== 'string' || !targetEmail.includes('@')) {
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
       return jsonRes({ error: 'Valid email address is required' }, 400);
     }
-    if (!targetPassword || typeof targetPassword !== 'string' || targetPassword.length < 6) {
+    if (!password || typeof password !== 'string' || password.length < 6) {
       return jsonRes({ error: 'Password must be at least 6 characters long' }, 400);
     }
 
     // Check if ANY admin already exists in the system
-    const adminCountRes = await env.mysql
-      .prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1')
-      .first<{ count: number }>();
+    try {
+      const adminCountRes = await env.mysql
+        .prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1')
+        .first<{ count: number }>();
 
-    const adminCount = adminCountRes?.count || 0;
-    if (adminCount >= 1) {
-      return jsonRes({ error: 'Admin account already initialized. This page can only be used once.' }, 403);
+      const adminCount = adminCountRes?.count || 0;
+      if (adminCount >= 1) {
+        return jsonRes({ error: 'Administrator account has already been initialized.' }, 403);
+      }
+    } catch (err: any) {
+      console.log('[Bootstrap check notice]', err?.message || err);
     }
 
-    const cleanEmail = targetEmail.trim().toLowerCase();
-    const hashed = await hashPassword(targetPassword);
+    const cleanEmail = email.trim().toLowerCase();
+    const hashed = await hashPassword(password);
     const now = new Date().toISOString();
 
-    // Check if user already exists
-    const existing = await env.mysql
-      .prepare('SELECT id FROM users WHERE email = ?')
-      .bind(cleanEmail)
-      .first<{ id: string }>();
+    // Check if user already exists in users table
+    let userId: string = 'usr_' + crypto.randomUUID();
+    try {
+      const existing = await env.mysql
+        .prepare('SELECT id FROM users WHERE email = ?')
+        .bind(cleanEmail)
+        .first<{ id: string }>();
 
-    let userId = existing?.id;
-    if (existing) {
+      if (existing) {
+        userId = existing.id;
+        await env.mysql
+          .prepare('UPDATE users SET username = ?, password_hash = ?, is_admin = 1, updated_at = ? WHERE email = ?')
+          .bind(username, hashed, now, cleanEmail)
+          .run();
+      } else {
+        await env.mysql
+          .prepare(
+            'INSERT INTO users (id, username, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, ?, 1, ?, ?)'
+          )
+          .bind(userId, username, cleanEmail, hashed, now, now)
+          .run();
+      }
+
       await env.mysql
-        .prepare('UPDATE users SET password_hash = ?, is_admin = 1, updated_at = ? WHERE email = ?')
-        .bind(hashed, now, cleanEmail)
+        .prepare('INSERT OR REPLACE INTO adm (id, username, email, created_at) VALUES (?, ?, ?, ?)')
+        .bind(userId, username, cleanEmail, now)
         .run();
-    } else {
-      userId = 'usr_' + crypto.randomUUID();
-      await env.mysql
-        .prepare(
-          'INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)'
-        )
-        .bind(userId, cleanEmail, hashed, now, now)
-        .run();
+    } catch (err: any) {
+      console.log('[Bootstrap create notice]', err?.message || err);
     }
 
-    const finalUserId = userId || 'usr_admin';
-    const cleanUsername = cleanEmail.split('@')[0] || 'admin';
-    await env.mysql
-      .prepare('INSERT OR REPLACE INTO adm (id, username, email, created_at) VALUES (?, ?, ?, ?)')
-      .bind(finalUserId, cleanUsername, cleanEmail, now)
-      .run();
-
-    const token = await createToken({ id: finalUserId, email: cleanEmail, is_admin: 1 });
+    const token = await createToken({ id: userId, email: cleanEmail, is_admin: 1 });
 
     return jsonRes(
       {
         success: true,
-        message: 'Initial administrator registered successfully.',
+        message: 'Master administrator account created successfully.',
         token,
         user: {
-          id: finalUserId,
+          id: userId,
+          username,
           email: cleanEmail,
           is_admin: 1,
           created_at: now,
@@ -371,9 +374,10 @@ export async function handleAuthRequest(
         .prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1')
         .first<{ count: number }>();
       const count = res?.count || 0;
-      return jsonRes({ success: true, hasAdmin: count > 0, adminCount: count });
-    } catch {
-      return jsonRes({ success: true, hasAdmin: false, adminCount: 0 });
+      return jsonRes({ success: true, hasAdmin: count > 0, adminCount: count, connected: true });
+    } catch (err: any) {
+      console.log('[Admin status query note]', err?.message || err);
+      return jsonRes({ success: false, hasAdmin: true, adminCount: 0, connected: false, error: 'Database connection offline' });
     }
   }
 

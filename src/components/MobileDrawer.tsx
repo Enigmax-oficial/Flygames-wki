@@ -33,6 +33,7 @@ interface MobileDrawerProps {
   onOpenSearch: (isVoice?: boolean) => void;
   userEmail?: string | null;
   isCurrentUserAdmin?: boolean;
+  isSqlConnected?: boolean;
   hasAdmin?: boolean;
 }
 
@@ -48,6 +49,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
   onOpenSearch,
   userEmail,
   isCurrentUserAdmin = false,
+  isSqlConnected = false,
   hasAdmin = true,
 }) => {
   const [favoriteIds, setFavoriteIds] = useState<string[]>(() => WikiApi.getFavorites());
@@ -63,7 +65,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const isAdmin = isCurrentUserAdmin || !hasAdmin;
+  const canShowAdmin = Boolean(userEmail) && Boolean(isCurrentUserAdmin) && Boolean(isSqlConnected);
 
   const dynamicCategories = WikiApi.getCategories();
 
@@ -92,10 +94,10 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
         <div className="p-4 border-b border-[#1e293b] flex items-center justify-between bg-[#0b0f19]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 bg-sky-500 rounded-xl font-black text-black flex items-center justify-center text-base">
-              E
+              W
             </div>
             <div>
-              <h2 className="font-extrabold text-white text-sm tracking-tight">Etherium Wiki</h2>
+              <h2 className="font-extrabold text-white text-sm tracking-tight">Addon Wiki</h2>
               <p className="text-[10px] text-[#64748b] uppercase font-bold">Portal Navigation</p>
             </div>
           </div>
@@ -131,7 +133,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
             </a>
           )}
 
-          {isAdmin && (
+          {canShowAdmin && (
             <button
               onClick={() => {
                 onSelectPage('admin-panel');
@@ -264,7 +266,7 @@ export const MobileDrawer: React.FC<MobileDrawerProps> = ({
 
         {/* Footer Info */}
         <div className="p-3 border-t border-[#1e293b] bg-[#0b0f19] text-center text-xs text-[#64748b]">
-          Etherium Wiki Portal v1.4.0
+          Minecraft Addon Wiki Portal v1.4.0
         </div>
       </div>
     </div>

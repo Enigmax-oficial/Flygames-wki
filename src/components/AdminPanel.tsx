@@ -815,7 +815,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="space-y-1.5">
           <h2 className="text-xl font-bold text-white tracking-tight">Administrator Access Panel</h2>
           <p className="text-xs text-slate-400">
-            Restricted access to the Etherium Wiki control panel.
+            Restricted access to the Addon Wiki control panel.
           </p>
         </div>
 
@@ -1716,7 +1716,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <textarea
                   required
                   rows={2}
-                  placeholder="A precise summary describing the custom addition to the Etherium Addon expansion."
+                  placeholder="A precise summary describing the custom addition to the Addon expansion."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="w-full bg-[#0b0f19] border border-[#1e293b] focus:border-emerald-500/50 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none transition resize-none"
@@ -3086,7 +3086,7 @@ wikiApi.createPage({
               <span>General Wiki Settings</span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Configure global system parameters and feature visibility across the entire Etherium Wiki.
+              Configure global system parameters and feature visibility across the entire Addon Wiki.
             </p>
           </div>
 
