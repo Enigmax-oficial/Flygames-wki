@@ -378,8 +378,8 @@ export default function App() {
       ) : selectedPageId === 'login' ? (
         <LoginPage 
           onBack={() => navigateToPage('home')}
-          onLoginSuccess={(name, email, isAdmin, target) => {
-            handleLoginSuccess(name, email, isAdmin, target);
+          onLoginSuccess={(name, email, isAdmin, target, avatarUrl) => {
+            handleLoginSuccess(name, email, isAdmin, target, avatarUrl);
             if (target === 'admin-panel' || isAdmin) {
               navigateToPage('admin-panel');
             } else {
