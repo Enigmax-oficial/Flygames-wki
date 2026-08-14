@@ -143,9 +143,9 @@ export default {
 
           // 2. Top Favorited Pages
           const favoritedRes = await env.mysql.prepare(
-            `SELECT p.id, p.title, p.slug, p.category, p.image_url, COALESCE(p.views, 0) as views, COUNT(f.id) as favorites_count 
+            `SELECT p.id, p.title, p.slug, p.category, p.image_url, COALESCE(p.views, 0) as views, COUNT(f.page_id) as favorites_count 
              FROM pages p 
-             LEFT JOIN favorites f ON p.id = f.page_id 
+             LEFT JOIN user_favorites f ON p.id = f.page_id 
              GROUP BY p.id 
              ORDER BY favorites_count DESC, views DESC LIMIT 20`
           ).all();
@@ -156,7 +156,7 @@ export default {
           totalViews = sumRes?.total_views || 0;
           totalPages = sumRes?.total_pages || 0;
 
-          const favCountRes = await env.mysql.prepare('SELECT COUNT(*) as total_favs FROM favorites').first<any>();
+          const favCountRes = await env.mysql.prepare('SELECT COUNT(*) as total_favs FROM user_favorites').first<any>();
           totalFavorites = favCountRes?.total_favs || 0;
 
           const userCountRes = await env.mysql.prepare('SELECT COUNT(*) as total_users FROM users').first<any>();

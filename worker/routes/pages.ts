@@ -26,29 +26,60 @@ let schemaInitialized = false;
 export async function ensureSchema(env: Env): Promise<void> {
   if (schemaInitialized) return;
   try {
+    // 1. Concurrency, Space Management, and Foreign Key PRAGMAs
+    try {
+      await env.mysql.exec('PRAGMA auto_vacuum = INCREMENTAL;');
+      await env.mysql.exec('PRAGMA journal_mode = WAL;');
+      await env.mysql.exec('PRAGMA foreign_keys = ON;');
+    } catch {
+      // Ignore if PRAGMAs are managed at D1 engine level
+    }
+
+    // 2. Base tables with optimized type affinities and CHECK constraints
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT NOT NULL, image_url TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
+      'CREATE TABLE IF NOT EXISTS pages (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, slug TEXT NOT NULL UNIQUE, content TEXT NOT NULL, category TEXT DEFAULT "guides", image_url TEXT, views INTEGER NOT NULL DEFAULT 0, view_count INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
     );
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);'
+      'CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY NOT NULL, username TEXT, email TEXT NOT NULL UNIQUE, password_hash TEXT, is_admin INTEGER NOT NULL DEFAULT 0 CHECK (is_admin IN (0, 1)), email_verified INTEGER NOT NULL DEFAULT 0 CHECK (email_verified IN (0, 1)), created_at TEXT NOT NULL, updated_at TEXT);'
     );
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS favorites (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, page_id TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE (user_id, page_id));'
+      'CREATE TABLE IF NOT EXISTS page_contents (page_id TEXT PRIMARY KEY NOT NULL, content_markdown TEXT NOT NULL, raw_json TEXT, FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE);'
+    );
+
+    // 3. User Favorites Table (Composite PK + WITHOUT ROWID + FK Constraints)
+    await env.mysql.exec(
+      'CREATE TABLE IF NOT EXISTS user_favorites (user_id TEXT NOT NULL, page_id TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (user_id, page_id), FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE) WITHOUT ROWID;'
     );
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS comments (id TEXT PRIMARY KEY, page_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, comment TEXT NOT NULL, created_at TEXT NOT NULL);'
+      'CREATE INDEX IF NOT EXISTS idx_user_favorites_page_id ON user_favorites(page_id);'
+    );
+
+    // 4. Migrate data from legacy 'favorites' table if it exists
+    try {
+      const legacyCheck = await env.mysql.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='favorites'").first();
+      if (legacyCheck) {
+        await env.mysql.exec(
+          'INSERT OR IGNORE INTO user_favorites (user_id, page_id, created_at) SELECT user_id, page_id, created_at FROM favorites;'
+        );
+      }
+    } catch {
+      // Legacy table migration check completed
+    }
+
+    await env.mysql.exec(
+      'CREATE TABLE IF NOT EXISTS comments (id TEXT PRIMARY KEY NOT NULL, page_id TEXT NOT NULL, user_name TEXT NOT NULL, user_email TEXT NOT NULL, comment TEXT NOT NULL, created_at TEXT NOT NULL, FOREIGN KEY (page_id) REFERENCES pages(id) ON DELETE CASCADE);'
     );
     await env.mysql.exec(
       'CREATE TABLE IF NOT EXISTS adm (id TEXT PRIMARY KEY, username TEXT, email TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL);'
     );
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);'
+      'CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL);'
     );
     await env.mysql.exec(
-      'CREATE TABLE IF NOT EXISTS email_verifications (email TEXT PRIMARY KEY, code TEXT NOT NULL, username TEXT, password_hash TEXT, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);'
+      'CREATE TABLE IF NOT EXISTS email_verifications (email TEXT PRIMARY KEY NOT NULL, code TEXT NOT NULL, username TEXT, password_hash TEXT, created_at TEXT NOT NULL, expires_at TEXT NOT NULL);'
     );
 
-    // Helper to check and add column
+    // Helper to check and add column safely
     const addColumn = async (tableName: string, colName: string, typeDef: string) => {
       try {
         const info = await env.mysql.prepare(`PRAGMA table_info(${tableName})`).all();
@@ -75,7 +106,7 @@ export async function ensureSchema(env: Env): Promise<void> {
       // Ignored if table not created
     }
     
-    await addColumn('pages', 'category', 'TEXT');
+    await addColumn('pages', 'category', 'TEXT DEFAULT "guides"');
     await addColumn('pages', 'image_url', 'TEXT');
     await addColumn('pages', 'views', 'INTEGER DEFAULT 0');
     await addColumn('pages', 'view_count', 'INTEGER DEFAULT 0');

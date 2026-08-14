@@ -1228,8 +1228,8 @@ export async function handleFavoritesRequest(
   ) {
     const { results } = await env.mysql
       .prepare(
-        `SELECT f.id as favorite_id, f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.content, p.image_url, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
-         FROM favorites f
+        `SELECT f.created_at as favorited_at, p.id, p.title, p.slug, p.category, p.content, p.image_url, COALESCE(p.views, p.view_count, 0) as views, p.created_at, p.updated_at
+         FROM user_favorites f
          JOIN pages p ON (f.page_id = p.id OR f.page_id = p.slug)
          WHERE f.user_id = ? OR f.user_id = ?
          ORDER BY f.created_at DESC`
@@ -1273,24 +1273,28 @@ export async function handleFavoritesRequest(
     }
 
     const actualPageId = pageExists.id;
-    const favId = 'fav_' + crypto.randomUUID();
     const now = new Date().toISOString();
 
     try {
       await env.mysql
         .prepare(
-          'INSERT INTO favorites (id, user_id, page_id, created_at) VALUES (?, ?, ?, ?)'
+          'INSERT INTO user_favorites (user_id, page_id, created_at) VALUES (?, ?, ?)'
         )
-        .bind(favId, currentUser.id, actualPageId, now)
+        .bind(currentUser.id, actualPageId, now)
         .run();
     } catch (err: any) {
-      if (err.message && err.message.includes('UNIQUE constraint failed')) {
-        return jsonRes({ success: true, message: 'Already favorited', favorite_id: favId });
+      if (
+        err.message &&
+        (err.message.includes('UNIQUE') ||
+          err.message.includes('PRIMARY KEY') ||
+          err.message.includes('constraint failed'))
+      ) {
+        return jsonRes({ success: true, message: 'Already favorited', page_id: actualPageId });
       }
       throw err;
     }
 
-    return jsonRes({ success: true, favorite_id: favId, page_id: actualPageId, slug: pageExists.slug }, 201);
+    return jsonRes({ success: true, user_id: currentUser.id, page_id: actualPageId, slug: pageExists.slug }, 201);
   }
 
   // DELETE /favorites/:pageId or /api/favorites/:pageId
@@ -1307,7 +1311,7 @@ export async function handleFavoritesRequest(
 
     await env.mysql
       .prepare(
-        'DELETE FROM favorites WHERE (user_id = ? OR user_id = ?) AND (page_id = ? OR page_id IN (SELECT id FROM pages WHERE slug = ? OR id = ?))'
+        'DELETE FROM user_favorites WHERE (user_id = ? OR user_id = ?) AND (page_id = ? OR page_id IN (SELECT id FROM pages WHERE slug = ? OR id = ?))'
       )
       .bind(currentUser.id, currentUser.email, targetPageId, targetPageId, targetPageId)
       .run();
