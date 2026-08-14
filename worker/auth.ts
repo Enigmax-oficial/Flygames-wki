@@ -18,7 +18,11 @@ async function downloadAndUploadGoogleAvatar(userId: string, pictureUrl: string,
     return null;
   }
   try {
-    const res = await fetch(pictureUrl);
+    const res = await fetch(pictureUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
+    });
     if (!res.ok) {
       console.log(`[Google Avatar Sync] Failed to fetch image: status ${res.status}`);
       return null;
@@ -482,28 +486,56 @@ export async function handleAuthRequest(
     const now = new Date().toISOString();
 
     try {
-      if (username !== undefined && avatarUrl !== undefined) {
+      let finalAvatarUrl: string | null = avatarUrl !== undefined ? (avatarUrl || null) : null;
+      let finalAvatarKey: string | null = null;
+      let shouldUpdateAvatar = avatarUrl !== undefined;
+
+      if (shouldUpdateAvatar && avatarUrl) {
+        // If the URL is a Google profile photo (contains googleusercontent or google)
+        if (avatarUrl.includes('googleusercontent.com') || avatarUrl.includes('google')) {
+          const uploadedKey = await downloadAndUploadGoogleAvatar(userPayload.id, avatarUrl, env);
+          if (uploadedKey) {
+            finalAvatarKey = uploadedKey;
+            finalAvatarUrl = null;
+          } else {
+            finalAvatarKey = null;
+            finalAvatarUrl = avatarUrl;
+          }
+        } else if (avatarUrl.startsWith('/api/avatars/') || avatarUrl.startsWith('avatars/')) {
+          finalAvatarKey = avatarUrl.replace(/^\/api\//, '');
+          finalAvatarUrl = null;
+        } else {
+          finalAvatarKey = null;
+          finalAvatarUrl = avatarUrl;
+        }
+      }
+
+      if (username !== undefined && shouldUpdateAvatar) {
         await env.mysql
-          .prepare('UPDATE users SET username = ?, avatar_url = ?, updated_at = ? WHERE id = ? OR email = ?')
-          .bind(username.trim(), avatarUrl || null, now, userPayload.id, userPayload.email)
+          .prepare('UPDATE users SET username = ?, avatar_url = ?, avatar_key = ?, updated_at = ? WHERE id = ? OR email = ?')
+          .bind(username.trim(), finalAvatarUrl, finalAvatarKey, now, userPayload.id, userPayload.email)
           .run();
       } else if (username !== undefined) {
         await env.mysql
           .prepare('UPDATE users SET username = ?, updated_at = ? WHERE id = ? OR email = ?')
           .bind(username.trim(), now, userPayload.id, userPayload.email)
           .run();
-      } else if (avatarUrl !== undefined) {
+      } else if (shouldUpdateAvatar) {
         await env.mysql
-          .prepare('UPDATE users SET avatar_url = ?, updated_at = ? WHERE id = ? OR email = ?')
-          .bind(avatarUrl || null, now, userPayload.id, userPayload.email)
+          .prepare('UPDATE users SET avatar_url = ?, avatar_key = ?, updated_at = ? WHERE id = ? OR email = ?')
+          .bind(finalAvatarUrl, finalAvatarKey, now, userPayload.id, userPayload.email)
           .run();
       }
+
+      const returnedAvatarUrl = shouldUpdateAvatar 
+        ? (finalAvatarKey ? `/api/${finalAvatarKey}` : finalAvatarUrl)
+        : undefined;
 
       return jsonRes({
         success: true,
         message: 'Profile updated successfully.',
         username: username !== undefined ? username.trim() : undefined,
-        avatarUrl: avatarUrl !== undefined ? (avatarUrl || null) : undefined,
+        avatarUrl: returnedAvatarUrl,
       });
     } catch (err: any) {
       console.log('[Update profile error]', err);
