@@ -26,10 +26,38 @@ import { ImageCropper } from './ImageCropper';
 interface LoginPageProps {
   onLoginSuccess: (userName: string, email: string, isAdmin?: boolean, redirectTarget?: string, avatarUrl?: string) => void;
   onBack: () => void;
+  initialVerificationId?: string | null;
+  onNavigate?: (pageId: string, params?: any) => void;
 }
 
-export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) => {
-  const [mode, setMode] = useState<'login' | 'register' | 'verify_email' | 'set_google_password'>('login');
+export const LoginPage: React.FC<LoginPageProps> = ({ 
+  onLoginSuccess, 
+  onBack, 
+  initialVerificationId, 
+  onNavigate 
+}) => {
+  const [mode, setMode] = useState<'login' | 'register' | 'verify_email' | 'set_google_password'>(initialVerificationId ? 'verify_email' : 'login');
+  
+  useEffect(() => {
+    if (initialVerificationId) {
+      setMode('verify_email');
+      setVerificationUserId(initialVerificationId);
+    }
+  }, [initialVerificationId]);
+
+  // Cleanup verification if leaving the page or changing mode
+  useEffect(() => {
+    return () => {
+      // We only want to cancel if we were in verification mode and didn't finish
+      if (mode === 'verify_email' && email) {
+        fetch('/api/auth/cancel-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        }).catch(() => {});
+      }
+    };
+  }, [mode, email]);
   
   // Standard Form fields
   const [email, setEmail] = useState('');
@@ -142,8 +170,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       return;
     }
 
-    if (!password || password.length < 6) {
-      setErrorMessage('Password must be at least 6 characters long.');
+    if (!password || password.length < 8) {
+      setErrorMessage('Password must be at least 8 characters long and contain uppercase, lowercase, and numbers.');
       return;
     }
 
@@ -171,9 +199,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       const data = (await res.json().catch(() => ({}))) as any;
 
       if (res.ok && data.success) {
-        setMode('verify_email');
-        setResendCooldown(60);
         setVerificationUserId(data.userId || '');
+        if (onNavigate && data.userId) {
+          onNavigate('login', { verificationId: data.userId });
+        } else {
+          setMode('verify_email');
+        }
+        setResendCooldown(60);
         setSuccessMessage(`Verification email sent to ${cleanEmail}. Please check your inbox.`);
       } else {
         if (res.status === 409) {
@@ -210,6 +242,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       const data = (await res.json().catch(() => ({}))) as any;
 
       if (res.ok && data.success) {
+        setVerificationUserId(data.userId || '');
+        if (onNavigate && data.userId) {
+          onNavigate('login', { verificationId: data.userId });
+        }
         setResendCooldown(60);
         setSuccessMessage('A new verification code has been sent to your email.');
       } else {
@@ -620,9 +656,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                   </p>
                   <p className="text-xs font-mono text-white bg-slate-900/80 px-2.5 py-1 rounded-lg inline-block border border-slate-800">
                     {email}
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-2">
-                    Verification ID: <span className="font-mono text-sky-400">{verificationUserId}</span>
                   </p>
                 </div>
 

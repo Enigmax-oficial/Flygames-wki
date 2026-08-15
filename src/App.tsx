@@ -26,6 +26,7 @@ export default function App() {
 
   const [selectedCategory, setSelectedCategory] = useState<CategoryType | 'all'>('all');
   const [selectedPageId, setSelectedPageId] = useState<string>('home');
+  const [verificationId, setVerificationId] = useState<string | null>(null);
 
   // User state
   const [user, setUser] = useState<string | null>(() => {
@@ -166,7 +167,11 @@ export default function App() {
       return { pageId: 'home', category: 'all' as CategoryType | 'all' };
     }
 
-    if (rawHash === 'login') {
+    if (rawHash === 'login' || rawHash.startsWith('login/verified/')) {
+      const parts = rawHash.split('/').filter(Boolean);
+      if (parts[1] === 'verified' && parts[2]) {
+        return { pageId: 'login', category: 'all' as CategoryType | 'all', verificationId: parts[2] };
+      }
       return { pageId: 'login', category: 'all' as CategoryType | 'all' };
     }
     if (rawHash === 'admin-setup') {
@@ -213,6 +218,11 @@ export default function App() {
       const route = parseRoute();
       setSelectedPageId(route.pageId);
       setSelectedCategory(route.category);
+      if (route.pageId === 'login' && (route as any).verificationId) {
+        setVerificationId((route as any).verificationId);
+      } else {
+        setVerificationId(null);
+      }
     };
 
     handlePopState();
@@ -229,7 +239,10 @@ export default function App() {
       return;
     }
     if (pageId === 'login') {
-      window.history.pushState(null, '', '/login'); window.dispatchEvent(new Event('popstate'));
+      const url = customPagesList && (customPagesList as any).verificationId 
+        ? `/login/verified/${(customPagesList as any).verificationId}` 
+        : '/login';
+      window.history.pushState(null, '', url); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId('login');
       return;
     }
@@ -378,6 +391,8 @@ export default function App() {
       ) : selectedPageId === 'login' ? (
         <LoginPage 
           onBack={() => navigateToPage('home')}
+          initialVerificationId={verificationId}
+          onNavigate={(target, params) => navigateToPage(target, params as any)}
           onLoginSuccess={(name, email, isAdmin, target, avatarUrl) => {
             handleLoginSuccess(name, email, isAdmin, target, avatarUrl);
             if (target === 'admin-panel' || isAdmin) {

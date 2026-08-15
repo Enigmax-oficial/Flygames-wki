@@ -755,6 +755,22 @@ export async function handleAuthRequest(
     }
   }
 
+function isPasswordStrong(password: string): { strong: boolean; error?: string } {
+  if (password.length < 8) {
+    return { strong: false, error: 'Password must be at least 8 characters long.' };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { strong: false, error: 'Password must contain at least one uppercase letter.' };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { strong: false, error: 'Password must contain at least one lowercase letter.' };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { strong: false, error: 'Password must contain at least one number.' };
+  }
+  return { strong: true };
+}
+
   // POST /auth/send-verification or /api/auth/send-verification
   if (pathname === '/auth/send-verification' || pathname === '/api/auth/send-verification') {
     if (request.method !== 'POST') {
@@ -769,6 +785,14 @@ export async function handleAuthRequest(
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanUsername = (username || cleanEmail.split('@')[0]).trim();
+
+    // Password strength check
+    if (password && typeof password === 'string') {
+      const strength = isPasswordStrong(password);
+      if (!strength.strong) {
+        return jsonRes({ success: false, error: strength.error }, 400);
+      }
+    }
 
     // If for registration, prevent duplicate account registration
     if (forRegistration) {
@@ -800,7 +824,7 @@ export async function handleAuthRequest(
     try {
       await env.mysql
         .prepare(
-          'INSERT OR REPLACE INTO email_verifications (email, code, username, password_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)'
+          'INSERT OR REPLACE INTO email_verifications (email, code, username, password_hash, created_at, expires_at, temp_user_id) VALUES (?, ?, ?, ?, ?, ?, ?)'
         )
         .bind(
           cleanEmail,
@@ -808,7 +832,8 @@ export async function handleAuthRequest(
           cleanUsername,
           passwordHash,
           new Date().toISOString(),
-          new Date(Date.now() + 15 * 60 * 1000).toISOString()
+          new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+          tempUserId
         )
         .run();
     } catch (err) {
