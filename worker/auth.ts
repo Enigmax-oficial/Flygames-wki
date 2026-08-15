@@ -2,6 +2,7 @@ import { hashPassword, verifyPassword } from '../src/auth/password';
 import { Env } from './types';
 import { ensureSchema } from './routes/pages';
 import { sendEmailVerification } from './email-service';
+import { Resend } from 'resend';
 
 const JWT_SECRET = 'minecraft-wiki-secret-key-2026';
 // Dynamic fallback key assembled to avoid raw secret detection blocking GitHub pushes
@@ -899,13 +900,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     let savedUsername = (username || cleanEmail.split('@')[0]).trim();
     let savedPasswordHash = '';
 
-    // 1. Check in-memory map
-    const cached = verificationCodesMap.get(cleanEmail);
-    if (cached && cached.code === cleanCode && cached.expiresAt > Date.now()) {
-      isValid = true;
-    }
-
-    // 2. Check D1 database email_verifications table
+    // 1. Check D1 database email_verifications table
     try {
       const dbEntry = await env.mysql
         .prepare('SELECT code, username, password_hash, expires_at FROM email_verifications WHERE email = ?')
@@ -971,11 +966,8 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
       }
     }
 
-    // Invalidate the in-memory map entry immediately
-    verificationCodesMap.delete(cleanEmail);
-
-    // Remove the verified email from email_verifications table after a 3-second delay
-    // This prevents race condition errors during simultaneous retries while saving database space, leaving data strictly in the users section
+    // If a new verified user record is created, we don't need map logic.
+    // Invalidate the record in email_verifications table after a 3-second delay
     setTimeout(async () => {
       try {
         await env.mysql
@@ -1057,26 +1049,20 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     let isEmailVerified = 0;
     if (verificationCode) {
       const cleanCode = String(verificationCode).trim();
-      const cached = verificationCodesMap.get(cleanEmail);
-      if (cached && cached.code === cleanCode && cached.expiresAt > Date.now()) {
-        isEmailVerified = 1;
-        verificationCodesMap.delete(cleanEmail);
-      } else {
-        try {
-          const dbEntry = await env.mysql
-            .prepare('SELECT code, expires_at FROM email_verifications WHERE email = ?')
-            .bind(cleanEmail)
-            .first<{ code: string; expires_at: string }>();
-          if (dbEntry && dbEntry.code === cleanCode && new Date(dbEntry.expires_at).getTime() > Date.now()) {
-            isEmailVerified = 1;
-            setTimeout(async () => {
-              try {
-                await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
-              } catch {}
-            }, 3000);
-          }
-        } catch {}
-      }
+      try {
+        const dbEntry = await env.mysql
+          .prepare('SELECT code, expires_at FROM email_verifications WHERE email = ?')
+          .bind(cleanEmail)
+          .first<{ code: string; expires_at: string }>();
+        if (dbEntry && dbEntry.code === cleanCode && new Date(dbEntry.expires_at).getTime() > Date.now()) {
+          isEmailVerified = 1;
+          setTimeout(async () => {
+            try {
+              await env.mysql.prepare('DELETE FROM email_verifications WHERE email = ?').bind(cleanEmail).run();
+            } catch {}
+          }, 3000);
+        }
+      } catch {}
     }
 
     const userId = 'usr_' + crypto.randomUUID();
@@ -1267,7 +1253,6 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     const email = body.email;
     if (email && typeof email === 'string') {
       const cleanEmail = email.trim().toLowerCase();
-      verificationCodesMap.delete(cleanEmail);
       try {
         await env.mysql
           .prepare('DELETE FROM email_verifications WHERE email = ?')

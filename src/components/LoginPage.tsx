@@ -38,27 +38,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 }) => {
   const [mode, setMode] = useState<'login' | 'register' | 'verify_email' | 'set_google_password'>(initialVerificationId ? 'verify_email' : 'login');
   
-  useEffect(() => {
-    if (initialVerificationId) {
-      setMode('verify_email');
-      setVerificationUserId(initialVerificationId);
-    }
-  }, [initialVerificationId]);
-
-  // Cleanup verification if leaving the page or changing mode
-  useEffect(() => {
-    return () => {
-      // We only want to cancel if we were in verification mode and didn't finish
-      if (mode === 'verify_email' && email) {
-        fetch('/api/auth/cancel-verification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        }).catch(() => {});
-      }
-    };
-  }, [mode, email]);
-  
   // Standard Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,6 +71,27 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    if (initialVerificationId) {
+      setMode('verify_email');
+      setVerificationUserId(initialVerificationId);
+    }
+  }, [initialVerificationId]);
+
+  // Cleanup verification if leaving the page or changing mode
+  useEffect(() => {
+    return () => {
+      // We only want to cancel if we were in verification mode and didn't finish
+      if (mode === 'verify_email' && email) {
+        fetch('/api/auth/cancel-verification', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        }).catch(() => {});
+      }
+    };
+  }, [mode, email]);
 
   // Resend cooldown timer
   useEffect(() => {
