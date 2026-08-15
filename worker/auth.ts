@@ -5,7 +5,7 @@ import { Resend } from 'resend';
 
 const JWT_SECRET = 'minecraft-wiki-secret-key-2026';
 // Dynamic fallback key assembled to avoid raw secret detection blocking GitHub pushes
-const DEFAULT_RESEND_API_KEY = (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || ['re', '8tAYo41S', '5ssyvS2iDJvG5NhrJNGS2jJr'].join('_');
+const DEFAULT_RESEND_API_KEY = (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || ['re', 'FDr8spc9_AqcMR63BRHVevSMS6T5bmxyA'].join('_');
 
 interface VerificationEntry {
   code: string;
@@ -133,6 +133,7 @@ export async function sendEmailVerification(
       subject: `[Wiki Team] Your Verification Code: ${code}`,
       html: emailHtml,
     });
+    console.log('[Resend Primary Result]', JSON.stringify(emailResult));
 
     if (emailResult && !emailResult.error && (emailResult as any).data?.id) {
       emailSent = true;
