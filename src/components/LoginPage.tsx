@@ -44,8 +44,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
   // Email Verification Code
   const [verificationCode, setVerificationCode] = useState('');
-  const [debugVerificationCode, setDebugVerificationCode] = useState('');
   const [resendCooldown, setResendCooldown] = useState(0);
+  const [verificationUserId, setVerificationUserId] = useState('');
 
   // Google user temp state for setting password
   const [pendingGoogleUser, setPendingGoogleUser] = useState<{
@@ -173,7 +173,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
       if (res.ok && data.success) {
         setMode('verify_email');
         setResendCooldown(60);
-        if (data.debugCode) setDebugVerificationCode(data.debugCode);
+        setVerificationUserId(data.userId || '');
         setSuccessMessage(`Verification email sent to ${cleanEmail}. Please check your inbox.`);
       } else {
         if (res.status === 409) {
@@ -211,7 +211,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
 
       if (res.ok && data.success) {
         setResendCooldown(60);
-        if (data.debugCode) setDebugVerificationCode(data.debugCode);
         setSuccessMessage('A new verification code has been sent to your email.');
       } else {
         setErrorMessage(data.error || 'Failed to resend verification code.');
@@ -622,26 +621,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess, onBack }) 
                   <p className="text-xs font-mono text-white bg-slate-900/80 px-2.5 py-1 rounded-lg inline-block border border-slate-800">
                     {email}
                   </p>
+                  <p className="text-[10px] text-slate-400 mt-2">
+                    Verification ID: <span className="font-mono text-sky-400">{verificationUserId}</span>
+                  </p>
                 </div>
-
-                {debugVerificationCode && (
-                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-amber-200 text-xs text-center space-y-2">
-                    <p className="font-semibold text-[11px] text-amber-300">📬 Email Delivery Notice / Code Helper:</p>
-                    <p className="text-[10px] text-amber-200/80 leading-relaxed">Your verification code is:</p>
-                    <div className="flex items-center justify-center gap-2 pt-1">
-                      <span className="font-mono text-lg font-black tracking-widest text-amber-300 bg-black/50 px-4 py-1.5 rounded-xl border border-amber-500/30">
-                        {debugVerificationCode}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setVerificationCode(debugVerificationCode)}
-                        className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-[10px] uppercase tracking-wider rounded-xl transition shadow-lg shadow-amber-500/20 cursor-pointer"
-                      >
-                        Auto-Fill
-                      </button>
-                    </div>
-                  </div>
-                )}
 
                 {errorMessage && (
                   <motion.div 

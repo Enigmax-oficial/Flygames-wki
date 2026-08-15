@@ -1,7 +1,7 @@
 import { hashPassword, verifyPassword } from '../src/auth/password';
 import { Env } from './types';
 import { ensureSchema } from './routes/pages';
-import { Resend } from 'resend';
+import { sendEmailVerification } from './email-service';
 
 const JWT_SECRET = 'minecraft-wiki-secret-key-2026';
 // Dynamic fallback key assembled to avoid raw secret detection blocking GitHub pushes
@@ -11,7 +11,7 @@ interface VerificationEntry {
   code: string;
   expiresAt: number;
 }
-const verificationCodesMap = new Map<string, VerificationEntry>();
+
 
 export function resolveAvatarUrl(user: { avatar_key?: string | null; google_avatar_url?: string | null; avatar_url?: string | null }): string | null {
   if (user.avatar_key) {
@@ -22,165 +22,6 @@ export function resolveAvatarUrl(user: { avatar_key?: string | null; google_avat
   }
   return user.avatar_url || null;
 }
-
-export async function sendEmailVerification(
-  email: string,
-  username?: string,
-  env?: Env
-): Promise<{ success: boolean; message: string; code: string; emailSent: boolean; error?: string }> {
-  const cleanEmail = email.trim().toLowerCase();
-  // Generate random 6-digit verification code
-  const randomNum = Math.floor(100000 + Math.random() * 900000);
-  const code = randomNum.toString();
-  const expiresAt = Date.now() + 15 * 60 * 1000;
-
-  verificationCodesMap.set(cleanEmail, { code, expiresAt });
-
-  const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
-  const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
-  const primaryFromAddress = configuredFrom || 'Wiki Team <noreply@flygames.flyerserver.uk>';
-
-  const resendClient = new Resend(apiKey);
-
-  let emailSent = false;
-  let emailError: string | null = null;
-
-  const emailHtml = `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      </head>
-      <body style="margin: 0; padding: 0; background-color: #0b0f19; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f8fafc;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0b0f19; padding: 40px 12px;">
-          <tr>
-            <td align="center">
-              <table role="presentation" width="100%" style="max-width: 520px; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.5);" cellspacing="0" cellpadding="0">
-                <!-- Header with Profile Picture & Name -->
-                <tr>
-                  <td style="padding: 28px 24px 20px 24px; border-bottom: 1px solid #1e293b; background-color: #0d1322;">
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
-                      <tr>
-                        <td width="56" valign="middle">
-                          <!-- Profile Picture -->
-                          <img src="https://flygames.flyerserver.uk/images/categories/items.png" alt="Wiki Team Profile" width="50" height="50" style="display: block; border-radius: 50%; border: 2px solid #38bdf8; background-color: #1e293b; object-fit: cover;" />
-                        </td>
-                        <td style="padding-left: 14px;" valign="middle">
-                          <!-- Name and Sender Info -->
-                          <div style="font-size: 17px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; line-height: 1.2;">
-                            Wiki Team
-                          </div>
-                          <div style="font-size: 12px; color: #38bdf8; font-family: monospace; margin-top: 3px;">
-                            wkiteam@noreply
-                          </div>
-                        </td>
-                      </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <!-- Content Body -->
-                <tr>
-                  <td style="padding: 28px 24px;">
-                    <h2 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.4px;">
-                      Verification Code
-                    </h2>
-                    <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.5; color: #94a3b8;">
-                      ${username ? `Hello <strong style="color: #e2e8f0;">${username}</strong>,<br/>` : 'Hello,<br/>'}
-                      Use the 6-digit confirmation code below to verify your account on <strong>Aetheria Addon Wiki</strong>.
-                    </p>
-
-                    <!-- Code Container -->
-                    <div style="background-color: #070a12; border: 1px solid #38bdf8; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
-                      <span style="display: block; font-size: 11px; font-weight: 700; color: #38bdf8; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">
-                        Your Security Code
-                      </span>
-                      <div style="display: inline-block; color: #ffffff; font-size: 36px; font-weight: 800; letter-spacing: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; text-shadow: 0 0 12px rgba(56,189,248,0.4);">
-                        ${code}
-                      </div>
-                      <p style="color: #64748b; font-size: 12px; margin: 12px 0 0 0;">
-                        ⏱️ Valid for the next <strong>15 minutes</strong>
-                      </p>
-                    </div>
-
-                    <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #64748b; text-align: center;">
-                      If you did not request this verification code, no action is needed. You can safely disregard this message.
-                    </p>
-                  </td>
-                </tr>
-
-                <!-- Footer -->
-                <tr>
-                  <td style="padding: 16px 24px; background-color: #080c14; border-top: 1px solid #1e293b; text-align: center;">
-                    <p style="margin: 0; font-size: 11px; color: #475569;">
-                      Sent automatically by <strong>Wiki Team</strong> (<span style="font-family: monospace;">wkiteam@noreply</span>)
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </body>
-    </html>
-  `;
-
-  try {
-    const emailResult = await resendClient.emails.send({
-      from: primaryFromAddress,
-      to: cleanEmail,
-      subject: `[Wiki Team] Your Verification Code: ${code}`,
-      html: emailHtml,
-    });
-    console.log('[Resend Primary Result]', JSON.stringify(emailResult));
-
-    if (emailResult && !emailResult.error && (emailResult as any).data?.id) {
-      emailSent = true;
-      emailError = null;
-    } else if (emailResult?.error) {
-      emailError = emailResult.error.message || 'Resend error';
-      console.log('[Resend Primary Send Notice]', emailError);
-
-      try {
-        const fallbackRes = await resendClient.emails.send({
-          from: 'Wiki Team <onboarding@resend.dev>',
-          to: cleanEmail,
-          subject: `[Wiki Team] Your Verification Code: ${code}`,
-          html: emailHtml,
-        });
-        if (fallbackRes && !fallbackRes.error && (fallbackRes as any).data?.id) {
-          emailSent = true;
-          emailError = null;
-        } else if (fallbackRes?.error) {
-          emailError = fallbackRes.error.message || emailError;
-        }
-      } catch (fallbackErr: any) {
-        console.log('[Resend Fallback Notice]', fallbackErr?.message || fallbackErr);
-      }
-    }
-  } catch (err: any) {
-    emailError = err?.message || 'Resend network error';
-    console.log('[Resend Network Notice]', emailError);
-  }
-
-  // Always log verification code clearly to console so it's always accessible even if Resend network/API key is unconfigured
-  console.log('========================================');
-  console.log(`[VERIFICATION CODE] Email: ${cleanEmail} | Code: ${code}`);
-  console.log('========================================');
-
-  // Treat email as sent/available so user can always verify immediately
-  emailSent = true;
-
-  return {
-    success: true,
-    emailSent: true,
-    message: `Verification code generated and sent to ${cleanEmail}`,
-    code,
-    error: emailError || undefined,
-  };
-}
-
 export interface UserPayload {
   id: string;
   email: string;
@@ -945,16 +786,14 @@ export async function handleAuthRequest(
       passwordHash = await hashPassword(password);
     }
 
-    const result = await sendEmailVerification(cleanEmail, cleanUsername, env);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const tempUserId = 'temp_' + crypto.randomUUID();
 
-    // Clean up expired email_verifications records automatically
-    try {
-      await env.mysql
-        .prepare('DELETE FROM email_verifications WHERE expires_at < ?')
-        .bind(new Date().toISOString())
-        .run();
-    } catch (err) {
-      console.log('[D1 cleanup expired verifications error]', err);
+    // Trigger email and await confirmation
+    const emailResult = await sendEmailVerification(cleanEmail, cleanUsername, env, code);
+    if (!emailResult.success || !emailResult.emailSent) {
+      console.error('Email sending failed:', emailResult.error);
+      return jsonRes({ success: false, error: 'Failed to send verification email. Please try again.' }, 500);
     }
 
     // Save pending credentials to D1 database email_verifications table
@@ -965,7 +804,7 @@ export async function handleAuthRequest(
         )
         .bind(
           cleanEmail,
-          result.code,
+          code,
           cleanUsername,
           passwordHash,
           new Date().toISOString(),
@@ -979,10 +818,31 @@ export async function handleAuthRequest(
     return jsonRes({
       success: true,
       emailSent: true,
-      message: 'Verification code sent to your email. Please check your inbox.',
+      message: 'Verification code generated and sent.',
       email: cleanEmail,
-      debugCode: result.code,
+      userId: tempUserId,
     });
+  }
+
+  // POST /auth/cancel-verification or /api/auth/cancel-verification
+  if (pathname === '/auth/cancel-verification' || pathname === '/api/auth/cancel-verification') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+    let body: any = {};
+    try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
+    const { email } = body;
+    if (email) {
+      try {
+        await env.mysql
+          .prepare('DELETE FROM email_verifications WHERE email = ?')
+          .bind(email.trim().toLowerCase())
+          .run();
+      } catch (err) {
+        console.log('[Cancel verification delete error]', err);
+      }
+    }
+    return jsonRes({ success: true });
   }
 
   // POST /auth/verify-code or /api/auth/verify-code
