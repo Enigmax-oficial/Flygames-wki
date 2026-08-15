@@ -475,6 +475,14 @@ export async function handleAuthRequest(
       if (shouldUpdateAvatar && avatarUrl) {
         // If the URL is a Google profile photo (contains googleusercontent or google)
         if (avatarUrl.includes('googleusercontent.com') || avatarUrl.includes('google')) {
+          const conflict = await env.mysql
+            .prepare('SELECT id FROM users WHERE (google_avatar_url = ? OR avatar_url = ?) AND id != ?')
+            .bind(avatarUrl, avatarUrl, userPayload.id)
+            .first<any>();
+          if (conflict) {
+            return jsonRes({ error: 'This profile photo belongs to another user account and cannot be used.' }, 403);
+          }
+
           finalGoogleAvatarUrl = avatarUrl;
           finalAvatarUrl = null;
           finalAvatarKey = null;
@@ -482,6 +490,15 @@ export async function handleAuthRequest(
           finalAvatarKey = avatarUrl.replace(/^\/api\//, '');
           finalAvatarUrl = null;
         } else {
+          // Check if custom URL is associated with another user account
+          const conflict = await env.mysql
+            .prepare('SELECT id FROM users WHERE (avatar_url = ? OR google_avatar_url = ?) AND id != ?')
+            .bind(avatarUrl, avatarUrl, userPayload.id)
+            .first<any>();
+          if (conflict) {
+            return jsonRes({ error: 'This profile photo belongs to another user account and cannot be used.' }, 403);
+          }
+
           finalAvatarKey = null;
           finalAvatarUrl = avatarUrl;
         }
