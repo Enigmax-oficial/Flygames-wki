@@ -980,6 +980,7 @@ export async function handleAuthRequest(
       emailSent: true,
       message: 'Verification code sent to your email. Please check your inbox.',
       email: cleanEmail,
+      debugCode: result.code,
     });
   }
 
