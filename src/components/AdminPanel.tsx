@@ -63,7 +63,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [passwordInput, setPasswordInput] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    return sessionStorage.getItem('admin_auth_verified') === 'true';
+    try {
+      if (sessionStorage.getItem('admin_auth_verified') === 'true') return true;
+      if (localStorage.getItem('etherium_user_is_admin') === 'true') return true;
+      return false;
+    } catch {
+      return false;
+    }
   });
   const [authError, setAuthError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
@@ -234,6 +240,100 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   }, [activeTab]);
 
+  // All Registered Users State & Actions
+  const [allUsersList, setAllUsersList] = useState<any[]>([]);
+  const [isAllUsersLoading, setIsAllUsersLoading] = useState(false);
+  const [allUsersError, setAllUsersError] = useState('');
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userActionFeedback, setUserActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const fetchUsersList = () => {
+    setIsAllUsersLoading(true);
+    setAllUsersError('');
+    fetch('/api/admin/all-users')
+      .then((res) => res.json())
+      .then((data: any) => {
+        if (data.success && Array.isArray(data.users)) {
+          setAllUsersList(data.users);
+        } else {
+          setAllUsersError(data.error || 'Failed to load user list.');
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to fetch user list:', err);
+        setAllUsersError('Could not connect to the user administration API.');
+      })
+      .finally(() => {
+        setIsAllUsersLoading(false);
+      });
+  };
+
+  const handleMakeAdmin = async (userId: string, email: string) => {
+    try {
+      const res = await fetch('/api/admin/make-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, email })
+      });
+      const data = await res.json() as any;
+      if (data.success) {
+        setUserActionFeedback({ type: 'success', message: `User ${email || userId} promoted to Administrator successfully.` });
+        fetchUsersList();
+        fetchAdminAccounts();
+      } else {
+        setUserActionFeedback({ type: 'error', message: data.error || 'Failed to promote user.' });
+      }
+    } catch {
+      setUserActionFeedback({ type: 'error', message: 'Network error while promoting user.' });
+    }
+    setTimeout(() => setUserActionFeedback(null), 4000);
+  };
+
+  const handleRevokeAdmin = async (userId: string, email: string) => {
+    try {
+      const res = await fetch('/api/admin/revoke-admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, email })
+      });
+      const data = await res.json() as any;
+      if (data.success) {
+        setUserActionFeedback({ type: 'success', message: `Administrator privileges revoked for ${email || userId}.` });
+        fetchUsersList();
+        fetchAdminAccounts();
+      } else {
+        setUserActionFeedback({ type: 'error', message: data.error || 'Failed to revoke admin privileges.' });
+      }
+    } catch {
+      setUserActionFeedback({ type: 'error', message: 'Network error while revoking admin privileges.' });
+    }
+    setTimeout(() => setUserActionFeedback(null), 4000);
+  };
+
+  const handleDeleteUser = async (userId: string, email: string, username: string) => {
+    if (!window.confirm(`Are you sure you want to permanently delete user "${username || email}"? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, email })
+      });
+      const data = await res.json() as any;
+      if (data.success) {
+        setUserActionFeedback({ type: 'success', message: `User "${username || email}" deleted successfully.` });
+        fetchUsersList();
+        fetchAdminAccounts();
+      } else {
+        setUserActionFeedback({ type: 'error', message: data.error || 'Failed to delete user.' });
+      }
+    } catch {
+      setUserActionFeedback({ type: 'error', message: 'Network error while deleting user.' });
+    }
+    setTimeout(() => setUserActionFeedback(null), 4000);
+  };
+
   const fetchAdminAccounts = () => {
     setIsAdminAccountsLoading(true);
     setAdminAccountsError('');
@@ -258,6 +358,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   useEffect(() => {
     if (activeTab === 'admin-users') {
       fetchAdminAccounts();
+      fetchUsersList();
     }
   }, [activeTab]);
 
@@ -3070,6 +3171,179 @@ wikiApi.createPage({
                         </tr>
                       ))
                     )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* User Action Feedback Notification */}
+            {userActionFeedback && (
+              <div className={`p-4 rounded-xl text-xs flex items-center gap-2.5 font-bold animate-in fade-in ${
+                userActionFeedback.type === 'success' 
+                  ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' 
+                  : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+              }`}>
+                {userActionFeedback.type === 'success' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                )}
+                <span>{userActionFeedback.message}</span>
+              </div>
+            )}
+          </div>
+
+          {/* All Registered Users Directory & Management Card */}
+          <div className="bg-[#111827] border border-[#1e293b] rounded-2xl p-6 space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                  <User className="w-4 h-4 text-sky-400" />
+                  <span>All Registered Users Directory & Roles</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Promote users to administrators, revoke admin roles, or delete user accounts.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search users..."
+                    value={userSearchTerm}
+                    onChange={(e) => setUserSearchTerm(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-[#0b0f19] border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-sky-500 font-mono"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchUsersList}
+                  disabled={isAllUsersLoading}
+                  className="p-2 bg-[#1e293b] hover:bg-[#283548] text-slate-300 rounded-xl transition border border-slate-700 cursor-pointer disabled:opacity-50 shrink-0"
+                  title="Refresh users list"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isAllUsersLoading ? 'animate-spin text-sky-400' : ''}`} />
+                </button>
+              </div>
+            </div>
+
+            {allUsersError && (
+              <p className="text-xs text-rose-400">{allUsersError}</p>
+            )}
+
+            {isAllUsersLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-2">
+                <div className="w-6 h-6 border-2 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+                <span className="text-xs text-slate-400">Loading registered users...</span>
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-[#1e293b] rounded-xl">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-[#0b0f19] border-b border-[#1e293b] text-slate-400 font-bold">
+                      <th className="p-3">User</th>
+                      <th className="p-3">Email Address</th>
+                      <th className="p-3">Current Role</th>
+                      <th className="p-3">Registration Date</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#1e293b] text-slate-300">
+                    {(() => {
+                      const filteredUsers = allUsersList.filter(u => {
+                        const term = userSearchTerm.toLowerCase();
+                        return (
+                          (u.username || '').toLowerCase().includes(term) ||
+                          (u.email || '').toLowerCase().includes(term) ||
+                          (u.id || '').toLowerCase().includes(term)
+                        );
+                      });
+
+                      if (filteredUsers.length === 0) {
+                        return (
+                          <tr>
+                            <td colSpan={5} className="p-4 text-center text-slate-500 italic">
+                              {userSearchTerm ? 'No users matching your search.' : 'No registered users found in the database.'}
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return filteredUsers.map((usr) => {
+                        const isRoot = usr.username === 'adm' || usr.email === 'adm@wiki.local';
+                        const isAdminUser = usr.is_admin === 1 || usr.role === 'admin' || isRoot;
+
+                        return (
+                          <tr key={usr.id} className="hover:bg-[#151e2e] transition-colors">
+                            <td className="p-3 font-bold text-white flex items-center gap-2">
+                              <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                                isAdminUser 
+                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
+                                  : 'bg-slate-800 text-slate-300 border border-slate-700'
+                              }`}>
+                                {isAdminUser ? '👑' : (usr.username || 'U').charAt(0).toUpperCase()}
+                              </div>
+                              <span className="font-mono">{usr.username || 'Anonymous'}</span>
+                            </td>
+                            <td className="p-3 font-mono text-slate-300">
+                              {usr.email || 'N/A'}
+                            </td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                isAdminUser 
+                                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' 
+                                  : 'bg-slate-800 text-slate-400 border border-slate-700'
+                              }`}>
+                                {isRoot ? 'Root Admin' : isAdminUser ? 'Administrator' : 'Standard User'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-slate-400 font-mono text-[10px]">
+                              {usr.created_at ? new Date(usr.created_at).toLocaleDateString() : 'Active'}
+                            </td>
+                            <td className="p-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {isRoot ? (
+                                  <span className="text-[10px] text-slate-500 font-mono italic px-2">Protected Root</span>
+                                ) : (
+                                  <>
+                                    {isAdminUser ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRevokeAdmin(usr.id, usr.email)}
+                                        className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                        title="Revoke administrator status"
+                                      >
+                                        Demote
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleMakeAdmin(usr.id, usr.email)}
+                                        className="px-2.5 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-lg text-[10px] font-bold transition cursor-pointer"
+                                        title="Promote to administrator"
+                                      >
+                                        Make Admin
+                                      </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteUser(usr.id, usr.email, usr.username)}
+                                      className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg text-[10px] transition cursor-pointer"
+                                      title="Delete user account"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      });
+                    })()}
                   </tbody>
                 </table>
               </div>

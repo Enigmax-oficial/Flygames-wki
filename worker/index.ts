@@ -35,6 +35,10 @@ export default {
         pathname.startsWith('/api/admin/admins') ||
         pathname.startsWith('/auth/admin/list') ||
         pathname.startsWith('/api/admin/users') ||
+        pathname.startsWith('/api/admin/all-users') ||
+        pathname.startsWith('/api/admin/make-admin') ||
+        pathname.startsWith('/api/admin/revoke-admin') ||
+        pathname.startsWith('/api/admin/delete-user') ||
         pathname.startsWith('/auth/admin/bootstrap') ||
         pathname.startsWith('/api/auth/admin/bootstrap')
       ) {

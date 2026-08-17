@@ -42,7 +42,7 @@ export const Header: React.FC<HeaderProps> = ({
   addonVersion,
   hasAdmin = true,
 }) => {
-  const canShowAdmin = Boolean(user) && Boolean(isCurrentUserAdmin) && Boolean(isSqlConnected);
+  const canShowAdmin = Boolean(user) && Boolean(isCurrentUserAdmin);
   return (
     <header className="sticky top-0 z-30 bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1e293b] text-[#e2e8f0] px-4 sm:px-6 py-3 shadow-xl">
       <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-3">
@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
             <Menu className="w-5 h-5" />
           </button>
 
-          {/* Admin Panel Button - Only visible when logged in, admin, and SQL connected */}
+          {/* Admin Panel Button - Only visible when logged in as admin */}
           {canShowAdmin && onOpenAdminPanel && (
             <button
               onClick={onOpenAdminPanel}
@@ -133,32 +133,26 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Login / Profile Button */}
           {user ? (
-            <div 
+            <button 
+              type="button"
               onClick={() => onOpenAccountModal && onOpenAccountModal()}
-              className="flex items-center gap-2 bg-[#1e293b]/80 border border-sky-500/30 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-[#1e293b] transition-colors"
-              title="Manage Account"
+              className="flex items-center gap-2 bg-[#1e293b]/80 hover:bg-[#1e293b] border border-sky-500/30 hover:border-sky-500/60 rounded-xl px-3 py-1.5 cursor-pointer transition-all active:scale-95 group shadow-sm"
+              title="Manage Account Settings"
             >
-              <div className="w-6 h-6 rounded-full bg-sky-500 text-black flex items-center justify-center font-bold text-xs overflow-hidden">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 text-black flex items-center justify-center font-bold text-xs overflow-hidden shadow-inner shrink-0">
                 {userAvatar ? (
                   <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   user.charAt(0).toUpperCase()
                 )}
               </div>
-              <span className="text-xs font-bold text-white max-w-[100px] truncate hidden sm:inline">
+              <span className="text-xs font-bold text-white max-w-[110px] truncate group-hover:text-sky-300 transition-colors">
                 {user}
               </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onLogout();
-                }}
-                className="p-1 hover:text-rose-400 transition-colors text-[#94a3b8]"
-                title="Logout"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
+              {isCurrentUserAdmin && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]" title="Administrator" />
+              )}
+            </button>
           ) : (
             <a
               href="/login" onClick={(e) => { e.preventDefault(); window.history.pushState(null, "", "/login"); window.dispatchEvent(new Event("popstate")); }}

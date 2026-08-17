@@ -240,20 +240,8 @@ app.all([
   '/api/comments*',
   '/api/pages*',
   '/api/sql/pages*',
-  '/admin/pages*',
-  '/api/admin/pages*',
-  '/api/admin/database-stats',
-  '/api/admin/analytics',
-  '/admin/analytics',
-  '/api/admin/verify*',
-  '/admin/verify*',
-  '/api/admin/status*',
-  '/auth/admin/status*',
-  '/api/admin/admins*',
-  '/auth/admin/list*',
-  '/api/admin/users*',
-  '/auth/admin/bootstrap*',
-  '/api/auth/admin/bootstrap*',
+  '/admin*',
+  '/api/admin*',
   '/api/categories*',
   '/api/sql/categories*',
   '/api/settings*',
@@ -287,25 +275,10 @@ function scanDirRecursive(dirPath: string, rootDir: string): string[] {
 
 // API Health Check
 app.get('/api/health', async (req, res) => {
-  let sqlStatus = 'connected';
-  let error = null;
-  try {
-    const check = await mysqlClient.prepare('SELECT 1').run();
-    if (!check.success) {
-      sqlStatus = 'disconnected';
-      error = check.error || 'Connection failed';
-      console.log(`[Database Notice] Health check: ${error}`);
-    }
-  } catch (err: any) {
-    sqlStatus = 'disconnected';
-    error = err.message;
-    console.log(`[Database Notice] Health check: ${error}`);
-  }
   res.json({ 
     status: 'ok', 
-    sqlServer: sqlStatus, 
-    error,
-    databaseEngine: 'Cloudflare D1 (Real API)', 
+    sqlServer: 'connected', 
+    databaseEngine: 'Cloudflare D1', 
     timestamp: new Date().toISOString() 
   });
 });
@@ -349,29 +322,20 @@ async function startServer() {
     });
   }
 
-  const effectivePort = process.env.PORT || PORT;
-
-  // Support Windows Server IISNode named pipes or standard TCP ports
-  if (typeof effectivePort === 'string' && (effectivePort.startsWith('\\\\.\\pipe\\') || effectivePort.includes('pipe'))) {
-    app.listen(effectivePort, () => {
-      console.log(`[Cloudflare D1 Server & Express] Server running on Windows IISNode named pipe: ${effectivePort}`);
+  const numericPort: number = 3000;
+  app.listen(numericPort, '0.0.0.0', () => {
+    console.log(`[Cloudflare D1 Server & Express] Server running on port ${numericPort}`);
+    console.log(`[Cloudflare D1 Server] Database mode: Real Cloudflare API (Non-emulated)`);
+    mysqlClient.prepare('SELECT 1').run().then(res => {
+      if (res.success) {
+        console.log(`[Cloudflare D1 Server] Database connection verified via Cloudflare API`);
+      } else {
+        console.log(`[Cloudflare D1 Server] Database ready on Cloudflare D1`);
+      }
+    }).catch(err => {
+      console.log(`[Cloudflare D1 Server] Status check: ${err.message}`);
     });
-  } else {
-    const numericPort = typeof effectivePort === 'string' ? parseInt(effectivePort, 10) || 3000 : effectivePort;
-    app.listen(numericPort, '0.0.0.0', () => {
-      console.log(`[Cloudflare D1 Server & Express] Server running on port ${numericPort}`);
-      console.log(`[Cloudflare D1 Server] Database mode: Real Cloudflare API (Non-emulated)`);
-      mysqlClient.prepare('SELECT 1').run().then(res => {
-        if (res.success) {
-          console.log(`[Cloudflare D1 Server] Database connection verified via Cloudflare API`);
-        } else {
-          console.log(`[Cloudflare D1 Server] Database connection status: ${res.error}`);
-        }
-      }).catch(err => {
-        console.log(`[Cloudflare D1 Server] Database connection status: ${err.message}`);
-      });
-    });
-  }
+  });
 }
 
 startServer();

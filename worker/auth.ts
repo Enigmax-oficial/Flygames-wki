@@ -18,10 +18,13 @@ export function resolveAvatarUrl(user: { avatar_key?: string | null; google_avat
   if (user.avatar_key) {
     return `/api/${user.avatar_key}`;
   }
+  if (user.avatar_url) {
+    return user.avatar_url;
+  }
   if (user.google_avatar_url) {
     return user.google_avatar_url;
   }
-  return user.avatar_url || null;
+  return null;
 }
 export interface UserPayload {
   id: string;
@@ -310,9 +313,15 @@ export async function handleAuthRequest(
     const now = new Date().toISOString();
 
     try {
+      // Fetch existing user to preserve google_avatar_url if just removing custom photo
+      const existing = await env.mysql
+        .prepare('SELECT avatar_key, avatar_url, google_avatar_url FROM users WHERE id = ? OR email = ?')
+        .bind(userPayload.id, userPayload.email)
+        .first<any>();
+
       let finalAvatarUrl: string | null = avatarUrl !== undefined ? (avatarUrl || null) : null;
       let finalAvatarKey: string | null = null;
-      let finalGoogleAvatarUrl: string | null = null;
+      let finalGoogleAvatarUrl: string | null = existing?.google_avatar_url || null;
       let shouldUpdateAvatar = avatarUrl !== undefined;
 
       if (shouldUpdateAvatar && avatarUrl) {
@@ -345,6 +354,10 @@ export async function handleAuthRequest(
           finalAvatarKey = null;
           finalAvatarUrl = avatarUrl;
         }
+      } else if (shouldUpdateAvatar && avatarUrl === null) {
+        // Specifically removing custom avatar, keep existing google_avatar_url if any
+        finalAvatarUrl = null;
+        finalAvatarKey = null;
       }
 
       if (username !== undefined && shouldUpdateAvatar) {
@@ -529,6 +542,115 @@ export async function handleAuthRequest(
         success: true,
         admins: [{ id: 'usr_adm_default', username: 'adm', email: 'adm@wiki.local', role: 'admin', is_admin: 1, created_at: 'System Default' }]
       });
+    }
+  }
+
+  // GET /api/admin/all-users - Retrieve all registered users
+  if (pathname === '/api/admin/all-users' || pathname === '/auth/admin/all-users') {
+    try {
+      const { results } = await env.mysql
+        .prepare('SELECT id, username, email, is_admin, email_verified, created_at, updated_at FROM users ORDER BY created_at DESC')
+        .all();
+
+      const userList = (results || []).map((u: any) => ({
+        id: u.id,
+        username: u.username || u.email?.split('@')[0] || 'User',
+        email: u.email,
+        role: u.is_admin === 1 ? 'admin' : 'user',
+        is_admin: u.is_admin || 0,
+        email_verified: Boolean(u.email_verified),
+        created_at: u.created_at || new Date().toISOString(),
+      }));
+
+      if (!userList.some((u: any) => u.username === 'adm' || u.email === 'adm@wiki.local')) {
+        userList.unshift({
+          id: 'usr_adm_default',
+          username: 'adm',
+          email: 'adm@wiki.local',
+          role: 'admin',
+          is_admin: 1,
+          email_verified: true,
+          created_at: 'System Default'
+        });
+      }
+
+      return jsonRes({ success: true, users: userList });
+    } catch (err: any) {
+      return jsonRes({ success: false, error: err?.message || 'Failed to list users' }, 500);
+    }
+  }
+
+  // POST /api/admin/make-admin - Promote user to administrator
+  if (pathname === '/api/admin/make-admin' || pathname === '/auth/admin/make-admin') {
+    if (request.method !== 'POST') return jsonRes({ error: 'Method not allowed' }, 405);
+    let body: any = {};
+    try { body = await request.json(); } catch {}
+    const { userId, email } = body;
+    if (!userId && !email) return jsonRes({ error: 'userId or email is required' }, 400);
+
+    try {
+      const now = new Date().toISOString();
+      if (userId) {
+        await env.mysql.prepare('UPDATE users SET is_admin = 1, updated_at = ? WHERE id = ?').bind(now, userId).run();
+      } else if (email) {
+        await env.mysql.prepare('UPDATE users SET is_admin = 1, updated_at = ? WHERE email = ?').bind(now, email.toLowerCase().trim()).run();
+      }
+      return jsonRes({ success: true, message: 'User granted administrator privileges successfully.' });
+    } catch (err: any) {
+      return jsonRes({ error: err?.message || 'Failed to update user role' }, 500);
+    }
+  }
+
+  // POST /api/admin/revoke-admin - Demote administrator to normal user
+  if (pathname === '/api/admin/revoke-admin' || pathname === '/auth/admin/revoke-admin') {
+    if (request.method !== 'POST') return jsonRes({ error: 'Method not allowed' }, 405);
+    let body: any = {};
+    try { body = await request.json(); } catch {}
+    const { userId, email } = body;
+    if (!userId && !email) return jsonRes({ error: 'userId or email is required' }, 400);
+
+    // Prevent demoting the root system admin
+    if (userId === 'usr_adm_default' || email === 'adm@wiki.local' || email === 'adm') {
+      return jsonRes({ error: 'Cannot demote the root system administrator account.' }, 403);
+    }
+
+    try {
+      const now = new Date().toISOString();
+      if (userId) {
+        await env.mysql.prepare('UPDATE users SET is_admin = 0, updated_at = ? WHERE id = ?').bind(now, userId).run();
+      } else if (email) {
+        await env.mysql.prepare('UPDATE users SET is_admin = 0, updated_at = ? WHERE email = ?').bind(now, email.toLowerCase().trim()).run();
+      }
+      return jsonRes({ success: true, message: 'Administrator privileges revoked successfully.' });
+    } catch (err: any) {
+      return jsonRes({ error: err?.message || 'Failed to revoke administrator role' }, 500);
+    }
+  }
+
+  // POST /api/admin/delete-user - Delete a user from database
+  if (pathname === '/api/admin/delete-user' || pathname === '/auth/admin/delete-user') {
+    if (request.method !== 'POST') return jsonRes({ error: 'Method not allowed' }, 405);
+    let body: any = {};
+    try { body = await request.json(); } catch {}
+    const { userId, email } = body;
+    if (!userId && !email) return jsonRes({ error: 'userId or email is required' }, 400);
+
+    if (userId === 'usr_adm_default' || email === 'adm@wiki.local' || email === 'adm') {
+      return jsonRes({ error: 'Cannot delete the root system administrator account.' }, 403);
+    }
+
+    try {
+      if (userId) {
+        await env.mysql.prepare('DELETE FROM users WHERE id = ?').bind(userId).run();
+        await env.mysql.prepare('DELETE FROM adm WHERE id = ?').bind(userId).run();
+      } else if (email) {
+        const clean = email.toLowerCase().trim();
+        await env.mysql.prepare('DELETE FROM users WHERE email = ?').bind(clean).run();
+        await env.mysql.prepare('DELETE FROM adm WHERE email = ?').bind(clean).run();
+      }
+      return jsonRes({ success: true, message: 'User account removed successfully.' });
+    } catch (err: any) {
+      return jsonRes({ error: err?.message || 'Failed to delete user' }, 500);
     }
   }
 
