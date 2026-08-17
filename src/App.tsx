@@ -167,10 +167,11 @@ export default function App() {
       return { pageId: 'home', category: 'all' as CategoryType | 'all' };
     }
 
-    if (rawHash === 'login' || rawHash.startsWith('login/verified/')) {
+    if (rawHash === 'login' || rawHash.startsWith('login/')) {
       const parts = rawHash.split('/').filter(Boolean);
-      if (parts[1] === 'verified' && parts[2]) {
-        return { pageId: 'login', category: 'all' as CategoryType | 'all', verificationId: parts[2] };
+      if (parts.length > 1) {
+        const verId = parts[1] === 'verified' && parts[2] ? parts[2] : parts[1];
+        return { pageId: 'login', category: 'all' as CategoryType | 'all', verificationId: verId };
       }
       return { pageId: 'login', category: 'all' as CategoryType | 'all' };
     }
@@ -239,11 +240,16 @@ export default function App() {
       return;
     }
     if (pageId === 'login') {
-      const url = customPagesList && (customPagesList as any).verificationId 
-        ? `/login/verified/${(customPagesList as any).verificationId}` 
+      const verId = customPagesList && (customPagesList as any).verificationId 
+        ? (customPagesList as any).verificationId 
+        : null;
+      const url = verId 
+        ? `/login/${verId}` 
         : '/login';
-      window.history.pushState(null, '', url); window.dispatchEvent(new Event('popstate'));
+      window.history.pushState(null, '', url);
+      window.dispatchEvent(new Event('popstate'));
       setSelectedPageId('login');
+      setVerificationId(verId);
       return;
     }
     if (pageId === 'admin-setup') {

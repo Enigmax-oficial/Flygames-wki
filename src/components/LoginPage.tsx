@@ -76,6 +76,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     if (initialVerificationId) {
       setMode('verify_email');
       setVerificationUserId(initialVerificationId);
+
+      // Restore session details if loaded/refreshed directly via /login/:userId
+      fetch(`/api/auth/verification-info?id=${encodeURIComponent(initialVerificationId)}`)
+        .then((res) => res.json())
+        .then((data: any) => {
+          if (data.success && data.email) {
+            setEmail(data.email);
+            if (data.username) setUsername(data.username);
+          }
+        })
+        .catch(() => {});
     }
   }, [initialVerificationId]);
 
@@ -199,9 +210,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       const data = (await res.json().catch(() => ({}))) as any;
 
       if (res.ok && data.success) {
-        setVerificationUserId(data.userId || '');
-        if (onNavigate && data.userId) {
-          onNavigate('login', { verificationId: data.userId });
+        const generatedId = data.userId || '';
+        setVerificationUserId(generatedId);
+        if (onNavigate && generatedId) {
+          onNavigate('login', { verificationId: generatedId });
+        } else if (generatedId) {
+          window.history.pushState(null, '', `/login/${generatedId}`);
+          window.dispatchEvent(new Event('popstate'));
+          setMode('verify_email');
         } else {
           setMode('verify_email');
         }
@@ -242,9 +258,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       const data = (await res.json().catch(() => ({}))) as any;
 
       if (res.ok && data.success) {
-        setVerificationUserId(data.userId || '');
-        if (onNavigate && data.userId) {
-          onNavigate('login', { verificationId: data.userId });
+        const generatedId = data.userId || verificationUserId;
+        setVerificationUserId(generatedId);
+        if (onNavigate && generatedId) {
+          onNavigate('login', { verificationId: generatedId });
+        } else if (generatedId) {
+          window.history.pushState(null, '', `/login/${generatedId}`);
+          window.dispatchEvent(new Event('popstate'));
         }
         setResendCooldown(60);
         setSuccessMessage('A new verification code has been sent to your email.');
@@ -278,6 +298,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: cleanEmail,
+          userId: verificationUserId,
           code: cleanCode,
           password,
           username: username.trim() || cleanEmail.split('@')[0],
@@ -655,8 +676,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     We sent a 6-digit verification code via <span className="text-sky-400 font-semibold">Resend</span> to:
                   </p>
                   <p className="text-xs font-mono text-white bg-slate-900/80 px-2.5 py-1 rounded-lg inline-block border border-slate-800">
-                    {email}
+                    {email || 'Your email address'}
                   </p>
+                  {verificationUserId && (
+                    <div className="pt-1">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] text-slate-400 bg-[#070a12] px-2.5 py-1 rounded-lg border border-slate-800 font-mono">
+                        <span className="text-slate-500">User ID:</span>
+                        <span className="text-sky-300 font-bold tracking-tight">{verificationUserId}</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {errorMessage && (
@@ -718,8 +747,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     onClick={async () => {
                       await handleCancelVerification();
                       setMode('register');
+                      setVerificationUserId('');
                       setErrorMessage('');
                       setSuccessMessage('');
+                      if (onNavigate) {
+                        onNavigate('login');
+                      } else {
+                        window.history.pushState(null, '', '/login');
+                        window.dispatchEvent(new Event('popstate'));
+                      }
                     }}
                     className="text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1 cursor-pointer text-[11px]"
                   >

@@ -878,6 +878,16 @@ export async function handleAuthRequest(
     }
   }
 
+function generateVerificationUserId(): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz';
+  let str = '';
+  for (let i = 0; i < 14; i++) {
+    str += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  const digits = Math.floor(10000 + Math.random() * 90000);
+  return `${str}${digits}`;
+}
+
 function isPasswordStrong(password: string): { strong: boolean; error?: string } {
   if (password.length < 8) {
     return { strong: false, error: 'Password must be at least 8 characters long.' };
@@ -893,6 +903,35 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
   }
   return { strong: true };
 }
+
+  // GET /auth/verification-info or /api/auth/verification-info
+  if (pathname === '/auth/verification-info' || pathname === '/api/auth/verification-info') {
+    const userId = url.searchParams.get('id') || url.searchParams.get('userId') || '';
+    if (!userId) {
+      return jsonRes({ success: false, error: 'User ID is required' }, 400);
+    }
+    try {
+      const entry = await env.mysql
+        .prepare('SELECT email, username, temp_user_id, expires_at FROM email_verifications WHERE temp_user_id = ? OR email = ?')
+        .bind(userId, userId)
+        .first<{ email: string; username?: string; temp_user_id: string; expires_at: string }>();
+
+      if (entry) {
+        const exp = new Date(entry.expires_at).getTime();
+        if (exp > Date.now()) {
+          return jsonRes({
+            success: true,
+            email: entry.email,
+            username: entry.username || entry.email.split('@')[0],
+            userId: entry.temp_user_id || userId,
+          });
+        }
+      }
+      return jsonRes({ success: false, error: 'Verification session expired or not found' }, 404);
+    } catch (err: any) {
+      return jsonRes({ success: false, error: err?.message || 'Database error' }, 500);
+    }
+  }
 
   // POST /auth/send-verification or /api/auth/send-verification
   if (pathname === '/auth/send-verification' || pathname === '/api/auth/send-verification') {
@@ -934,7 +973,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     }
 
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const tempUserId = 'temp_' + crypto.randomUUID();
+    const tempUserId = generateVerificationUserId();
 
     // Trigger email and await confirmation
     const emailResult = await sendEmailVerification(cleanEmail, cleanUsername, env, code);
@@ -1000,12 +1039,12 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     }
     let body: any = {};
     try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
-    const { email, code, password, username, avatarUrl } = body;
-    if (!email || !code) {
-      return jsonRes({ error: 'Email and verification code are required' }, 400);
+    const { email, code, password, username, avatarUrl, userId: requestUserId } = body;
+    if ((!email && !requestUserId) || !code) {
+      return jsonRes({ error: 'Email or User ID and verification code are required' }, 400);
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanEmail = (email || '').trim().toLowerCase();
     const cleanCode = String(code).trim();
 
     // Clean up expired email_verifications records automatically
@@ -1021,18 +1060,22 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     let isValid = false;
     let savedUsername = (username || cleanEmail.split('@')[0]).trim();
     let savedPasswordHash = '';
+    let resolvedEmail = cleanEmail;
+    let resolvedTempUserId = requestUserId || '';
 
     // 1. Check D1 database email_verifications table
     try {
       const dbEntry = await env.mysql
-        .prepare('SELECT code, username, password_hash, expires_at FROM email_verifications WHERE email = ?')
-        .bind(cleanEmail)
-        .first<{ code: string; username?: string; password_hash?: string; expires_at: string }>();
+        .prepare('SELECT email, code, username, password_hash, expires_at, temp_user_id FROM email_verifications WHERE email = ? OR temp_user_id = ?')
+        .bind(cleanEmail, requestUserId || cleanEmail)
+        .first<{ email: string; code: string; username?: string; password_hash?: string; expires_at: string; temp_user_id?: string }>();
 
       if (dbEntry && dbEntry.code === cleanCode) {
         const exp = new Date(dbEntry.expires_at).getTime();
         if (exp > Date.now()) {
           isValid = true;
+          resolvedEmail = dbEntry.email || cleanEmail;
+          resolvedTempUserId = dbEntry.temp_user_id || requestUserId || '';
           if (dbEntry.username) savedUsername = dbEntry.username;
           if (dbEntry.password_hash) savedPasswordHash = dbEntry.password_hash;
         }
@@ -1041,7 +1084,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
       console.log('[D1 check error]', err);
     }
 
-    if (!isValid) {
+    if (!isValid || !resolvedEmail) {
       return jsonRes({ error: 'Invalid or expired verification code. Please check your email or request a new code.' }, 400);
     }
 
@@ -1051,13 +1094,13 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     }
 
     const now = new Date().toISOString();
-    let userId = 'usr_' + crypto.randomUUID();
+    let userId = resolvedTempUserId || 'usr_' + crypto.randomUUID();
     let isAdmin = 0;
 
     // Check if user already existed
     const existing = await env.mysql
       .prepare('SELECT id, username, is_admin, avatar_url, avatar_key, google_avatar_url FROM users WHERE email = ?')
-      .bind(cleanEmail)
+      .bind(resolvedEmail)
       .first<{ id: string; username?: string; is_admin?: number; avatar_url?: string; avatar_key?: string; google_avatar_url?: string }>();
 
     if (existing) {
