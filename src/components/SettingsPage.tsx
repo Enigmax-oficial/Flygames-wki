@@ -312,7 +312,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         <div className="flex items-center gap-3 text-xs">
           <div className="hidden sm:flex items-center gap-2 bg-[#111827] px-3 py-1.5 rounded-xl border border-slate-800">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-[11px] font-mono text-slate-400">Cloudflare D1:</span>
+            <span className="text-[11px] font-mono text-slate-400">Database:</span>
             <span className="text-[11px] font-mono text-emerald-400 font-bold">Online</span>
             {pingLatency && (
               <span className="text-[10px] font-mono text-slate-500">({pingLatency}ms)</span>
@@ -395,7 +395,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               <span>Addon Wiki Engine</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Custom-engineered wiki portal with real-time Cloudflare D1 synchronization and Bedrock asset rendering.
+              Custom-engineered wiki portal with real-time SQL synchronization and Bedrock asset rendering.
             </p>
           </div>
         </div>
@@ -728,15 +728,15 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             </div>
           )}
 
-          {/* 3. DATABASE & CLOUDFLARE D1 TAB */}
+          {/* 3. DATABASE & STORAGE ENGINE TAB */}
           {activeTab === 'database' && (
             <div className="space-y-6 animate-in fade-in duration-150">
               <div>
                 <h2 className="text-base font-black text-white tracking-tight flex items-center gap-2">
                   <Database className="w-4 h-4 text-emerald-400" />
-                  <span>Cloudflare D1 Database Engine</span>
+                  <span>High-Performance SQL Database Engine</span>
                 </h2>
-                <p className="text-xs text-slate-400 mt-0.5">High-performance edge database connectivity & cache synchronization.</p>
+                <p className="text-xs text-slate-400 mt-0.5">High-performance database connectivity & cache synchronization.</p>
               </div>
 
               {/* Status Card */}
@@ -745,7 +745,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div className="flex items-center gap-2.5">
                     <div className="w-3 h-3 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                     <div>
-                      <h3 className="text-xs font-bold text-white">Cloudflare D1 SQL Server</h3>
+                      <h3 className="text-xs font-bold text-white">Edge SQL Database Server</h3>
                       <p className="text-[10px] text-slate-400 font-mono">SQLite engine at edge locations</p>
                     </div>
                   </div>
@@ -763,7 +763,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-center font-mono">
                   <div className="p-2.5 bg-[#0b0f19] border border-slate-800/80 rounded-xl">
                     <div className="text-[10px] text-slate-500 uppercase">Engine</div>
-                    <div className="text-xs font-bold text-white">D1 SQLite</div>
+                    <div className="text-xs font-bold text-white">Edge SQLite</div>
                   </div>
                   <div className="p-2.5 bg-[#0b0f19] border border-slate-800/80 rounded-xl">
                     <div className="text-[10px] text-slate-500 uppercase">Latency</div>
@@ -788,7 +788,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <div className="flex items-center justify-between p-3.5 bg-[#111827] border border-slate-800 rounded-2xl">
                   <div className="space-y-0.5">
                     <div className="text-xs font-bold text-white">Clear Local Wiki Cache</div>
-                    <p className="text-[11px] text-slate-400">Force refetch of all articles and categories from Cloudflare D1</p>
+                    <p className="text-[11px] text-slate-400">Force refetch of all articles and categories from the database</p>
                   </div>
                   <button
                     type="button"

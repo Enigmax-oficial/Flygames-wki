@@ -1266,6 +1266,41 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     );
   }
 
+  // POST /auth/check-email or /api/auth/check-email
+  if (pathname === '/auth/check-email' || pathname === '/api/auth/check-email') {
+    if (request.method !== 'POST') {
+      return jsonRes({ error: 'Method not allowed' }, 405);
+    }
+    let body: any = {};
+    try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON body' }, 400); }
+    const { email } = body;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return jsonRes({ error: 'Valid email address is required' }, 400);
+    }
+    const cleanEmail = email.trim().toLowerCase();
+    try {
+      const existing = await env.mysql
+        .prepare('SELECT id, username, email, avatar_url, avatar_key, google_avatar_url FROM users WHERE email = ?')
+        .bind(cleanEmail)
+        .first<any>();
+
+      if (existing) {
+        return jsonRes({
+          exists: true,
+          email: cleanEmail,
+          username: existing.username,
+          avatarUrl: resolveAvatarUrl(existing),
+        });
+      }
+      return jsonRes({
+        exists: false,
+        email: cleanEmail,
+      });
+    } catch (err: any) {
+      return jsonRes({ exists: false, email: cleanEmail });
+    }
+  }
+
   // POST /auth/login or /api/auth/login
   if (pathname === '/auth/login' || pathname === '/api/auth/login') {
     if (request.method !== 'POST') {

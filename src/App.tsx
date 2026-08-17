@@ -170,8 +170,11 @@ export default function App() {
 
     if (rawHash === 'login' || rawHash.startsWith('login/')) {
       const parts = rawHash.split('/').filter(Boolean);
+      if (parts.length > 2 && parts[1] === 'account') {
+        return { pageId: 'login', category: 'all' as CategoryType | 'all', verificationId: parts[2] };
+      }
       if (parts.length > 1) {
-        const verId = parts[1] === 'verified' && parts[2] ? parts[2] : parts[1];
+        const verId = parts[1] === 'verified' && parts[2] ? parts[2] : (parts[1] === 'account' && parts[2] ? parts[2] : parts[1]);
         return { pageId: 'login', category: 'all' as CategoryType | 'all', verificationId: verId };
       }
       return { pageId: 'login', category: 'all' as CategoryType | 'all' };
@@ -248,7 +251,7 @@ export default function App() {
         ? (customPagesList as any).verificationId 
         : null;
       const url = verId 
-        ? `/login/${verId}` 
+        ? `/login/account/${verId}` 
         : '/login';
       window.history.pushState(null, '', url);
       window.dispatchEvent(new Event('popstate'));
