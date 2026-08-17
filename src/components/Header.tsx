@@ -15,6 +15,7 @@ interface HeaderProps {
   user: string | null;
   userEmail?: string | null;
   userAvatar?: string | null;
+  googleAvatarUrl?: string | null;
   isCurrentUserAdmin?: boolean;
   isSqlConnected?: boolean;
   onLogout: () => void;
@@ -36,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   userEmail,
   userAvatar,
+  googleAvatarUrl,
   isCurrentUserAdmin = false,
   isSqlConnected = false,
   onLogout,
@@ -43,6 +45,17 @@ export const Header: React.FC<HeaderProps> = ({
   hasAdmin = true,
 }) => {
   const canShowAdmin = Boolean(user) && Boolean(isCurrentUserAdmin);
+
+  const fallbackGoogleAvatar = (() => {
+    try {
+      return localStorage.getItem('etherium_google_avatar') || localStorage.getItem('google_avatar_url');
+    } catch {
+      return null;
+    }
+  })();
+
+  const effectiveAvatar = userAvatar || googleAvatarUrl || fallbackGoogleAvatar;
+
   return (
     <header className="sticky top-0 z-30 bg-[#0b0f19]/90 backdrop-blur-md border-b border-[#1e293b] text-[#e2e8f0] px-4 sm:px-6 py-3 shadow-xl">
       <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-3">
@@ -131,26 +144,24 @@ export const Header: React.FC<HeaderProps> = ({
             <Search className="w-5 h-5" />
           </button>
 
-          {/* Login / Profile Button */}
+          {/* Account Profile Icon (No name label next to it) */}
           {user ? (
             <button 
               type="button"
               onClick={() => onOpenAccountModal && onOpenAccountModal()}
-              className="flex items-center gap-2 bg-[#1e293b]/80 hover:bg-[#1e293b] border border-sky-500/30 hover:border-sky-500/60 rounded-xl px-3 py-1.5 cursor-pointer transition-all active:scale-95 group shadow-sm"
-              title="Manage Account Settings"
+              className="relative p-1 rounded-xl bg-[#1e293b]/80 hover:bg-[#1e293b] border border-sky-500/30 hover:border-sky-500/60 cursor-pointer transition-all active:scale-95 group shadow-sm flex items-center justify-center"
+              title="Open System Settings & Account"
+              aria-label="Open System Settings & Account"
             >
-              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-sky-400 to-indigo-500 text-black flex items-center justify-center font-bold text-xs overflow-hidden shadow-inner shrink-0">
-                {userAvatar ? (
-                  <img src={userAvatar} alt="Profile" className="w-full h-full object-cover" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-sky-400 to-indigo-500 text-black flex items-center justify-center font-bold text-xs overflow-hidden shadow-inner shrink-0">
+                {effectiveAvatar ? (
+                  <img src={effectiveAvatar} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
                   user.charAt(0).toUpperCase()
                 )}
               </div>
-              <span className="text-xs font-bold text-white max-w-[110px] truncate group-hover:text-sky-300 transition-colors">
-                {user}
-              </span>
               {isCurrentUserAdmin && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]" title="Administrator" />
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[#0b0f19] shadow-[0_0_6px_rgba(251,191,36,0.9)]" title="Administrator" />
               )}
             </button>
           ) : (

@@ -8,6 +8,7 @@ import { PortalHomePage } from './components/PortalHomePage';
 import { CategoryOverviewPage } from './components/CategoryOverviewPage';
 import { SearchModal } from './components/SearchModal';
 import { LoginPage } from './components/LoginPage';
+import { SettingsPage } from './components/SettingsPage';
 import { AdminSetupPage } from './components/AdminSetupPage';
 import { PageCreatorModal } from './components/PageCreatorModal';
 import { AccountModal } from './components/AccountModal';
@@ -184,6 +185,9 @@ export default function App() {
     if (rawHash === 'favorites' || rawHash === 'my-favorites') {
       return { pageId: 'favorites', category: 'favorites' as CategoryType | 'all' };
     }
+    if (rawHash === 'settings') {
+      return { pageId: 'settings', category: 'all' as CategoryType | 'all' };
+    }
 
     const parts = rawHash.split('/').filter(Boolean);
 
@@ -266,6 +270,11 @@ export default function App() {
       window.history.pushState(null, '', '/favorites'); window.dispatchEvent(new Event('popstate'));
       setSelectedPageId('favorites');
       setSelectedCategory('favorites');
+      return;
+    }
+    if (pageId === 'settings') {
+      window.history.pushState(null, '', '/settings'); window.dispatchEvent(new Event('popstate'));
+      setSelectedPageId('settings');
       return;
     }
 
@@ -408,6 +417,40 @@ export default function App() {
             }
           }}
         />
+      ) : selectedPageId === 'settings' ? (
+        <SettingsPage
+          onBack={() => navigateToPage('home')}
+          user={user}
+          userEmail={userEmail}
+          userAvatar={userAvatar}
+          isCurrentUserAdmin={isCurrentUserAdmin}
+          isSqlConnected={isSqlConnected}
+          onLogout={handleLogout}
+          onOpenAdminPanel={() => navigateToPage('admin-panel')}
+          onOpenLogin={() => navigateToPage('login')}
+          onUpdateUserName={(newName) => {
+            setUser(newName);
+            try {
+              localStorage.setItem('etherium_user', newName);
+            } catch (e) {
+              console.warn('LocalStorage save user failed:', e);
+            }
+            WikiApi.updateProfileOnServer(newName, undefined);
+          }}
+          onUpdateUserAvatar={(newAvatar) => {
+            setUserAvatar(newAvatar);
+            try {
+              if (newAvatar) {
+                localStorage.setItem('etherium_user_avatar', newAvatar);
+              } else {
+                localStorage.removeItem('etherium_user_avatar');
+              }
+            } catch (e) {
+              console.warn('LocalStorage save avatar failed:', e);
+            }
+            WikiApi.updateProfileOnServer(undefined, newAvatar);
+          }}
+        />
       ) : (
         <>
       {/* Top Header */}
@@ -421,7 +464,7 @@ export default function App() {
         isDesktopSidebarOpen={isDesktopSidebarOpen}
         onGoHome={() => navigateToPage('home')}
         onOpenLogin={() => navigateToPage('login')}
-        onOpenAccountModal={() => setIsAccountModalOpen(true)}
+        onOpenAccountModal={() => navigateToPage('settings')}
         user={user}
         userEmail={userEmail}
         userAvatar={userAvatar}
