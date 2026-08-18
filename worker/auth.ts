@@ -184,7 +184,13 @@ export async function requireAdmin(
       .bind(userPayload.id, userPayload.email)
       .first<{ id: string; email: string; is_admin?: number }>();
 
-    if (!dbUser || dbUser.is_admin !== 1) {
+    if (dbUser && dbUser.is_admin === 1) {
+      return {
+        user: { id: dbUser.id, email: dbUser.email, is_admin: 1 },
+        errorResponse: null,
+      };
+    }
+    if (dbUser && dbUser.is_admin !== 1) {
       return {
         user: null,
         errorResponse: new Response(
@@ -194,11 +200,28 @@ export async function requireAdmin(
       };
     }
 
+    // Fallback to cryptographically verified JWT claim if user row is not yet in D1 (e.g. local dev / unconfigured D1 credentials)
+    if (userPayload.is_admin === 1) {
+      return {
+        user: { id: userPayload.id, email: userPayload.email, is_admin: 1 },
+        errorResponse: null,
+      };
+    }
+
     return {
-      user: { id: dbUser.id, email: dbUser.email, is_admin: 1 },
-      errorResponse: null,
+      user: null,
+      errorResponse: new Response(
+        JSON.stringify({ success: false, error: 'Forbidden: Administrator privileges required.' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      ),
     };
   } catch (err: any) {
+    if (userPayload.is_admin === 1) {
+      return {
+        user: { id: userPayload.id, email: userPayload.email, is_admin: 1 },
+        errorResponse: null,
+      };
+    }
     return {
       user: null,
       errorResponse: new Response(
@@ -540,6 +563,24 @@ export async function handleAuthRequest(
       console.log('[Admin status query note]', err?.message || err);
       return jsonRes({ success: false, hasAdmin: true, adminCount: 0, connected: false, error: 'Database connection offline' });
     }
+  }
+
+  // GET /api/admin/email-config-check, /auth/admin/email-config-check - Secret binding diagnostic endpoint
+  if (
+    pathname === '/api/admin/email-config-check' ||
+    pathname === '/auth/admin/email-config-check'
+  ) {
+    const adminAuth = await requireAdmin(request, env, corsHeaders);
+    if (adminAuth.errorResponse) return adminAuth.errorResponse;
+
+    const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || '';
+    const fromEmail = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL) || null;
+
+    return jsonRes({
+      hasApiKey: Boolean(apiKey),
+      apiKeyPrefix: apiKey ? apiKey.slice(0, 5) : null,
+      fromAddress: fromEmail || '(using default fallback)',
+    });
   }
 
   // GET /api/admin/admins, /auth/admin/list
@@ -1015,7 +1056,14 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     const emailResult = await sendEmailVerification(cleanEmail, cleanUsername, env, code);
     if (!emailResult.success || !emailResult.emailSent) {
       console.error('Email sending failed:', emailResult.error);
-      return jsonRes({ success: false, error: 'Failed to send verification email. Please try again.' }, 500);
+      return jsonRes(
+        {
+          success: false,
+          error: 'Failed to send verification email. Please try again.',
+          debug: emailResult.error || 'Unknown email service error',
+        },
+        500
+      );
     }
 
     // Save pending credentials to D1 database email_verifications table with 5-minute expiration

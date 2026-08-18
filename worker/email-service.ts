@@ -21,7 +21,16 @@ export async function sendEmailVerification(
       success: false,
       emailSent: false,
       message: 'RESEND_API_KEY environment variable is not configured.',
-      error: 'Missing RESEND_API_KEY binding.',
+      error: 'Missing RESEND_API_KEY binding in Cloudflare Worker environment.',
+    };
+  }
+
+  if (!apiKey.startsWith('re_')) {
+    return {
+      success: false,
+      emailSent: false,
+      message: 'RESEND_API_KEY appears malformed (must start with "re_").',
+      error: 'RESEND_API_KEY appears malformed (expected key starting with "re_").',
     };
   }
 
@@ -94,18 +103,39 @@ export async function sendEmailVerification(
       html: emailHtml,
     });
 
+    console.log('[Resend send response]:', JSON.stringify(emailResult));
+
+    if (emailResult.error) {
+      console.error('[Resend SDK error]:', JSON.stringify(emailResult.error, null, 2));
+      let errorDetail = '';
+      if (typeof emailResult.error === 'string') {
+        errorDetail = emailResult.error;
+      } else if (typeof emailResult.error === 'object') {
+        errorDetail = emailResult.error.message || (emailResult.error as any).name || JSON.stringify(emailResult.error);
+      } else {
+        errorDetail = String(emailResult.error);
+      }
+      return {
+        success: false,
+        emailSent: false,
+        message: 'Resend rejected email sending.',
+        error: errorDetail,
+      };
+    }
+
     return {
       success: true,
-      emailSent: !emailResult.error,
+      emailSent: true,
       message: 'Verification code sent.',
-      error: emailResult.error?.message,
     };
   } catch (err: any) {
+    console.error('[Resend exception caught]:', err);
+    const errDetail = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
     return {
       success: false,
       emailSent: false,
       message: 'Failed to send email.',
-      error: err?.message,
+      error: errDetail,
     };
   }
 }

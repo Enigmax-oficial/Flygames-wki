@@ -28,19 +28,8 @@ export default {
       if (
         pathname.startsWith('/auth') ||
         pathname.startsWith('/api/auth') ||
-        pathname.startsWith('/api/admin/verify') ||
-        pathname.startsWith('/admin/verify') ||
-        pathname.startsWith('/api/admin/status') ||
-        pathname.startsWith('/auth/admin/status') ||
-        pathname.startsWith('/api/admin/admins') ||
-        pathname.startsWith('/auth/admin/list') ||
-        pathname.startsWith('/api/admin/users') ||
-        pathname.startsWith('/api/admin/all-users') ||
-        pathname.startsWith('/api/admin/make-admin') ||
-        pathname.startsWith('/api/admin/revoke-admin') ||
-        pathname.startsWith('/api/admin/delete-user') ||
-        pathname.startsWith('/auth/admin/bootstrap') ||
-        pathname.startsWith('/api/auth/admin/bootstrap')
+        pathname.startsWith('/api/admin') ||
+        pathname.startsWith('/admin')
       ) {
         return await handleAuthRequest(request, url, env, corsHeaders);
       }

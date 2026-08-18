@@ -202,8 +202,8 @@ async function handleWorkerRequestDirectly(req: any, res: any) {
       mysql: mysqlClient,
       ASSETS: null,
       AVATAR_BUCKET: avatarBucketLocalMock,
-      RESEND_API_KEY: process.env.RESEND_API_KEY || ['re', '8tAYo41S', '5ssyvS2iDJvG5NhrJNGS2jJr'].join('_'),
-      RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Wiki Team <onboarding@resend.dev>',
+      RESEND_API_KEY: process.env.RESEND_API_KEY || '',
+      RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || '',
     };
 
     const webResponse = await worker.fetch(webRequest, env as any, {
