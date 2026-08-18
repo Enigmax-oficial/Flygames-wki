@@ -24,6 +24,18 @@ if %ERRORLEVEL% NEQ 0 (
     exit /b %ERRORLEVEL%
 )
 
+echo 4. Checking Cloudflare Worker secrets...
+if defined JWT_SECRET if defined RESEND_API_KEY if defined RESEND_FROM_EMAIL (
+    echo Secrets detected in environment variables. Updating Cloudflare secrets...
+    call scripts\set-secrets.bat
+    if %ERRORLEVEL% NEQ 0 (
+        echo Failed to configure Cloudflare secrets!
+        exit /b %ERRORLEVEL%
+    )
+) else (
+    echo Worker secrets not all present in environment; skipping automated secret update.
+)
+
 echo =========================================
 echo   Build completed successfully!
 echo =========================================

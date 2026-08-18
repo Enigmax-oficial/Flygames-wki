@@ -10,7 +10,9 @@
     "clean": "rimraf dist server.js server.cjs",
     "lint": "tsc --noEmit",
     "test": "jest",
-    "verify-lockfile": "bun install --frozen-lockfile"
+    "verify-lockfile": "bun install --frozen-lockfile",
+    "secrets:set": "bash scripts/set-secrets.sh",
+    "deploy": "npm run build && node scripts/deploy-secrets.cjs && npx wrangler deploy"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
