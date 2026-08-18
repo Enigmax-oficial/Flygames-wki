@@ -1,9 +1,6 @@
 import { Resend } from 'resend';
 import { Env } from './types';
 
-// Dynamic fallback key assembled to avoid raw secret detection blocking GitHub pushes
-const DEFAULT_RESEND_API_KEY = (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || ['re', 'FDr8spc9_AqcMR63BRHVevSMS6T5bmxyA'].join('_');
-
 export async function sendEmailVerification(
   email: string,
   username?: string,
@@ -15,9 +12,18 @@ export async function sendEmailVerification(
   // Use provided code or generate new one
   const verificationCode = code || Math.floor(100000 + Math.random() * 900000).toString();
 
-  const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
+  const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || '';
   const configuredFrom = (env as any)?.RESEND_FROM_EMAIL || (typeof process !== 'undefined' && process.env?.RESEND_FROM_EMAIL);
   const primaryFromAddress = configuredFrom || 'Wiki Team <noreply@flygames.flyerserver.uk>';
+
+  if (!apiKey) {
+    return {
+      success: false,
+      emailSent: false,
+      message: 'RESEND_API_KEY environment variable is not configured.',
+      error: 'Missing RESEND_API_KEY binding.',
+    };
+  }
 
   const resendClient = new Resend(apiKey);
 

@@ -40,7 +40,6 @@ import {
 } from 'lucide-react';
 import { WikiPage, CategoryType, PageTemplate } from '../types/wiki';
 import { WikiApi, DynamicCategory, PRESET_IMAGES } from '../lib/wikiApi';
-import { isAuthorizedAdminEmail } from '../lib/adminAuth';
 
 interface AdminPanelProps {
   pages: WikiPage[];
@@ -3272,8 +3271,8 @@ wikiApi.createPage({
                       }
 
                       return filteredUsers.map((usr) => {
-                        const isRoot = usr.username === 'adm' || usr.email === 'adm@wiki.local';
-                        const isAdminUser = usr.is_admin === 1 || usr.role === 'admin' || isRoot;
+                        const isSelf = Boolean(userEmail && usr.email && usr.email.toLowerCase() === userEmail.toLowerCase());
+                        const isAdminUser = usr.is_admin === 1 || usr.role === 'admin';
 
                         return (
                           <tr key={usr.id} className="hover:bg-[#151e2e] transition-colors">
@@ -3296,7 +3295,7 @@ wikiApi.createPage({
                                   ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30' 
                                   : 'bg-slate-800 text-slate-400 border border-slate-700'
                               }`}>
-                                {isRoot ? 'Root Admin' : isAdminUser ? 'Administrator' : 'Standard User'}
+                                {isAdminUser ? 'Administrator' : 'Standard User'}
                               </span>
                             </td>
                             <td className="p-3 text-slate-400 font-mono text-[10px]">
@@ -3304,8 +3303,8 @@ wikiApi.createPage({
                             </td>
                             <td className="p-3 text-right">
                               <div className="flex items-center justify-end gap-1.5">
-                                {isRoot ? (
-                                  <span className="text-[10px] text-slate-500 font-mono italic px-2">Protected Root</span>
+                                {isSelf ? (
+                                  <span className="text-[10px] text-sky-400 font-mono italic px-2">You (Active)</span>
                                 ) : (
                                   <>
                                     {isAdminUser ? (

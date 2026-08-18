@@ -3,6 +3,9 @@ import { D1Database, Fetcher } from '@cloudflare/workers-types';
 export interface Env {
   mysql: D1Database;
   ASSETS?: Fetcher;
+  JWT_SECRET?: string;
+  RESEND_API_KEY?: string;
+  RESEND_FROM_EMAIL?: string;
   ADMIN_PASSWORD?: string;
   ADMIN_USERNAMES?: string;
   ADMIN_EMAILS?: string;

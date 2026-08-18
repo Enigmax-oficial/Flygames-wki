@@ -1,6 +1,6 @@
 import { Env } from './types';
 import { handlePagesRequest, handleCommentsRequest, handleSettingsRequest, jsonResponse, ensureSchema } from './routes/pages';
-import { handleAuthRequest, handleFavoritesRequest } from './auth';
+import { handleAuthRequest, handleFavoritesRequest, requireAdmin } from './auth';
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -115,6 +115,9 @@ export default {
 
       // Admin database stats
       if (pathname === '/api/admin/database-stats' || pathname === '/admin/database-stats') {
+        const adminAuth = await requireAdmin(request, env, corsHeaders);
+        if (adminAuth.errorResponse) return adminAuth.errorResponse;
+
         let pageCount = 0;
         let usersList: any[] = [];
         try {
@@ -134,16 +137,6 @@ export default {
           return jsonResponse({ success: false, error: err.message || 'Failed to fetch database stats' }, 500, corsHeaders);
         }
 
-        if (!usersList.some((u) => u.username === 'adm')) {
-          usersList.unshift({
-            id: 'usr_adm_default',
-            username: 'adm',
-            email: 'adm@wiki.local',
-            role: 'admin',
-            created_at: 'Initial System Admin'
-          });
-        }
-
         return jsonResponse({
           success: true,
           storedIn: 'Cloudflare D1',
@@ -154,6 +147,9 @@ export default {
 
       // Admin Data Analytics endpoint
       if (pathname === '/api/admin/analytics' || pathname === '/admin/analytics') {
+        const adminAuth = await requireAdmin(request, env, corsHeaders);
+        if (adminAuth.errorResponse) return adminAuth.errorResponse;
+
         await ensureSchema(env);
         let topVisited: any[] = [];
         let topFavorited: any[] = [];

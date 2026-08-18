@@ -4,10 +4,6 @@ import { ensureSchema } from './routes/pages';
 import { sendEmailVerification } from './email-service';
 import { Resend } from 'resend';
 
-const JWT_SECRET = 'minecraft-wiki-secret-key-2026';
-// Dynamic fallback key assembled to avoid raw secret detection blocking GitHub pushes
-const DEFAULT_RESEND_API_KEY = (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || ['re', 'FDr8spc9_AqcMR63BRHVevSMS6T5bmxyA'].join('_');
-
 interface VerificationEntry {
   code: string;
   expiresAt: number;
@@ -68,17 +64,22 @@ function base64url2str(b64u: string): string {
   return atob(b64);
 }
 
-async function getHmacKey(): Promise<CryptoKey> {
+function getJwtSecret(env?: Env): string {
+  return (env as any)?.JWT_SECRET || (typeof process !== 'undefined' && process.env?.JWT_SECRET) || '';
+}
+
+async function getHmacKey(env?: Env): Promise<CryptoKey> {
+  const secretKey = getJwtSecret(env);
   return crypto.subtle.importKey(
     'raw',
-    str2ab(JWT_SECRET),
+    str2ab(secretKey),
     { name: 'HMAC', hash: 'SHA-256' },
     false,
     ['sign', 'verify']
   );
 }
 
-export async function createToken(payload: UserPayload): Promise<string> {
+export async function createToken(payload: UserPayload, env?: Env): Promise<string> {
   const header = { alg: 'HS256', typ: 'JWT' };
   const encodedHeader = buf2base64url(str2ab(JSON.stringify(header)));
 
@@ -91,14 +92,14 @@ export async function createToken(payload: UserPayload): Promise<string> {
   const encodedPayload = buf2base64url(str2ab(JSON.stringify(jwtPayload)));
 
   const dataToSign = `${encodedHeader}.${encodedPayload}`;
-  const key = await getHmacKey();
+  const key = await getHmacKey(env);
   const signature = await crypto.subtle.sign('HMAC', key, str2ab(dataToSign));
   const encodedSignature = buf2base64url(signature);
 
   return `${dataToSign}.${encodedSignature}`;
 }
 
-export async function verifyToken(token: string): Promise<UserPayload | null> {
+export async function verifyToken(token: string, env?: Env): Promise<UserPayload | null> {
   try {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
@@ -106,7 +107,7 @@ export async function verifyToken(token: string): Promise<UserPayload | null> {
     const [encodedHeader, encodedPayload, encodedSignature] = parts;
     const dataToVerify = `${encodedHeader}.${encodedPayload}`;
 
-    const key = await getHmacKey();
+    const key = await getHmacKey(env);
     const signatureBytes = Uint8Array.from(base64url2str(encodedSignature), c => c.charCodeAt(0));
 
     const isValid = await crypto.subtle.verify('HMAC', key, signatureBytes, str2ab(dataToVerify));
@@ -127,11 +128,11 @@ export async function verifyToken(token: string): Promise<UserPayload | null> {
 }
 
 export function extractAuthToken(request: Request): string | null {
-  const authHeader = request.headers.get('Authorization');
+  const authHeader = request.headers.get('Authorization') || request.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7).trim();
   }
-  const cookieHeader = request.headers.get('Cookie');
+  const cookieHeader = request.headers.get('Cookie') || request.headers.get('cookie');
   if (cookieHeader) {
     const match = cookieHeader.match(/token=([^;]+)/);
     if (match) return match[1].trim();
@@ -141,58 +142,76 @@ export function extractAuthToken(request: Request): string | null {
 
 export async function authenticateRequest(request: Request, env?: Env): Promise<UserPayload | null> {
   const token = extractAuthToken(request);
-  if (token) {
-    const verified = await verifyToken(token);
-    if (verified) return verified;
-  }
-
-  // Fallback to X-User-Email header if present
-  const emailHeader = request.headers.get('X-User-Email') || request.headers.get('x-user-email');
-  if (emailHeader && emailHeader.includes('@') && env?.mysql) {
-    const cleanEmail = emailHeader.trim().toLowerCase();
-    try {
-      let existingUser = await env.mysql
-        .prepare('SELECT id, email, is_admin FROM users WHERE email = ?')
-        .bind(cleanEmail)
-        .first<{ id: string; email: string; is_admin?: number }>();
-
-      if (existingUser) {
-        return { id: existingUser.id, email: existingUser.email, is_admin: existingUser.is_admin || 0 };
-      } else {
-        const newId = 'usr_' + crypto.randomUUID();
-        const now = new Date().toISOString();
-        await env.mysql
-          .prepare('INSERT INTO users (id, email, password_hash, is_admin, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?)')
-          .bind(newId, cleanEmail, 'session:header', now, now)
-          .run();
-        return { id: newId, email: cleanEmail, is_admin: 0 };
-      }
-    } catch {
-      return { id: 'usr_' + cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'), email: cleanEmail, is_admin: 0 };
-    }
-  }
-
-  return null;
+  if (!token) return null;
+  return await verifyToken(token, env);
 }
 
-export async function authenticateAdmin(request: Request, env: Env): Promise<UserPayload | null> {
-  const user = await authenticateRequest(request, env);
-  if (!user) return null;
+export async function requireAdmin(
+  request: Request,
+  env: Env,
+  corsHeaders: Record<string, string> = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  }
+): Promise<{ user: UserPayload; errorResponse: null } | { user: null; errorResponse: Response }> {
+  const token = extractAuthToken(request);
+  if (!token) {
+    return {
+      user: null,
+      errorResponse: new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized: Authentication required.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      ),
+    };
+  }
 
+  const userPayload = await verifyToken(token, env);
+  if (!userPayload || !userPayload.id) {
+    return {
+      user: null,
+      errorResponse: new Response(
+        JSON.stringify({ success: false, error: 'Unauthorized: Invalid or expired token.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      ),
+    };
+  }
+
+  // Direct re-check of is_admin directly from users table in D1
   try {
     const dbUser = await env.mysql
       .prepare('SELECT id, email, is_admin FROM users WHERE id = ? OR email = ?')
-      .bind(user.id, user.email)
-      .first<{ id: string; email: string; is_admin: number }>();
+      .bind(userPayload.id, userPayload.email)
+      .first<{ id: string; email: string; is_admin?: number }>();
 
-    if (dbUser && dbUser.is_admin === 1) {
-      return { id: dbUser.id, email: dbUser.email, is_admin: 1 };
+    if (!dbUser || dbUser.is_admin !== 1) {
+      return {
+        user: null,
+        errorResponse: new Response(
+          JSON.stringify({ success: false, error: 'Forbidden: Administrator privileges required.' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        ),
+      };
     }
-  } catch (err: any) {
-    console.log('authenticateAdmin notice:', err?.message || err);
-  }
 
-  return null;
+    return {
+      user: { id: dbUser.id, email: dbUser.email, is_admin: 1 },
+      errorResponse: null,
+    };
+  } catch (err: any) {
+    return {
+      user: null,
+      errorResponse: new Response(
+        JSON.stringify({ success: false, error: 'Authorization error: Database query failed.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      ),
+    };
+  }
+}
+
+export async function authenticateAdmin(request: Request, env: Env): Promise<UserPayload | null> {
+  const result = await requireAdmin(request, env);
+  return result.user;
 }
 
 export async function handleAuthRequest(
@@ -236,15 +255,18 @@ export async function handleAuthRequest(
       return jsonRes({ error: 'Password must be at least 6 characters long' }, 400);
     }
 
-    // Check if ANY admin already exists in the system
+    // Check if ANY admin already exists in the system (check both adm table and users table)
     try {
-      const adminCountRes = await env.mysql
+      const admCountRes = await env.mysql
+        .prepare('SELECT COUNT(*) as count FROM adm')
+        .first<{ count: number }>();
+      const userAdminCountRes = await env.mysql
         .prepare('SELECT COUNT(*) as count FROM users WHERE is_admin = 1')
         .first<{ count: number }>();
 
-      const adminCount = adminCountRes?.count || 0;
-      if (adminCount >= 1) {
-        return jsonRes({ error: 'Administrator account has already been initialized.' }, 403);
+      const adminCount = (admCountRes?.count || 0) + (userAdminCountRes?.count || 0);
+      if (adminCount > 0) {
+        return jsonRes({ error: 'Administrator account has already been initialized. Bootstrap is locked.' }, 403);
       }
     } catch (err: any) {
       console.log('[Bootstrap check notice]', err?.message || err);
@@ -285,7 +307,7 @@ export async function handleAuthRequest(
       console.log('[Bootstrap create notice]', err?.message || err);
     }
 
-    const token = await createToken({ id: userId, email: cleanEmail, is_admin: 1 });
+    const token = await createToken({ id: userId, email: cleanEmail, is_admin: 1 }, env);
 
     return jsonRes(
       {
@@ -439,6 +461,9 @@ export async function handleAuthRequest(
     pathname === '/api/auth/admin/create' ||
     pathname === '/api/admin/users/create'
   ) {
+    const adminAuth = await requireAdmin(request, env, corsHeaders);
+    if (adminAuth.errorResponse) return adminAuth.errorResponse;
+
     if (request.method !== 'POST') {
       return jsonRes({ error: 'Method not allowed' }, 405);
     }
@@ -523,6 +548,9 @@ export async function handleAuthRequest(
     pathname === '/auth/admin/list' ||
     pathname === '/api/admin/users'
   ) {
+    const adminAuth = await requireAdmin(request, env, corsHeaders);
+    if (adminAuth.errorResponse) return adminAuth.errorResponse;
+
     try {
       const { results } = await env.mysql
         .prepare('SELECT id, username, email, is_admin, created_at FROM users WHERE is_admin = 1 ORDER BY created_at DESC')
@@ -537,29 +565,17 @@ export async function handleAuthRequest(
         created_at: u.created_at || new Date().toISOString()
       }));
 
-      // Ensure default adm is always visible if not present in db
-      if (!adminList.some((a: any) => a.username === 'adm' || a.email === 'adm@wiki.local')) {
-        adminList.unshift({
-          id: 'usr_adm_default',
-          username: 'adm',
-          email: 'adm@wiki.local',
-          role: 'admin',
-          is_admin: 1,
-          created_at: 'System Default'
-        });
-      }
-
       return jsonRes({ success: true, admins: adminList });
-    } catch {
-      return jsonRes({
-        success: true,
-        admins: [{ id: 'usr_adm_default', username: 'adm', email: 'adm@wiki.local', role: 'admin', is_admin: 1, created_at: 'System Default' }]
-      });
+    } catch (err: any) {
+      return jsonRes({ success: false, error: err?.message || 'Failed to fetch administrators' }, 500);
     }
   }
 
   // GET /api/admin/all-users - Retrieve all registered users
   if (pathname === '/api/admin/all-users' || pathname === '/auth/admin/all-users') {
+    const adminAuth = await requireAdmin(request, env, corsHeaders);
+    if (adminAuth.errorResponse) return adminAuth.errorResponse;
+
     try {
       const { results } = await env.mysql
         .prepare('SELECT id, username, email, is_admin, email_verified, created_at, updated_at FROM users ORDER BY created_at DESC')
@@ -575,18 +591,6 @@ export async function handleAuthRequest(
         created_at: u.created_at || new Date().toISOString(),
       }));
 
-      if (!userList.some((u: any) => u.username === 'adm' || u.email === 'adm@wiki.local')) {
-        userList.unshift({
-          id: 'usr_adm_default',
-          username: 'adm',
-          email: 'adm@wiki.local',
-          role: 'admin',
-          is_admin: 1,
-          email_verified: true,
-          created_at: 'System Default'
-        });
-      }
-
       return jsonRes({ success: true, users: userList });
     } catch (err: any) {
       return jsonRes({ success: false, error: err?.message || 'Failed to list users' }, 500);
@@ -595,6 +599,9 @@ export async function handleAuthRequest(
 
   // POST /api/admin/make-admin - Promote user to administrator
   if (pathname === '/api/admin/make-admin' || pathname === '/auth/admin/make-admin') {
+    const adminAuth = await requireAdmin(request, env, corsHeaders);
+    if (adminAuth.errorResponse) return adminAuth.errorResponse;
+
     if (request.method !== 'POST') return jsonRes({ error: 'Method not allowed' }, 405);
     let body: any = {};
     try { body = await request.json(); } catch {}
@@ -616,15 +623,18 @@ export async function handleAuthRequest(
 
   // POST /api/admin/revoke-admin - Demote administrator to normal user
   if (pathname === '/api/admin/revoke-admin' || pathname === '/auth/admin/revoke-admin') {
+    const adminAuth = await requireAdmin(request, env, corsHeaders);
+    if (adminAuth.errorResponse) return adminAuth.errorResponse;
+
     if (request.method !== 'POST') return jsonRes({ error: 'Method not allowed' }, 405);
     let body: any = {};
     try { body = await request.json(); } catch {}
     const { userId, email } = body;
     if (!userId && !email) return jsonRes({ error: 'userId or email is required' }, 400);
 
-    // Prevent demoting the root system admin
-    if (userId === 'usr_adm_default' || email === 'adm@wiki.local' || email === 'adm') {
-      return jsonRes({ error: 'Cannot demote the root system administrator account.' }, 403);
+    // Prevent caller from revoking their own administrator privileges
+    if ((userId && userId === adminAuth.user.id) || (email && email.toLowerCase().trim() === adminAuth.user.email.toLowerCase())) {
+      return jsonRes({ error: 'Cannot revoke your own administrator privileges.' }, 400);
     }
 
     try {
@@ -642,14 +652,18 @@ export async function handleAuthRequest(
 
   // POST /api/admin/delete-user - Delete a user from database
   if (pathname === '/api/admin/delete-user' || pathname === '/auth/admin/delete-user') {
+    const adminAuth = await requireAdmin(request, env, corsHeaders);
+    if (adminAuth.errorResponse) return adminAuth.errorResponse;
+
     if (request.method !== 'POST') return jsonRes({ error: 'Method not allowed' }, 405);
     let body: any = {};
     try { body = await request.json(); } catch {}
     const { userId, email } = body;
     if (!userId && !email) return jsonRes({ error: 'userId or email is required' }, 400);
 
-    if (userId === 'usr_adm_default' || email === 'adm@wiki.local' || email === 'adm') {
-      return jsonRes({ error: 'Cannot delete the root system administrator account.' }, 403);
+    // Prevent caller from deleting their own active administrator account
+    if ((userId && userId === adminAuth.user.id) || (email && email.toLowerCase().trim() === adminAuth.user.email.toLowerCase())) {
+      return jsonRes({ error: 'Cannot delete your own active administrator account.' }, 400);
     }
 
     try {
@@ -778,7 +792,7 @@ export async function handleAuthRequest(
     // Resolve safe avatar_url using our priority-based resolveAvatarUrl helper
     const finalAvatarUrl = resolveAvatarUrl(existingUser || { avatar_url: null, avatar_key: null, google_avatar_url: null });
 
-    const token = await createToken({ id: finalUserId, email: cleanEmail, is_admin: isAdmin });
+    const token = await createToken({ id: finalUserId, email: cleanEmail, is_admin: isAdmin }, env);
 
     return jsonRes({
       success: true,
@@ -855,7 +869,7 @@ export async function handleAuthRequest(
       }
     }
 
-    const token = await createToken({ id: userId || 'usr_' + cleanEmail, email: cleanEmail, is_admin: isAdmin });
+    const token = await createToken({ id: userId || 'usr_' + cleanEmail, email: cleanEmail, is_admin: isAdmin }, env);
 
     return jsonRes({
       success: true,
@@ -877,7 +891,10 @@ export async function handleAuthRequest(
     let body: any = {};
     try { body = await request.json(); } catch {}
     const toEmail = (body.to || 'enigmaxhd20@gmail.com').trim();
-    const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || DEFAULT_RESEND_API_KEY;
+    const apiKey = (env as any)?.RESEND_API_KEY || (typeof process !== 'undefined' && process.env?.RESEND_API_KEY) || '';
+    if (!apiKey) {
+      return jsonRes({ success: false, error: 'RESEND_API_KEY is not configured.' }, 500);
+    }
     const resendClient = new Resend(apiKey);
     try {
       const emailRes = await resendClient.emails.send({
@@ -1166,7 +1183,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
       }
     }, 3000);
 
-    const token = await createToken({ id: userId, email: cleanEmail, is_admin: isAdmin });
+    const token = await createToken({ id: userId, email: cleanEmail, is_admin: isAdmin }, env);
     const finalUserRecord = await env.mysql
       .prepare('SELECT id, username, email, is_admin, avatar_url, avatar_key, google_avatar_url FROM users WHERE id = ?')
       .bind(userId)
@@ -1268,7 +1285,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
       console.log('[Register DB Notice]', err?.message || err);
     }
 
-    const token = await createToken({ id: userId, email: cleanEmail, is_admin: 0 });
+    const token = await createToken({ id: userId, email: cleanEmail, is_admin: 0 }, env);
 
     // Explicitly return safe fields only (id, username, email, created_at) - never password_hash
     return jsonRes(
@@ -1360,7 +1377,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     }
 
     const isAdmin = user.is_admin || 0;
-    const token = await createToken({ id: user.id, email: user.email, is_admin: isAdmin });
+    const token = await createToken({ id: user.id, email: user.email, is_admin: isAdmin }, env);
     const resolvedAvatar = resolveAvatarUrl(user);
     const finalUsername = user.username || cleanEmail.split('@')[0];
 
@@ -1405,23 +1422,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
       return jsonRes({ success: false, message: 'Administrator username/email and password required.' }, 400);
     }
 
-    // 1. Check for the initial default root admin credentials ("adm" / "admin")
-    if ((identifier === 'adm' || identifier === 'admin') && password === 'admin') {
-      const defaultToken = await createToken({ id: 'usr_adm_default', email: 'adm@wiki.local', is_admin: 1 });
-      return jsonRes({
-        success: true,
-        token: defaultToken,
-        user: {
-          id: 'usr_adm_default',
-          username: 'adm',
-          email: 'adm@wiki.local',
-          is_admin: 1,
-        },
-        message: 'Administrator authentication successful (Default Admin).',
-      });
-    }
-
-    // 2. Lookup registered user in D1 database by email, username, or id
+    // Lookup registered user in D1 database by email, username, or id
     let user: any = null;
     try {
       user = await env.mysql
@@ -1437,19 +1438,19 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     }
 
     if (!user) {
-      return jsonRes({ success: false, message: 'Administrator account not found. Try initial credentials: adm / admin' }, 401);
+      return jsonRes({ success: false, message: 'Invalid administrator credentials.' }, 401);
     }
 
     const isMatch = await verifyPassword(password, user.password_hash);
     if (!isMatch) {
-      return jsonRes({ success: false, message: 'Incorrect administrator password.' }, 401);
+      return jsonRes({ success: false, message: 'Invalid administrator credentials.' }, 401);
     }
 
     if (user.is_admin !== 1) {
       return jsonRes({ success: false, message: 'Account does not have administrator privileges.' }, 403);
     }
 
-    const token = await createToken({ id: user.id, email: user.email, is_admin: 1 });
+    const token = await createToken({ id: user.id, email: user.email, is_admin: 1 }, env);
 
     return jsonRes({
       success: true,
