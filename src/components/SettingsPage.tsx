@@ -31,39 +31,7 @@ import {
 } from 'lucide-react';
 import { WikiApi } from '../lib/wikiApi';
 import { ImageCropper } from './ImageCropper';
-
-const PRESET_AVATARS = [
-  {
-    id: 'steve',
-    name: 'Steve',
-    url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'alex',
-    name: 'Alex',
-    url: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'creeper',
-    name: 'Creeper',
-    url: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'enderman',
-    name: 'Ender Mage',
-    url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'redstone',
-    name: 'Redstone Mech',
-    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'gold_apple',
-    name: 'Gold Apple',
-    url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=150&auto=format&fit=crop&q=80'
-  }
-];
+import { MINECRAFT_AVATARS } from '../utils/minecraftAvatars';
 
 const LANGUAGES = [
   { code: 'en', label: 'English (US)', flag: '🇺🇸' },
@@ -629,26 +597,31 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   {/* Avatar Picker & Upload */}
                   <div className="space-y-3">
                     <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">
-                      Choose Your Avatar
+                      Choose Your Minecraft Avatar Skin
                     </label>
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
-                      {PRESET_AVATARS.map((preset) => (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 max-h-48 overflow-y-auto p-1 bg-[#070a12] border border-slate-800 rounded-2xl">
+                      {MINECRAFT_AVATARS.map((preset) => (
                         <button
                           key={preset.id}
                           type="button"
                           onClick={() => {
                             if (onUpdateUserAvatar) onUpdateUserAvatar(preset.url);
                           }}
-                          className={`p-2 rounded-2xl border flex flex-col items-center gap-1.5 transition cursor-pointer group ${
+                          className={`p-1.5 rounded-xl border flex flex-col items-center gap-1 transition cursor-pointer group ${
                             effectiveAvatar === preset.url
-                              ? 'bg-sky-500/20 border-sky-400 shadow-md shadow-sky-500/20'
+                              ? 'bg-sky-500/20 border-sky-400 shadow-md shadow-sky-500/20 ring-2 ring-sky-400'
                               : 'bg-[#111827] border-slate-800 hover:border-slate-700'
                           }`}
                         >
-                          <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-900 border border-slate-800 group-hover:scale-105 transition">
-                            <img src={preset.url} alt={preset.name} className="w-full h-full object-cover" />
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 flex items-center justify-center">
+                            <img 
+                              src={preset.url} 
+                              alt={preset.name} 
+                              className="w-full h-full object-contain group-hover:scale-110 transition" 
+                              style={{ imageRendering: 'pixelated' }}
+                            />
                           </div>
-                          <span className="text-[10px] font-bold text-slate-300 truncate w-full text-center">{preset.name}</span>
+                          <span className="text-[9px] font-bold text-slate-300 truncate w-full text-center">{preset.name}</span>
                         </button>
                       ))}
                     </div>

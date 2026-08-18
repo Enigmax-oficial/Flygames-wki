@@ -579,6 +579,12 @@ export class WikiApi {
         console.warn('Update profile server warning:', errData.error || res.statusText);
         return false;
       }
+      const data = await res.json().catch(() => ({})) as any;
+      if (data?.googleAvatarUrl) {
+        try {
+          localStorage.setItem('etherium_google_avatar', data.googleAvatarUrl);
+        } catch {}
+      }
       return true;
     } catch (err) {
       console.warn('Update profile server failure:', err);

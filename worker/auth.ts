@@ -26,6 +26,18 @@ export function resolveAvatarUrl(user: { avatar_key?: string | null; google_avat
   }
   return null;
 }
+
+export async function cleanupExpiredVerifications(env: Env): Promise<void> {
+  try {
+    const nowIso = new Date().toISOString();
+    await env.mysql
+      .prepare("DELETE FROM email_verifications WHERE expires_at < ? OR expires_at < datetime('now')")
+      .bind(nowIso)
+      .run();
+  } catch (err) {
+    console.log('[D1 cleanup expired verifications notice]', err);
+  }
+}
 export interface UserPayload {
   id: string;
   email: string;
@@ -386,6 +398,7 @@ export async function handleAuthRequest(
         message: 'Profile updated successfully.',
         username: username !== undefined ? username.trim() : undefined,
         avatarUrl: returnedAvatarUrl,
+        googleAvatarUrl: finalGoogleAvatarUrl,
       });
     } catch (err: any) {
       console.log('[Update profile error]', err);
@@ -779,6 +792,7 @@ export async function handleAuthRequest(
         is_admin: isAdmin,
         created_at: createdAt,
         avatar_url: finalAvatarUrl,
+        google_avatar_url: existingUser?.google_avatar_url || picture || null,
       },
     });
   }
@@ -910,6 +924,8 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     if (!userId) {
       return jsonRes({ success: false, error: 'User ID is required' }, 400);
     }
+    // Clean up expired verification records
+    await cleanupExpiredVerifications(env);
     try {
       const entry = await env.mysql
         .prepare('SELECT email, username, temp_user_id, expires_at FROM email_verifications WHERE temp_user_id = ? OR email = ?')
@@ -944,6 +960,9 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     if (!email || typeof email !== 'string' || !email.includes('@')) {
       return jsonRes({ error: 'Valid email address is required' }, 400);
     }
+
+    // Clean up expired verification records automatically
+    await cleanupExpiredVerifications(env);
 
     const cleanEmail = email.trim().toLowerCase();
     const cleanUsername = (username || cleanEmail.split('@')[0]).trim();
@@ -982,7 +1001,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
       return jsonRes({ success: false, error: 'Failed to send verification email. Please try again.' }, 500);
     }
 
-    // Save pending credentials to D1 database email_verifications table
+    // Save pending credentials to D1 database email_verifications table with 5-minute expiration
     try {
       await env.mysql
         .prepare(
@@ -994,7 +1013,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
           cleanUsername,
           passwordHash,
           new Date().toISOString(),
-          new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+          new Date(Date.now() + 5 * 60 * 1000).toISOString(),
           tempUserId
         )
         .run();
@@ -1016,9 +1035,20 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     if (request.method !== 'POST') {
       return jsonRes({ error: 'Method not allowed' }, 405);
     }
-    let body: any = {};
-    try { body = await request.json(); } catch { return jsonRes({ error: 'Invalid JSON' }, 400); }
-    const { email } = body;
+    let email = '';
+    try {
+      const rawText = await request.text();
+      if (rawText) {
+        const parsed = JSON.parse(rawText);
+        email = parsed.email || '';
+      }
+    } catch {
+      // Ignored if empty body
+    }
+
+    // Clean up expired verification records
+    await cleanupExpiredVerifications(env);
+
     if (email) {
       try {
         await env.mysql
@@ -1048,14 +1078,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
     const cleanCode = String(code).trim();
 
     // Clean up expired email_verifications records automatically
-    try {
-      await env.mysql
-        .prepare('DELETE FROM email_verifications WHERE expires_at < ?')
-        .bind(new Date().toISOString())
-        .run();
-    } catch (err) {
-      console.log('[D1 cleanup expired verifications error]', err);
-    }
+    await cleanupExpiredVerifications(env);
 
     let isValid = false;
     let savedUsername = (username || cleanEmail.split('@')[0]).trim();
@@ -1131,7 +1154,6 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
       }
     }
 
-    // If a new verified user record is created, we don't need map logic.
     // Invalidate the record in email_verifications table after a 3-second delay
     setTimeout(async () => {
       try {
@@ -1167,6 +1189,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
         email_verified: 1,
         created_at: now,
         avatar_url: finalResolvedAvatar,
+        google_avatar_url: finalUserRecord?.google_avatar_url || null,
       },
     });
   }
@@ -1352,6 +1375,7 @@ function isPasswordStrong(password: string): { strong: boolean; error?: string }
         email: user.email,
         is_admin: isAdmin,
         avatar_url: resolvedAvatar,
+        google_avatar_url: user.google_avatar_url || null,
       },
     });
   }

@@ -3,62 +3,25 @@ import {
   CheckCircle2, 
   AlertCircle, 
   ArrowLeft, 
-  Box, 
   Mail, 
   Lock, 
   User, 
   Eye, 
   EyeOff, 
   LogIn, 
-  Sparkles, 
   Send, 
   RefreshCw, 
   CheckCheck,
-  Copy,
-  Check,
   ArrowRight,
   Upload,
   Camera,
-  ShieldCheck,
   Edit2
 } from 'lucide-react';
 import { GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
 import { motion, AnimatePresence } from 'motion/react';
 import { ImageCropper } from './ImageCropper';
-
-const PRESET_AVATARS = [
-  {
-    id: 'steve',
-    name: 'Steve',
-    url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'alex',
-    name: 'Alex',
-    url: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'creeper',
-    name: 'Creeper',
-    url: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'enderman',
-    name: 'Ender Mage',
-    url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'redstone',
-    name: 'Redstone Mech',
-    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'gold_apple',
-    name: 'Gold Apple',
-    url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=150&auto=format&fit=crop&q=80'
-  }
-];
+import { MINECRAFT_AVATARS } from '../utils/minecraftAvatars';
 
 type AuthPageStep = 
   | 'initial_email'        // 1. Initial Screen: Google Login at Top + Standard Email Input
@@ -66,7 +29,7 @@ type AuthPageStep =
   | 'register_name'        // Account Creation Step 1: User's Name / Username
   | 'register_password'    // Account Creation Step 2: Set & Confirm Password
   | 'register_avatar'      // Account Creation Final Step: Profile Picture Selection & Customization
-  | 'verify_email'         // Resulting Page: Unique User Code + 6-digit Email Verification
+  | 'verify_email'         // Resulting Page: 6-digit Email Verification
   | 'set_google_password'; // Google User Password setup if needed
 
 interface LoginPageProps {
@@ -92,9 +55,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState(PRESET_AVATARS[0].url);
+  const [avatarUrl, setAvatarUrl] = useState(MINECRAFT_AVATARS[0].url);
+  const [selectedAvatarId, setSelectedAvatarId] = useState(MINECRAFT_AVATARS[0].id);
   const [showPassword, setShowPassword] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
 
   // Recognized user state from email check
   const [existingAccountDetails, setExistingAccountDetails] = useState<{
@@ -147,16 +110,32 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   }, [initialVerificationId]);
 
-  // Cancel pending verification on unmount if not completed
+  // Cancel pending verification on unload or unmount if not completed
   useEffect(() => {
-    return () => {
+    const cancelPendingVerification = () => {
       if (currentStep === 'verify_email' && email) {
-        fetch('/api/auth/cancel-verification', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        }).catch(() => {});
+        const payload = JSON.stringify({ email: email.trim().toLowerCase() });
+        if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+          const blob = new Blob([payload], { type: 'application/json' });
+          navigator.sendBeacon('/api/auth/cancel-verification', blob);
+        } else {
+          fetch('/api/auth/cancel-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            keepalive: true,
+          }).catch(() => {});
+        }
       }
+    };
+
+    window.addEventListener('beforeunload', cancelPendingVerification);
+    window.addEventListener('pagehide', cancelPendingVerification);
+
+    return () => {
+      window.removeEventListener('beforeunload', cancelPendingVerification);
+      window.removeEventListener('pagehide', cancelPendingVerification);
+      cancelPendingVerification();
     };
   }, [currentStep, email]);
 
@@ -201,7 +180,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         setCurrentStep('login_password');
       } else {
         // New User -> Route directly to Account Creation Step 1 (Username) with pre-filled email
-        // Auto-suggest a default username based on the email prefix if not already set
         if (!username) {
           const suggested = cleanEmail.split('@')[0];
           setUsername(suggested.charAt(0).toUpperCase() + suggested.slice(1));
@@ -209,7 +187,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         setCurrentStep('register_name');
       }
     } catch {
-      // If check fails due to network, default directly to account creation step 1
       setCurrentStep('register_name');
     } finally {
       setIsLoading(false);
@@ -407,7 +384,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
         }
 
         setSuccess(true);
-        setSuccessMessage('Account verified successfully! Welcome to Addon Wiki.');
+        setSuccessMessage('Account verified successfully! Welcome to the Wiki.');
         setTimeout(() => {
           onLoginSuccess(
             data.user?.username || username || email.split('@')[0],
@@ -480,7 +457,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       const data = await res.json() as any;
 
       let name = 'User';
-      let emailVal = 'user@addonwiki.local';
+      let emailVal = 'user@minecraft.local';
       let isAdmin = false;
       let googleAvatar: string | null = null;
 
@@ -603,13 +580,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   };
 
-  const handleCopyCode = () => {
-    if (!verificationUserId) return;
-    navigator.clipboard.writeText(`login/account/${verificationUserId}`);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2500);
-  };
-
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -621,6 +591,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
     }
   };
 
+  // Find current avatar metadata
+  const currentAvatarMeta = MINECRAFT_AVATARS.find(a => a.id === selectedAvatarId);
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 bg-[#05070a] font-sans h-full min-h-[calc(100vh-64px)] relative overflow-hidden">
       {/* Image Cropper Modal */}
@@ -629,6 +602,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           imageSrc={selectedImageForCrop}
           onCropComplete={(croppedBase64) => {
             setAvatarUrl(croppedBase64);
+            setSelectedAvatarId('custom_upload');
             setSelectedImageForCrop(null);
           }}
           onCancel={() => setSelectedImageForCrop(null)}
@@ -636,38 +610,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       )}
 
       {/* Atmospheric Background Ambient Lighting */}
-      <div className="absolute inset-0 z-0 opacity-25 pointer-events-none">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[radial-gradient(circle_at_50%_50%,#0284c7_0%,transparent_70%)]" />
-        <div className="absolute bottom-10 right-10 w-80 h-80 bg-[radial-gradient(circle_at_50%_50%,#3b82f6_0%,transparent_70%)]" />
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] h-[480px] bg-[radial-gradient(circle_at_50%_50%,#0284c7_0%,transparent_70%)]" />
       </div>
 
       <div className="z-10 w-full max-w-md my-auto space-y-4">
-        {/* Main Authentication Card */}
+        {/* Main Authentication Card - Clean & Space-Optimized */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.98, y: 8 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           className="bg-[#0b0f19]/95 backdrop-blur-xl border border-slate-800/80 rounded-3xl shadow-2xl overflow-hidden"
         >
-          {/* Header Brand */}
-          <div className="p-6 pb-4 text-center border-b border-slate-800/50 bg-[#0d1322]/50">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-2xl bg-sky-500 flex items-center justify-center shadow-lg shadow-sky-500/25">
-                <Box className="w-7 h-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-black text-white tracking-tighter uppercase italic">
-                  Addon <span className="text-sky-400">Wiki</span>
-                </h1>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-1.5 mt-0.5">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  Minecraft Portal Authentication
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Form Content Pages */}
-          <div className="p-6 pt-5 flex flex-col justify-center relative">
+          <div className="p-6 sm:p-7 flex flex-col justify-center relative">
             <AnimatePresence mode="wait">
               {success ? (
                 <motion.div 
@@ -681,7 +636,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     <CheckCircle2 className="w-7 h-7 text-emerald-400" />
                   </div>
                   <h4 className="text-lg font-black text-white">{successMessage || 'Signed In Successfully'}</h4>
-                  <p className="text-xs text-slate-400">Loading portal workspace...</p>
+                  <p className="text-xs text-slate-400">Loading your profile...</p>
                 </motion.div>
               ) : currentStep === 'initial_email' ? (
                 // =========================================================
@@ -696,10 +651,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 >
                   {/* "Log in with Google" Button at the TOP */}
                   <div className="space-y-2">
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 text-center">
+                    <div className="text-[11px] font-black text-slate-400 uppercase tracking-wider text-center">
                       Fast One-Click Sign In
                     </div>
-                    <div className="flex justify-center w-full min-h-[44px]">
+                    <div className="w-full flex justify-center items-center min-h-[52px] sm:min-h-[54px] rounded-2xl overflow-hidden [&>div]:!w-full [&_iframe]:!w-full [&_iframe]:!min-h-[50px] shadow-md transition hover:ring-2 hover:ring-sky-400/40">
                       <GoogleLogin
                         onSuccess={handleGoogleSuccess}
                         onError={() => setErrorMessage('Google Sign-In was unsuccessful.')}
@@ -783,16 +738,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <img 
                           src={existingAccountDetails.avatarUrl} 
                           alt="Avatar" 
-                          className="w-8 h-8 rounded-lg object-cover border border-sky-500/30 shrink-0" 
+                          className="w-9 h-9 rounded-lg object-cover border border-sky-500/30 shrink-0" 
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
+                        <div className="w-9 h-9 rounded-lg bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
                           <User className="w-4 h-4" />
                         </div>
                       )}
                       <div className="truncate">
                         <div className="text-xs font-bold text-white truncate">
-                          {existingAccountDetails?.username || 'Existing Account'}
+                          {existingAccountDetails?.username || 'Welcome Back'}
                         </div>
                         <div className="text-[11px] text-slate-400 truncate">{email}</div>
                       </div>
@@ -883,7 +838,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   exit={{ opacity: 0, x: -12 }}
                   className="space-y-4"
                 >
-                  {/* Account Header */}
                   <div className="space-y-1 text-center">
                     <h3 className="text-base font-black text-white tracking-tight">Create your account</h3>
                     <p className="text-xs text-slate-400">
@@ -1032,7 +986,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </motion.div>
               ) : currentStep === 'register_avatar' ? (
                 // =========================================================
-                // ACCOUNT CREATION FINAL STEP: PROFILE CUSTOMIZATION
+                // ACCOUNT CREATION FINAL STEP: MINECRAFT AVATAR CUSTOMIZATION
                 // =========================================================
                 <motion.div
                   key="register_avatar_page"
@@ -1042,9 +996,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   className="space-y-4"
                 >
                   <div className="space-y-1 text-center">
-                    <h3 className="text-base font-black text-white tracking-tight">Customize your avatar</h3>
+                    <h3 className="text-base font-black text-white tracking-tight">Choose your avatar</h3>
                     <p className="text-xs text-slate-400">
-                      Pick a voxel avatar or upload a custom photo.
+                      Pick an authentic Minecraft skin or upload a custom photo.
                     </p>
                   </div>
 
@@ -1057,12 +1011,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
                   <form onSubmit={handleCompleteRegistration} className="space-y-4">
                     {/* Active Selected Avatar Showcase */}
-                    <div className="flex flex-col items-center justify-center py-2">
+                    <div className="flex flex-col items-center justify-center py-1">
                       <div className="relative group">
                         <img 
                           src={avatarUrl} 
                           alt="Selected Avatar" 
-                          className="w-20 h-20 rounded-2xl object-cover border-2 border-sky-400 shadow-xl shadow-sky-500/20 ring-4 ring-sky-500/20" 
+                          className="w-20 h-20 rounded-2xl object-cover border-2 border-sky-400 shadow-xl shadow-sky-500/20 ring-4 ring-sky-500/20 bg-[#070a12]" 
+                          style={{ imageRendering: 'pixelated' }}
                         />
                         <button
                           type="button"
@@ -1073,24 +1028,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                           <Camera className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <div className="text-[11px] font-bold text-white mt-2 flex items-center gap-1.5">
-                        <span>{username}</span>
-                        <span className="text-slate-500">•</span>
-                        <span className="text-slate-400 font-mono text-[10px]">{email}</span>
+                      <div className="text-xs font-bold text-white mt-2 flex items-center gap-1.5">
+                        <span className="text-sky-300">{currentAvatarMeta?.name || username}</span>
+                        <span className="text-slate-600">•</span>
+                        <span className="text-slate-400 font-mono text-[11px]">{email}</span>
                       </div>
                     </div>
 
-                    {/* Voxel Presets Selector */}
-                    <div className="space-y-1.5">
+                    {/* Minecraft Avatar Selection Grid */}
+                    <div className="space-y-2">
                       <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 px-1">
-                        <span>Voxel Presets</span>
+                        <span>Minecraft Skins & Mobs</span>
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
                           className="text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <Upload className="w-3 h-3" />
-                          <span>Upload Photo</span>
+                          <span>Custom Image</span>
                         </button>
                       </div>
                       <input 
@@ -1100,25 +1055,37 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         accept="image/*" 
                         className="hidden" 
                       />
-                      <div className="grid grid-cols-6 gap-1.5">
-                        {PRESET_AVATARS.map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => setAvatarUrl(p.url)}
-                            className={`p-1 rounded-xl border transition cursor-pointer overflow-hidden ${
-                              avatarUrl === p.url
-                                ? 'bg-sky-500/20 border-sky-400 ring-2 ring-sky-500/40'
-                                : 'bg-[#070a12] border-slate-800 hover:border-slate-700'
-                            }`}
-                          >
-                            <img src={p.url} alt={p.name} className="w-full h-8 object-cover rounded-lg" />
-                          </button>
-                        ))}
+                      <div className="grid grid-cols-6 gap-1.5 p-2 bg-[#070a12] border border-slate-800/80 rounded-2xl max-h-36 overflow-y-auto">
+                        {MINECRAFT_AVATARS.map((p) => {
+                          const isSelected = avatarUrl === p.url;
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => {
+                                setAvatarUrl(p.url);
+                                setSelectedAvatarId(p.id);
+                              }}
+                              title={p.name}
+                              className={`p-1 rounded-xl border transition cursor-pointer relative group flex flex-col items-center justify-center ${
+                                isSelected
+                                  ? 'bg-sky-500/25 border-sky-400 ring-2 ring-sky-500/50'
+                                  : 'bg-[#0e1422] border-slate-800 hover:border-slate-600'
+                              }`}
+                            >
+                              <img 
+                                src={p.url} 
+                                alt={p.name} 
+                                className="w-full aspect-square object-contain rounded-lg" 
+                                style={{ imageRendering: 'pixelated' }}
+                              />
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2 pt-1">
                       <button
                         type="button"
                         onClick={() => {
@@ -1139,7 +1106,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         ) : (
                           <>
                             <Send className="w-4 h-4" />
-                            <span>Complete & Send Code</span>
+                            <span>Create Account</span>
                           </>
                         )}
                       </button>
@@ -1148,7 +1115,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </motion.div>
               ) : currentStep === 'verify_email' ? (
                 // =========================================================
-                // RESULTING PAGE: UNIQUE USER CODE & EMAIL VERIFICATION
+                // RESULTING PAGE: CLEAN EMAIL VERIFICATION (NO LINK DISPLAY)
                 // =========================================================
                 <motion.div
                   key="verify_email_page"
@@ -1157,40 +1124,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                   exit={{ opacity: 0 }}
                   className="space-y-4"
                 >
-                  {/* Unique User Code Card */}
-                  <div className="p-4 rounded-2xl bg-sky-950/40 border border-sky-500/30 text-center space-y-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center mx-auto border border-sky-500/30">
+                  {/* Clean Verification Header - No link box */}
+                  <div className="p-4 rounded-2xl bg-sky-950/30 border border-sky-500/25 text-center space-y-2">
+                    <div className="w-11 h-11 rounded-2xl bg-sky-500/15 text-sky-400 flex items-center justify-center mx-auto border border-sky-500/30 shadow-lg shadow-sky-500/10">
                       <Mail className="w-5 h-5" />
                     </div>
 
                     <div className="space-y-0.5">
-                      <h3 className="text-sm font-bold text-white">Account Created & Code Sent</h3>
+                      <h3 className="text-sm font-black text-white">Enter Verification Code</h3>
                       <p className="text-xs text-slate-400">
-                        We sent a 6-digit code to <span className="text-sky-300 font-mono font-bold">{email}</span>.
+                        We sent a 6-digit security code to <span className="text-sky-300 font-mono font-bold">{email}</span>.
                       </p>
                     </div>
-
-                    {/* Unique Generated Code Badge */}
-                    {verificationUserId && (
-                      <div className="pt-2 border-t border-sky-500/20">
-                        <div className="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                          Generated Account Link / ID
-                        </div>
-                        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-[#070a12] border border-sky-500/30 text-xs font-mono text-sky-300">
-                          <span className="truncate select-all">
-                            login/account/<span className="text-emerald-400 font-bold">{verificationUserId}</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={handleCopyCode}
-                            className="p-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 hover:text-white transition cursor-pointer shrink-0"
-                            title="Copy Account Code Link"
-                          >
-                            {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {errorMessage && (
@@ -1218,7 +1163,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         placeholder="123456"
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                        className="w-full text-center font-mono text-2xl tracking-[0.35em] py-3 bg-[#070a12] border border-sky-500/40 rounded-xl text-white focus:outline-none focus:border-sky-400 transition"
+                        className="w-full text-center font-mono text-2xl tracking-[0.35em] py-3 bg-[#070a12] border border-sky-500/40 rounded-xl text-white focus:outline-none focus:border-sky-400 transition placeholder:text-slate-700"
                         autoFocus
                       />
                     </div>
@@ -1229,7 +1174,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       className="w-full py-3 bg-sky-500 hover:bg-sky-400 disabled:bg-slate-800 disabled:text-slate-500 text-black font-extrabold rounded-xl text-xs sm:text-sm transition cursor-pointer shadow-lg shadow-sky-500/20 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCheck className="w-4 h-4" />}
-                      <span>Verify & Complete Registration</span>
+                      <span>Verify & Finish</span>
                     </button>
                   </form>
 
@@ -1237,7 +1182,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        if (email) {
+                          const payload = JSON.stringify({ email: email.trim().toLowerCase() });
+                          fetch('/api/auth/cancel-verification', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: payload,
+                          }).catch(() => {});
+                        }
                         setErrorMessage('');
+                        setSuccessMessage('');
                         setCurrentStep('initial_email');
                       }}
                       className="text-slate-400 hover:text-white font-bold cursor-pointer"
@@ -1259,16 +1213,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 // GOOGLE ACCOUNT PASSWORD SETUP
                 // =========================================================
                 <motion.div
-                  key="set_google_password_page"
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0 }}
+                  key="google_password_page"
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -12 }}
                   className="space-y-4"
                 >
-                  <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/30 text-center space-y-1">
-                    <h3 className="text-sm font-bold text-white">Create Wiki Password</h3>
+                  <div className="space-y-1 text-center">
+                    <h3 className="text-base font-black text-white">Set Account Password</h3>
                     <p className="text-xs text-slate-400">
-                      Set a password for your account <span className="text-sky-300 font-bold">{pendingGoogleUser?.email}</span> to enable direct logins.
+                      Set a password for your account linked to <span className="text-sky-300 font-medium">{pendingGoogleUser?.email}</span>.
                     </p>
                   </div>
 
@@ -1279,21 +1233,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     </div>
                   )}
 
-                  <form onSubmit={handleSetGooglePassword} className="space-y-3">
-                    <div className="space-y-1">
+                  <form onSubmit={handleSetGooglePassword} className="space-y-3.5">
+                    <div className="space-y-1.5">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                        New Password
+                        Create Password
                       </label>
                       <div className="relative">
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <input
                           type={showGooglePassword ? 'text' : 'password'}
+                          placeholder="At least 6 characters"
                           value={googlePassword}
                           onChange={(e) => setGooglePassword(e.target.value)}
-                          placeholder="••••••••"
                           required
+                          autoFocus
                           minLength={6}
-                          className="w-full pl-10 pr-10 py-2.5 bg-[#070a12] border border-slate-800 rounded-xl text-white text-xs sm:text-sm focus:outline-none focus:border-sky-500"
+                          className="w-full pl-10 pr-10 py-3 bg-[#070a12] border border-slate-800 rounded-xl text-white text-xs sm:text-sm focus:outline-none focus:border-sky-500 transition placeholder:text-slate-600"
                         />
                         <button
                           type="button"
@@ -1305,7 +1260,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                       </div>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
                         Confirm Password
                       </label>
@@ -1313,12 +1268,12 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                         <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                         <input
                           type={showGooglePassword ? 'text' : 'password'}
+                          placeholder="Re-enter password"
                           value={confirmGooglePassword}
                           onChange={(e) => setConfirmGooglePassword(e.target.value)}
-                          placeholder="••••••••"
                           required
                           minLength={6}
-                          className="w-full pl-10 pr-4 py-2.5 bg-[#070a12] border border-slate-800 rounded-xl text-white text-xs sm:text-sm focus:outline-none focus:border-sky-500"
+                          className="w-full pl-10 pr-4 py-3 bg-[#070a12] border border-slate-800 rounded-xl text-white text-xs sm:text-sm focus:outline-none focus:border-sky-500 transition placeholder:text-slate-600"
                         />
                       </div>
                     </div>
@@ -1326,28 +1281,29 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="w-full py-3 bg-sky-500 hover:bg-sky-400 text-black font-extrabold rounded-xl text-xs sm:text-sm transition cursor-pointer shadow-lg shadow-sky-500/20"
+                      className="w-full py-3 bg-sky-500 hover:bg-sky-400 disabled:bg-slate-800 disabled:text-slate-500 text-black font-extrabold rounded-xl text-xs sm:text-sm transition cursor-pointer shadow-lg shadow-sky-500/20 active:scale-[0.98] flex items-center justify-center gap-2"
                     >
-                      {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto" /> : 'Save Password & Sign In'}
+                      {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                      <span>Save Password & Continue</span>
                     </button>
                   </form>
                 </motion.div>
               ) : null}
             </AnimatePresence>
           </div>
-
-          {/* Footer Back to Portal button */}
-          <div className="p-4 bg-[#070a12] border-t border-slate-800/80 text-center">
-            <button
-              type="button"
-              onClick={onBack}
-              className="text-xs text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Portal</span>
-            </button>
-          </div>
         </motion.div>
+
+        {/* Back to Portal Action */}
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={onBack}
+            className="text-xs font-bold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 mx-auto cursor-pointer py-1"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Portal</span>
+          </button>
+        </div>
       </div>
     </div>
   );

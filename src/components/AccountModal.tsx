@@ -29,39 +29,7 @@ import {
 import { WikiPage } from '../types/wiki';
 import { WikiIcon } from './WikiIcon';
 import { WikiApi } from '../lib/wikiApi';
-
-const PRESET_AVATARS = [
-  {
-    id: 'steve',
-    name: 'Steve',
-    url: 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'alex',
-    name: 'Alex',
-    url: 'https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'creeper',
-    name: 'Creeper',
-    url: 'https://images.unsplash.com/photo-1627856013091-fed6e4e30025?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'enderman',
-    name: 'Ender Mage',
-    url: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'redstone',
-    name: 'Redstone Mech',
-    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=80'
-  },
-  {
-    id: 'gold_apple',
-    name: 'Gold Apple',
-    url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=150&auto=format&fit=crop&q=80'
-  }
-];
+import { MINECRAFT_AVATARS } from '../utils/minecraftAvatars';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -487,23 +455,28 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
                 {/* Preset Avatars Grid */}
                 <div className="space-y-2.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Voxel & Addon Presets</span>
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
-                    {PRESET_AVATARS.map((preset) => {
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">Minecraft Avatar Skins</span>
+                  <div className="grid grid-cols-4 sm:grid-cols-6 gap-2.5 max-h-48 overflow-y-auto p-1 bg-[#070a12] border border-[#1e293b] rounded-2xl">
+                    {MINECRAFT_AVATARS.map((preset) => {
                       const isSelected = userAvatar === preset.url;
                       return (
                         <button
                           key={preset.id}
                           onClick={() => onUpdateUserAvatar && onUpdateUserAvatar(preset.url)}
-                          className={`relative group p-1 rounded-xl bg-[#0b0f19] border transition flex flex-col items-center gap-1.5 cursor-pointer ${
+                          className={`relative group p-1.5 rounded-xl bg-[#0b0f19] border transition flex flex-col items-center gap-1 cursor-pointer ${
                             isSelected 
-                              ? 'border-sky-500 bg-sky-950/20 shadow-[0_0_12px_rgba(14,165,233,0.15)] ring-1 ring-sky-500' 
-                              : 'border-[#1e293b] hover:border-[#334155]'
+                              ? 'border-sky-500 bg-sky-950/40 shadow-[0_0_12px_rgba(14,165,233,0.2)] ring-2 ring-sky-400' 
+                              : 'border-[#1e293b] hover:border-slate-600'
                           }`}
                           title={preset.name}
                         >
-                          <div className="w-12 h-12 rounded-lg overflow-hidden relative">
-                            <img src={preset.url} alt={preset.name} className="w-full h-full object-cover transition duration-300 group-hover:scale-110" />
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg overflow-hidden relative flex items-center justify-center">
+                            <img 
+                              src={preset.url} 
+                              alt={preset.name} 
+                              className="w-full h-full object-contain transition duration-200 group-hover:scale-110" 
+                              style={{ imageRendering: 'pixelated' }}
+                            />
                             {isSelected && (
                               <div className="absolute inset-0 bg-sky-500/20 flex items-center justify-center">
                                 <div className="bg-sky-500 text-black rounded-full p-0.5 shadow">
